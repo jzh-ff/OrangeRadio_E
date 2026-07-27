@@ -423,7 +423,7 @@ async function restartForAppliedPatch() {
       return;
     }
   } catch (e) { }
-  showToast('请手动重启 Mineradio 让补丁生效');
+  showToast('请手动重启 OrangeSea 让补丁生效');
 }
 
 async function openDownloadedUpdateInstaller(filePath) {

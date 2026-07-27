@@ -188,7 +188,7 @@ async function handleLyricFontFiles(files) {
     var record = normalizeCustomLyricFontRecord({
       id: id,
       name: normalizeCustomLyricFontName(file.name),
-      family: 'MineradioCustomLyricFont-' + id,
+      family: 'OrangeSeaCustomLyricFont-' + id,
       dataUrl: dataUrl,
       size: file.size,
       savedAt: Date.now()

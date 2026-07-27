@@ -701,7 +701,7 @@ function renderAudioOutputDeviceUi() {
   if (workflowSubtitle) workflowSubtitle.textContent = summaryText;
   list.innerHTML =
     '<button class="audio-output-summary-card" type="button" onclick="openAudioOutputWorkflowPanel()">' +
-      '<span class="route-node-icon">MR</span>' +
+      '<span class="route-node-icon">OS</span>' +
       '<span class="audio-output-summary-copy"><b>' + escHtml(summaryText) + '</b><small>' +
         escHtml((activePrimary ? '主输出已指定' : '主输出使用系统默认') + ' / 镜像监听 ' + mirrorStateLabel + ' / 桥接 ' + (bridgeEnabled ? '开启' : '关闭')) +
       '</small></span>' +

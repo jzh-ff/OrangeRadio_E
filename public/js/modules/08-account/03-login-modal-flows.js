@@ -493,7 +493,7 @@ function selectLoginMode(mode) {
 }
 function startSelectedLoginConnection() {
   if (!hasLoginWorkflowConnection(loginProvider) && loginWorkflowPendingProvider !== loginProvider) {
-    showToast('先把左侧接口拖到 MR 接入口');
+    showToast('先把左侧接口拖到 OS 接入口');
     return;
   }
   setLoginAuthDrawerOpen(true);
