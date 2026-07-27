@@ -30,3 +30,20 @@ Mineradio 名称、MR Logo、界面视觉设计、启动动画方向、粒子视
 emily 作为 Mineradio 早期视觉底层想法与 `emily` 视觉预设改进方向的共创者和灵感来源之一，特此致谢。
 
 感谢小天才e宝、应春日、锋将军、軌跡、林中、骊、风痕、花椰菜🥦在早期体验、测试反馈和发布准备中的帮助。
+
+---
+
+## Derivative Work: OrangeSea（橘子海）
+
+OrangeSea is a derivative work based on Mineradio 2.0.2 by XxHuberrr,
+licensed under GPL-3.0. The original project: https://github.com/XxHuberrr/Mineradio
+
+"Mineradio" name, MR Logo and original visual expressions belong to the original author.
+OrangeSea uses its own brand identity and does not use the Mineradio name or logo as its own.
+
+Modifications (Phase 1 - Rebrand):
+- Rebranded application identity to OrangeSea / 橘子海
+- Separated user data directory (%AppData%\OrangeSea) and cache directory (D:\OrangeSeaCache)
+- Replaced application icon and installer artwork with original designs
+- Disabled upstream update channel (pointed at original author's repository)
+- Renamed localStorage namespace and internal bridge globals
