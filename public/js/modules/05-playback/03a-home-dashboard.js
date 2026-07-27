@@ -39,7 +39,7 @@ var HOME_DASHBOARD_REVIEW_DEFAULTS = [
   { text: '错过落日余晖，还会有满天星辰。', source: '每日热评' },
   { text: '保持热爱，奔赴下一场山海。', source: '每日热评' },
   { text: '答案在路上，自由在风里。', source: '每日热评' },
-  { text: '让今天的声音，从你喜欢的地方开始。', source: 'Mineradio' },
+  { text: '让今天的声音，从你喜欢的地方开始。', source: 'OrangeSea' },
 ];
 
 function homeDashboardSvgText(text) {
@@ -109,7 +109,7 @@ function homeDashboardDayNumber() {
 
 function homeDashboardSelectedReview() {
   var reviews = homeDashboardReadReviews();
-  if (!reviews.length) return { text: '让今天的声音，从你喜欢的地方开始。', source: 'Mineradio' };
+  if (!reviews.length) return { text: '让今天的声音，从你喜欢的地方开始。', source: 'OrangeSea' };
   var index = ((homeDashboardDayNumber() + homeDashboardReviewOffset) % reviews.length + reviews.length) % reviews.length;
   return reviews[index];
 }
@@ -565,7 +565,7 @@ function renderHomeDashboardQuickCards() {
     {
       label: 'DAILY MIX',
       title: '每日推荐',
-      sub: daily ? ((daily.name || daily.title || '今日歌曲') + (homeDashboardSubtitle(daily) ? ' · ' + homeDashboardSubtitle(daily) : '')) : '使用当前 Mineradio 推荐数据',
+      sub: daily ? ((daily.name || daily.title || '今日歌曲') + (homeDashboardSubtitle(daily) ? ' · ' + homeDashboardSubtitle(daily) : '')) : '使用当前 OrangeSea 推荐数据',
       cover: homeDashboardSongCover(daily, 260),
       action: 'playHomeDaily()',
       tone: 'mix',
@@ -760,7 +760,7 @@ function renderHomeDashboardDiscovery() {
     return '<button class="home-discovery-song" type="button" onclick="playHomeDashboardDiscoverySong(' + index + ')">' +
       '<span class="home-discovery-cover"' + coverStyle + '></span>' +
       '<span class="home-discovery-song-copy"><span class="home-discovery-song-name">' + escHtml(song.name || song.title || '未知歌曲') + '</span>' +
-      '<span class="home-discovery-song-artist">' + escHtml(homeDashboardSubtitle(song) || 'Mineradio 推荐') + '</span></span></button>';
+      '<span class="home-discovery-song-artist">' + escHtml(homeDashboardSubtitle(song) || 'OrangeSea 推荐') + '</span></span></button>';
   }).join('');
 }
 

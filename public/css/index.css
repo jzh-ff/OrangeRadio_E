@@ -330,12 +330,12 @@ html.desktop-shell-root body {
 :root {
   --saved-panel-glass-bg: rgba(0, 0, 0, .10);
   --saved-panel-glass-filter: blur(12px) saturate(1.8) brightness(1.16);
-  --saved-panel-glass-svg-filter: url(#mineradio-control-glass-filter) saturate(1);
+  --saved-panel-glass-svg-filter: url(#orangesea-control-glass-filter) saturate(1);
   --saved-panel-glass-shadow: inset 0 0 2px 1px rgba(255, 255, 255, .35), inset 0 0 10px 4px rgba(255, 255, 255, .15), 0 4px 16px rgba(17, 17, 26, .05), 0 8px 24px rgba(17, 17, 26, .05), 0 16px 56px rgba(17, 17, 26, .05), inset 0 4px 16px rgba(17, 17, 26, .05), inset 0 8px 24px rgba(17, 17, 26, .05), inset 0 16px 56px rgba(17, 17, 26, .05);
   --saved-panel-glass-radius: 50px;
   --saved-button-glass-bg: rgba(0, 0, 0, .10);
   --saved-button-glass-filter: blur(12px) saturate(1.8) brightness(1.16);
-  --saved-button-glass-svg-filter: url(#mineradio-control-glass-filter) saturate(1);
+  --saved-button-glass-svg-filter: url(#orangesea-control-glass-filter) saturate(1);
   --saved-button-glass-shadow: inset 0 0 2px 1px rgba(255, 255, 255, .34), inset 0 0 10px 4px rgba(255, 255, 255, .13), 0 10px 30px rgba(0, 0, 0, .18);
   --saved-button-glass-hover-bg: rgba(255, 255, 255, .055);
   --saved-button-glass-hover-shadow: inset 0 0 2px 1px rgba(255, 255, 255, .42), inset 0 0 12px 5px rgba(255, 255, 255, .17), 0 12px 34px rgba(0, 0, 0, .22), 0 0 18px rgba(255, 255, 255, .06)
@@ -4972,8 +4972,8 @@ html.control-glass-svg-ok #bottom-bar {
 
 html.control-glass-svg-ok #bottom-bar.visible {
   background: rgba(0, 0, 0, .10);
-  backdrop-filter: url(#mineradio-control-glass-filter) saturate(1);
-  -webkit-backdrop-filter: url(#mineradio-control-glass-filter) saturate(1)
+  backdrop-filter: url(#orangesea-control-glass-filter) saturate(1);
+  -webkit-backdrop-filter: url(#orangesea-control-glass-filter) saturate(1)
 }
 
 #bottom-bar.soft-hidden {
@@ -15440,8 +15440,8 @@ html.control-glass-svg-ok #top-right #user-btn.multi-account:hover {
 }
 
 html.control-glass-svg-ok .top-account-pill::before {
-  backdrop-filter: url(#mineradio-account-pill-glass-filter) saturate(1) !important;
-  -webkit-backdrop-filter: url(#mineradio-account-pill-glass-filter) saturate(1) !important;
+  backdrop-filter: url(#orangesea-account-pill-glass-filter) saturate(1) !important;
+  -webkit-backdrop-filter: url(#orangesea-account-pill-glass-filter) saturate(1) !important;
 }
 
 html.control-glass-svg-ok .search-mode-tabs button,
@@ -15450,8 +15450,8 @@ html.control-glass-svg-ok .search-history-chip {
   border-color: transparent !important;
   color: rgba(var(--fc-accent-rgb), .78) !important;
   box-shadow: var(--saved-button-glass-shadow) !important;
-  backdrop-filter: url(#mineradio-search-pill-glass-filter) saturate(1) !important;
-  -webkit-backdrop-filter: url(#mineradio-search-pill-glass-filter) saturate(1) !important;
+  backdrop-filter: url(#orangesea-search-pill-glass-filter) saturate(1) !important;
+  -webkit-backdrop-filter: url(#orangesea-search-pill-glass-filter) saturate(1) !important;
   overflow: visible !important;
 }
 
@@ -15490,8 +15490,8 @@ html.control-glass-svg-ok #search-area .search-mode-tabs {
 }
 
 html.control-glass-svg-ok #search-area.peek #search-box {
-  backdrop-filter: url(#mineradio-search-box-glass-filter) saturate(1) !important;
-  -webkit-backdrop-filter: url(#mineradio-search-box-glass-filter) saturate(1) !important;
+  backdrop-filter: url(#orangesea-search-box-glass-filter) saturate(1) !important;
+  -webkit-backdrop-filter: url(#orangesea-search-box-glass-filter) saturate(1) !important;
 }
 
 html.control-glass-svg-ok #search-box::before {

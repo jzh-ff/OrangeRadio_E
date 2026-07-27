@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mineradio</title>
+  <title>OrangeSea 橘子海</title>
   <meta name="referrer" content="no-referrer">
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&family=UnifrakturCook:wght@700&display=swap"
@@ -83,13 +83,12 @@
 
       <!-- 主内容 -->
       <div class="splash-content">
-        <div class="splash-wordmark" id="splash-wordmark" aria-label="Mineradio">
-          <span class="splash-word-mine">Mine</span>
-          <span class="splash-word-radio" aria-label="radio">rad<span class="splash-word-i"
-              aria-hidden="true"></span><span class="splash-word-o">o</span></span>
+        <div class="splash-wordmark" id="splash-wordmark" aria-label="OrangeSea">
+          <span class="splash-word-mine">Orange</span>
+          <span class="splash-word-radio" aria-label="Sea">Sea</span>
         </div>
         <div class="splash-signal-line"></div>
-        <div class="splash-sub">private visual radio</div>
+        <div class="splash-sub">sunset visual radio</div>
         <div class="splash-enter" aria-hidden="true">点击进入</div>
       </div>
     </div>
@@ -159,15 +158,15 @@
       </div>
     </div>
 
-    <!-- 音乐 Home：只承载当前 Mineradio 数据，不引入外部仓库的服务端接口。 -->
-    <section id="empty-home" aria-label="Mineradio 音乐首页">
+    <!-- 音乐 Home：只承载当前 OrangeSea 数据，不引入外部仓库的服务端接口。 -->
+    <section id="empty-home" aria-label="OrangeSea 音乐首页">
       <div class="empty-home-shell">
         <div class="home-hero" aria-live="polite">
           <div class="daily-review-card">
             <div id="daily-review-date" class="daily-review-date"></div>
             <div id="daily-review-time" class="daily-review-time">--:--</div>
             <div class="daily-review-quote">“让今天的声音，从你喜欢的地方开始。”</div>
-            <div class="daily-review-source">— Mineradio</div>
+            <div class="daily-review-source">— OrangeSea</div>
             <div class="daily-review-actions">
               <button type="button" onclick="homeDashboardNextReview()">换一条</button>
               <button id="home-dashboard-video-choose" type="button" onclick="openHomeDashboardVideoPicker()">选择 MP4</button>
@@ -197,7 +196,7 @@
             onclick="playHomeDaily()">
             <div class="home-card-label">DAILY MIX</div>
             <div class="home-card-title">每日推荐</div>
-            <div class="home-card-sub">使用当前 Mineradio 推荐数据</div>
+            <div class="home-card-sub">使用当前 OrangeSea 推荐数据</div>
             <div class="home-card-art"></div>
           </button>
           <button class="home-card home-card-quick" data-home-tone="playlist" type="button"
@@ -343,7 +342,7 @@
       <div class="fx-head">
         <div>
           <div class="fx-title">视觉控制台</div>
-          <div class="fx-sub">MINERADIO VISUALS · 鼠标移开自动隐藏</div>
+          <div class="fx-sub">ORANGESEA VISUALS · 鼠标移开自动隐藏</div>
         </div>
       </div>
 
@@ -748,7 +747,7 @@
             <div class="fx-toggle" id="t-desktopLyricsHighlight" onclick="toggleFx('desktopLyricsHighlight')"
               title="桌面歌词按播放进度高亮"><span>桌面歌词高亮跟随</span><span class="dot"></span></div>
             <div class="fx-toggle" id="t-wallpaperMode" onclick="toggleFx('wallpaperMode')"
-              title="把当前完整 Mineradio 放到 Windows 桌面；右上控制器可显示、隐藏桌面图标，Esc 退出">
+              title="把当前完整 OrangeSea 放到 Windows 桌面；右上控制器可显示、隐藏桌面图标，Esc 退出">
               <span>完整桌面模式<em class="fx-dev-badge">试验</em></span><span class="dot"></span></div>
           </div>
           <div class="fx-section-label">桌面 / 壁纸</div>
@@ -940,7 +939,7 @@
           <div class="fx-sub memory-status-sub" id="memory-status-sub">后台先压缩播放器进程；系统级释放可清工作集、修改页、待机页</div>
           <div class="fx-toggle-grid">
             <div class="fx-toggle" id="t-memoryAutoTrimApp" onclick="toggleFx('memoryAutoTrimApp')"
-              title="最小化、托盘后台或深度后台时压缩 Mineradio / Electron 工作集"><span>自动压缩播放器</span><span class="dot"></span></div>
+              title="最小化、托盘后台或深度后台时压缩 OrangeSea / Electron 工作集"><span>自动压缩播放器</span><span class="dot"></span></div>
             <div class="fx-toggle" id="t-memoryAutoTrimOnBackground" onclick="toggleFx('memoryAutoTrimOnBackground')"
               title="只在最小化、隐藏或不可见后台触发自动压缩，前台播放不打断"><span>后台触发压缩</span><span class="dot"></span></div>
             <div class="fx-toggle" id="t-memoryAutoSystemTrim" onclick="toggleFx('memoryAutoSystemTrim')"
@@ -968,9 +967,9 @@
             <div class="cache-storage-head"><span>统一缓存目录</span><span id="cache-storage-total">读取中...</span></div>
             <code class="cache-storage-path" id="cache-storage-root">桌面版启动后读取</code>
             <div class="cache-storage-actions">
-              <button class="fx-mini-btn ghost" type="button" onclick="chooseMineradioCacheRoot()">更改目录</button>
-              <button class="fx-mini-btn ghost" type="button" onclick="refreshMineradioCacheSettings()">刷新占用</button>
-              <button class="fx-mini-btn ghost" type="button" id="cache-storage-restart" onclick="restartMineradioForCachePath()" hidden>重启生效</button>
+              <button class="fx-mini-btn ghost" type="button" onclick="chooseOrangeSeaCacheRoot()">更改目录</button>
+              <button class="fx-mini-btn ghost" type="button" onclick="refreshOrangeSeaCacheSettings()">刷新占用</button>
+              <button class="fx-mini-btn ghost" type="button" id="cache-storage-restart" onclick="restartOrangeSeaForCachePath()" hidden>重启生效</button>
             </div>
             <div class="cache-storage-row"><span>歌词 / 译文缓存</span><b id="cache-storage-lyrics-size">—</b></div>
             <code class="cache-storage-path small" id="cache-storage-lyrics-path">—</code>
@@ -1113,7 +1112,7 @@
     <svg id="control-glass-svg" class="control-glass-filter-svg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
       focusable="false">
       <defs>
-        <filter id="mineradio-control-glass-filter" color-interpolation-filters="sRGB" x="-12%" y="-28%" width="124%"
+        <filter id="orangesea-control-glass-filter" color-interpolation-filters="sRGB" x="-12%" y="-28%" width="124%"
           height="156%">
           <feImage id="control-glass-map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none"
             result="map"></feImage>
@@ -1139,7 +1138,7 @@
           <feBlend in="rg" in2="blue" mode="screen" result="output"></feBlend>
           <feGaussianBlur in="output" stdDeviation="0.5"></feGaussianBlur>
         </filter>
-        <filter id="mineradio-search-box-glass-filter" color-interpolation-filters="sRGB" x="-24%" y="-34%" width="158%"
+        <filter id="orangesea-search-box-glass-filter" color-interpolation-filters="sRGB" x="-24%" y="-34%" width="158%"
           height="168%">
           <feImage id="search-box-glass-map" x="-10%" y="-4%" width="120%" height="108%" preserveAspectRatio="none"
             result="map"></feImage>
@@ -1165,7 +1164,7 @@
           <feBlend in="rg" in2="blue" mode="screen" result="output"></feBlend>
           <feGaussianBlur in="output" stdDeviation="0.5"></feGaussianBlur>
         </filter>
-        <filter id="mineradio-search-pill-glass-filter" color-interpolation-filters="sRGB" x="-48%" y="-68%"
+        <filter id="orangesea-search-pill-glass-filter" color-interpolation-filters="sRGB" x="-48%" y="-68%"
           width="210%" height="236%">
           <feImage id="search-pill-glass-map" x="-24%" y="-14%" width="148%" height="128%" preserveAspectRatio="none"
             result="map"></feImage>
@@ -1191,7 +1190,7 @@
           <feBlend in="rg" in2="blue" mode="screen" result="output"></feBlend>
           <feGaussianBlur in="output" stdDeviation="0.35"></feGaussianBlur>
         </filter>
-        <filter id="mineradio-account-pill-glass-filter" color-interpolation-filters="sRGB" x="-72%" y="-70%"
+        <filter id="orangesea-account-pill-glass-filter" color-interpolation-filters="sRGB" x="-72%" y="-70%"
           width="260%" height="240%">
           <feImage id="account-pill-glass-map" x="-32%" y="-14%" width="164%" height="128%" preserveAspectRatio="none"
             result="map"></feImage>
@@ -1725,7 +1724,7 @@
         <div class="update-panel-inner">
           <div class="update-panel-head">
             <div>
-              <div class="update-kicker">MINERADIO</div>
+              <div class="update-kicker">ORANGESEA</div>
               <div id="update-modal-title" class="update-title">New release</div>
               <div id="update-modal-version" class="update-version">v2.0.2</div>
             </div>

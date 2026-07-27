@@ -675,7 +675,7 @@ function renderAudioOutputDeviceUi() {
     '<div class="audio-route-graph' + (bridgeEnabled ? ' bridge-on' : '') + '">' +
       '<svg id="audio-route-workflow-svg" class="workflow-link-layer audio-link-layer" aria-hidden="true"></svg>' +
       '<div class="audio-flow-source workflow-node" data-audio-node="player">' +
-        '<span class="route-node-kicker">SOURCE</span><span class="route-node-icon">MR</span><span class="route-node-text"><b>Mineradio Player</b><small>' + escHtml(summaryText) + '</small></span><span class="audio-source-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="flow-port out" data-audio-route-source="player" title="Mineradio 输出"></span>' +
+        '<span class="route-node-kicker">SOURCE</span><span class="route-node-icon">OS</span><span class="route-node-text"><b>OrangeSea Player</b><small>' + escHtml(summaryText) + '</small></span><span class="audio-source-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="flow-port out" data-audio-route-source="player" title="OrangeSea 输出"></span>' +
       '</div>' +
       '<div class="audio-route-status"><span class="route-energy-dot"></span><b>Patch Bay</b><small>' + escHtml(audioOutputDeviceId ? '主监听已指定' : '主监听跟随系统默认') + '</small></div>' +
       '<div class="audio-route-board">' +

@@ -1511,7 +1511,7 @@ async function createPlaylistFromCollect() {
   var provider = songAccountProvider(collectTargetSong);
   var adapter = songAccountAdapter(provider);
   if (!adapter || !adapter.createPlaylist || !adapter.playlistCreateUrl) {
-    showToast((adapter && adapter.label || '当前平台') + '暂不支持在 Mineradio 内新建歌单');
+    showToast((adapter && adapter.label || '当前平台') + '暂不支持在 OrangeSea 内新建歌单');
     return;
   }
   if (!ensureLoggedInForAction(provider)) return;
