@@ -1,9 +1,9 @@
 {
-  "name": "mineradio",
-  "productName": "Mineradio",
-  "version": "2.0.2",
-  "description": "Windows 沉浸式音乐播放器，融合桌面模式、歌词舞台、粒子视觉和 3D 歌单架。",
-  "author": "Mineradio",
+  "name": "orangesea",
+  "productName": "OrangeSea",
+  "version": "0.1.0",
+  "description": "橘子海 - Windows 沉浸式音乐播放器，日落渐变暗色视觉，融合桌面模式、歌词舞台、粒子视觉和 3D 歌单架。",
+  "author": "OrangeSea",
   "license": "GPL-3.0-only",
   "main": "desktop/main.js",
   "private": true,
@@ -14,8 +14,8 @@
     "build:win:internal-beta": "electron-builder --config electron-builder.internal-beta.json --win nsis --publish never"
   },
   "build": {
-    "appId": "com.mineradio.desktop",
-    "productName": "Mineradio",
+    "appId": "com.orangesea.desktop",
+    "productName": "OrangeSea",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -44,7 +44,7 @@
     ],
     "asar": false,
     "win": {
-      "executableName": "Mineradio",
+      "executableName": "OrangeSea",
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
       "target": [
@@ -62,35 +62,22 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mineradio",
+      "shortcutName": "OrangeSea",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
       "include": "build/installer.nsh",
-      "artifactName": "Mineradio-${version}-Setup.${ext}"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "XxHuberrr",
-        "repo": "Mineradio"
-      }
-    ]
+      "artifactName": "OrangeSea-${version}-Setup.${ext}"
+    }
   },
   "mineradio": {
     "update": {
-      "provider": "github",
-      "owner": "XxHuberrr",
-      "repo": "Mineradio",
-      "preview": true,
-      "preferMirrors": true,
-      "mirrors": [
-        "https://gh.llkk.cc/",
-        "https://ghfast.top/",
-        "https://gh-proxy.com/"
-      ]
+      "provider": "none",
+      "preview": false,
+      "preferMirrors": false,
+      "mirrors": []
     }
   },
   "dependencies": {
