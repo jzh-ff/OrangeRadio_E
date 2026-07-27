@@ -27,8 +27,8 @@ function consumeFrameGate(gate, now, dt, fps, force, reason) {
   var minGap = 1000 / Math.max(1, targetFps);
   if (gate.lastRunAt && now - gate.lastRunAt < minGap) {
     gate.skips += 1;
-    if (window.__mineradioPerf && window.__mineradioPerf.count) {
-      window.__mineradioPerf.count('frameGate.' + gate.name + '.skipped');
+    if (window.__orangeseaPerf && window.__orangeseaPerf.count) {
+      window.__orangeseaPerf.count('frameGate.' + gate.name + '.skipped');
     }
     return 0;
   }
@@ -41,8 +41,8 @@ function runFrameGate(gate, now, fallbackDt) {
   gate.lastRunAt = now;
   gate.lastDt = Math.min(stepDt, 0.18);
   gate.runs += 1;
-  if (window.__mineradioPerf && window.__mineradioPerf.count) {
-    window.__mineradioPerf.count('frameGate.' + gate.name + '.runs');
+  if (window.__orangeseaPerf && window.__orangeseaPerf.count) {
+    window.__orangeseaPerf.count('frameGate.' + gate.name + '.runs');
   }
   return gate.lastDt;
 }

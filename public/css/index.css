@@ -13697,8 +13697,8 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode {
 /*  歌单/队列面板                                                 */
 /* ============================================================ */
 #playlist-panel {
-  --playlist-panel-open-ms: var(--mineradio-playlist-panel-open-ms, 280ms);
-  --playlist-panel-close-ms: var(--mineradio-playlist-panel-close-ms, 180ms);
+  --playlist-panel-open-ms: var(--orangesea-playlist-panel-open-ms, 280ms);
+  --playlist-panel-close-ms: var(--orangesea-playlist-panel-close-ms, 180ms);
   --playlist-panel-motion-ms: var(--playlist-panel-open-ms);
   --playlist-sticky-blur: 38px;
   --playlist-toolbar-blur: 28px;
@@ -13922,10 +13922,10 @@ html:fullscreen body.desktop-shell #playlist-panel {
 }
 
 .queue-hydration-spinner.spinning {
-  animation: mineradio-queue-loading-spin .72s linear infinite
+  animation: orangesea-queue-loading-spin .72s linear infinite
 }
 
-@keyframes mineradio-queue-loading-spin {
+@keyframes orangesea-queue-loading-spin {
   to { transform: rotate(360deg) }
 }
 

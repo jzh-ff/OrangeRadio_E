@@ -16,11 +16,11 @@ var renderPerfState = {
   lastRenderAt: 0,
   lastSampleAt: performance.now()
 };
-window.__mineradioRenderPerf = renderPerfState;
-if (window.__mineradioPerf && typeof window.__mineradioPerf.registerRenderState === 'function') {
-  window.__mineradioPerf.registerRenderState(renderPerfState);
+window.__orangeseaRenderPerf = renderPerfState;
+if (window.__orangeseaPerf && typeof window.__orangeseaPerf.registerRenderState === 'function') {
+  window.__orangeseaPerf.registerRenderState(renderPerfState);
 } else {
-  window.__mineradioPerf = renderPerfState;
+  window.__orangeseaPerf = renderPerfState;
 }
 var splashWarmRenderLast = 0;
 var fixedRenderCadenceState = {
@@ -130,7 +130,7 @@ function shouldSkipAdaptiveRenderFrame(now) {
     renderPerfState.adaptiveCadenceTick += 1;
     if (cadence.divisor > 1 && (renderPerfState.adaptiveCadenceTick - 1) % cadence.divisor !== 0) {
       renderPerfState.skipped += 1;
-      if (window.__mineradioPerf && window.__mineradioPerf.count) window.__mineradioPerf.count('frame.skipped');
+      if (window.__orangeseaPerf && window.__orangeseaPerf.count) window.__orangeseaPerf.count('frame.skipped');
       return true;
     }
     renderPerfState.lastRenderAt = now;
@@ -146,7 +146,7 @@ function shouldSkipAdaptiveRenderFrame(now) {
   var fixedCadenceKey = mode + ':' + fps;
   if (shouldSkipFixedRenderCadenceFrame(fixedRenderCadenceState, now, fps, displayHz, fixedCadenceKey)) {
     renderPerfState.skipped += 1;
-    if (window.__mineradioPerf && window.__mineradioPerf.count) window.__mineradioPerf.count('frame.skipped');
+    if (window.__orangeseaPerf && window.__orangeseaPerf.count) window.__orangeseaPerf.count('frame.skipped');
     return true;
   }
   renderPerfState.lastRenderAt = now;
@@ -171,7 +171,7 @@ var mainFrameGates = {
   homeAudio: createFrameGate('main.homeAudio', 15),
   desktopOverlay: createFrameGate('main.desktopOverlay', 12)
 };
-window.__mineradioMainFrameGates = mainFrameGates;
+window.__orangeseaMainFrameGates = mainFrameGates;
 var mainLoopBackgroundTimer = 0;
 var mainLoopAnimationRequested = false;
 function mainLoopDeepBackgroundSleeping() {
@@ -296,7 +296,7 @@ function targetMainDesktopOverlayFps(now) {
 function animate() {
   mainLoopAnimationRequested = false;
   scheduleNextMainLoopFrame();
-  var perfProbe = window.__mineradioPerf;
+  var perfProbe = window.__orangeseaPerf;
   var framePerfStart = performance.now();
   var now = performance.now();
   if (mainLoopDeepBackgroundSleeping()) {
@@ -557,7 +557,7 @@ function animate() {
   uniforms.uEnergy.value = audioEnergy;
   uniforms.uMouseXY.value.set(mouseWorld.x, mouseWorld.y);
   uniforms.uMouseActive.value = mouseActive ? 1 : 0;
-  var sonicPresetActiveEarly = window.MineradioSonicTopography && MineradioSonicTopography.isActive(fx);
+  var sonicPresetActiveEarly = window.OrangeseaSonicTopography && OrangeseaSonicTopography.isActive(fx);
   var skullBackdropDim = fx && fx.preset === SKULL_PRESET_INDEX ? 0.58 : (sonicPresetActiveEarly ? 0.82 : 1);
   var shelfDimTarget = shouldDimWallpaperForShelf() ? 0.48 : skullBackdropDim;
   var shelfDimEase = shelfDimTarget < uniforms.uParticleDim.value ? 0.18 : 0.10;
@@ -622,8 +622,8 @@ function animate() {
   if (skullStepDt > 0) updateSkullParticleLayer(skullStepDt);
   if (perfProbe && perfProbe.markSince) perfProbe.markSince('visual.skull-particles', skullPerfStart);
   var sonicPerfStart = performance.now();
-  if (window.MineradioSonicTopography) {
-    MineradioSonicTopography.update(dt, {
+  if (window.OrangeseaSonicTopography) {
+    OrangeseaSonicTopography.update(dt, {
       scene: scene,
       fx: fx,
       time: uniforms.uTime.value,

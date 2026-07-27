@@ -194,7 +194,7 @@ function playlistPanelDetailRowsHtml(options) {
   }
   return rows;
 }
-var PLAYLIST_REORDER_STORE_KEY = 'mineradio-playlist-reorder-v1';
+var PLAYLIST_REORDER_STORE_KEY = 'orangesea-playlist-reorder-v1';
 function playlistReorderKey(pl) {
   if (!pl) return '';
   return playlistPanelKey(normalizePlaylistProvider(pl.provider), pl.id);

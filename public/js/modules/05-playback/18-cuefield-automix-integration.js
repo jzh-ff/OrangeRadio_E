@@ -1,4 +1,4 @@
-var CUEFIELD_AUTOMIX_STORE_KEY = 'mineradio-cuefield-automix-v1';
+var CUEFIELD_AUTOMIX_STORE_KEY = 'orangesea-cuefield-automix-v1';
 var cuefieldAutoMixEnabled = false;
 var cuefieldAutoMix = null;
 var cuefieldAutoMixPrepareTimer = 0;
@@ -211,18 +211,18 @@ function cancelCuefieldMediaFade() {
 function claimCuefieldPreparedAudioForPlayback(media) {
   if (!media) return false;
   cancelCuefieldMediaFade();
-  if (media.__mineradioPreparedAudioGraph) media.__mineradioPreparedAudioGraph.adopted = true;
+  if (media.__orangeseaPreparedAudioGraph) media.__orangeseaPreparedAudioGraph.adopted = true;
   if (media === cuefieldAutoMixPreparedAudio) cuefieldAutoMixPreparedAudio = null;
   return true;
 }
 
 function disposeCuefieldPreparedAudioGraph(media) {
-  var graph = media && media.__mineradioPreparedAudioGraph;
+  var graph = media && media.__orangeseaPreparedAudioGraph;
   if (!graph || graph.adopted) return;
   [graph.source, graph.analyser, graph.beatAnalyser, graph.gainNode].forEach(function (node) {
     try { if (node) node.disconnect(); } catch (_) { }
   });
-  try { delete media.__mineradioPreparedAudioGraph; } catch (_) { }
+  try { delete media.__orangeseaPreparedAudioGraph; } catch (_) { }
 }
 
 function stopCuefieldPreparedAudio(media) {
@@ -380,7 +380,7 @@ function cuefieldSetMediaTime(media, seconds) {
 }
 
 function cuefieldCreatePreparedAudioGraph(media) {
-  if (!media || media.__mineradioPreparedAudioGraph) return media && media.__mineradioPreparedAudioGraph || null;
+  if (!media || media.__orangeseaPreparedAudioGraph) return media && media.__orangeseaPreparedAudioGraph || null;
   var graph = null;
   try {
     if ((!audioCtx || audioCtx.state === 'closed') && typeof initAudio === 'function') initAudio();
@@ -390,7 +390,7 @@ function cuefieldCreatePreparedAudioGraph(media) {
     // A media element cannot be safely returned to direct-output mode after a
     // MediaElementSource has been created for it. Mark it immediately so a
     // later graph-construction failure can discard this element completely.
-    media.__mineradioMediaSourceBound = true;
+    media.__orangeseaMediaSourceBound = true;
     graph.analyser = audioCtx.createAnalyser();
     graph.beatAnalyser = audioCtx.createAnalyser();
     graph.gainNode = audioCtx.createGain();
@@ -403,7 +403,7 @@ function cuefieldCreatePreparedAudioGraph(media) {
     graph.source.connect(graph.beatAnalyser);
     graph.analyser.connect(graph.gainNode);
     graph.gainNode.connect(audioCtx.destination);
-    media.__mineradioPreparedAudioGraph = graph;
+    media.__orangeseaPreparedAudioGraph = graph;
     return graph;
   } catch (error) {
     if (graph) {
@@ -411,8 +411,8 @@ function cuefieldCreatePreparedAudioGraph(media) {
         try { if (node) node.disconnect(); } catch (_) { }
       });
     }
-    if (media && media.__mineradioMediaSourceBound) media.__mineradioPreparedGraphFailed = true;
-    try { delete media.__mineradioPreparedAudioGraph; } catch (_) { }
+    if (media && media.__orangeseaMediaSourceBound) media.__orangeseaPreparedGraphFailed = true;
+    try { delete media.__orangeseaPreparedAudioGraph; } catch (_) { }
     console.warn('[CuefieldAutoMix] prepared audio graph fallback:', error && error.message || error);
     return null;
   }
@@ -420,7 +420,7 @@ function cuefieldCreatePreparedAudioGraph(media) {
 
 function cuefieldWriteIncomingGain(media, value) {
   value = Math.max(0, Math.min(1, Number(value) || 0));
-  var graph = media && media.__mineradioPreparedAudioGraph;
+  var graph = media && media.__orangeseaPreparedAudioGraph;
   if (graph && graph.gainNode) {
     try { graph.gainNode.gain.value = value; } catch (_) { }
     try { media.volume = 1; media.muted = false; } catch (_) { }
@@ -442,7 +442,7 @@ function prepareCuefieldPendingAudio(pending) {
   media.volume = 1;
   media.muted = false;
   cuefieldCreatePreparedAudioGraph(media);
-  if (media.__mineradioPreparedGraphFailed) {
+  if (media.__orangeseaPreparedGraphFailed) {
     try { media.pause(); media.removeAttribute('src'); media.load(); } catch (_) { }
     // The first element is permanently tied to a failed WebAudio source.
     // Recreate a clean element for the direct-volume fallback instead of
@@ -573,7 +573,7 @@ async function runCuefieldTimeline(pending, nextMedia, context) {
     ? Number(pending.fadeStartA)
     : Math.max(0, Number(pending.triggerAt) + Math.max(0, Number(execution.fadeStartDelayMs) || 0) / 1000);
   pending.fadeStartA = fadeStartA;
-  pending.executionFallback = nextMedia.__mineradioPreparedAudioGraph ? 'shared-context-gain' : 'direct-volume-fallback';
+  pending.executionFallback = nextMedia.__orangeseaPreparedAudioGraph ? 'shared-context-gain' : 'direct-volume-fallback';
   if (!await cuefieldWaitForMediaTime(context.outgoingMedia, fadeStartA, pending, context)) return false;
   if (!cuefieldTransitionStillCurrent(pending, context)) return false;
   if (nextMedia.readyState < 2) return false;
@@ -651,8 +651,8 @@ function tickCuefieldAutoMix() {
 
 function noteCuefieldAutoMixOutgoingEnded(media, token, index) {
   if (!media) return false;
-  media.__mineradioCuefieldEndedDeferredToken = Number(token);
-  media.__mineradioCuefieldEndedDeferredIndex = Number(index);
+  media.__orangeseaCuefieldEndedDeferredToken = Number(token);
+  media.__orangeseaCuefieldEndedDeferredIndex = Number(index);
   return true;
 }
 
@@ -669,8 +669,8 @@ function recoverCuefieldAutoMixEndedOutgoing(pending, context, reason) {
     || currentIdx !== index
     || audio !== outgoing
   ) return false;
-  if (outgoing.__mineradioCuefieldEndedRecoveryToken === token) return true;
-  outgoing.__mineradioCuefieldEndedRecoveryToken = token;
+  if (outgoing.__orangeseaCuefieldEndedRecoveryToken === token) return true;
+  outgoing.__orangeseaCuefieldEndedRecoveryToken = token;
   cuefieldAutoMixExecuting = false;
   if (cuefieldActiveTransitionContext === context) cuefieldActiveTransitionContext = null;
   if (typeof finalizeListenSession === 'function') finalizeListenSession(true);

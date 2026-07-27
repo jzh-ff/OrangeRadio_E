@@ -453,7 +453,7 @@ function forceLoadingSettled(reason) {
   }
   uniforms.uLoading.value = 0;
   loadingShownAt = 0;
-  if (reason && window.__mineradioDebugLoading) console.log('[LoadingSettled]', reason);
+  if (reason && window.__orangeseaDebugLoading) console.log('[LoadingSettled]', reason);
 }
 function recoverVisualsAfterBackground(reason) {
   applyRendererPowerMode();

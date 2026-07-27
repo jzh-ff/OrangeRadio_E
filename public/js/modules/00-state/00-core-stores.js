@@ -60,7 +60,7 @@ var albumGaplessState = { enabled: false, defaultEnabled: true, albumKey: '', di
 var PLAYBACK_RESUME_STALL_DELAYS = [1600, 3600];
 var PLAYBACK_RESUME_LONG_PAUSE_MS = 8 * 60 * 1000;
 var PLAYBACK_RESUME_LONG_PAUSE_PROVIDER_MS = { qishui: 3 * 60 * 1000, qq: 8 * 60 * 1000, kugou: 8 * 60 * 1000, netease: 12 * 60 * 1000 };
-var AUDIO_FADE_STORE_KEY = 'mineradio-audio-fade-v1';
+var AUDIO_FADE_STORE_KEY = 'orangesea-audio-fade-v1';
 var AUDIO_FADE_MIN_MS = 0;
 var AUDIO_FADE_MAX_MS = 3000;
 var audioFadePreference = readAudioFadePreference();
@@ -88,14 +88,14 @@ var queueHydrationState = {
   warmPagesRemaining: 0,
   pausedForBuffer: false
 };
-var CUSTOM_COVER_STORE_KEY = 'mineradio-custom-covers';
-var CUSTOM_LYRIC_STORE_KEY = 'mineradio-custom-lyrics-v1';
-var CUSTOM_LYRIC_PREF_STORE_KEY = 'mineradio-custom-lyric-prefs-v1';
-var CUSTOM_LYRIC_FONT_STORE_KEY = 'mineradio-custom-lyric-fonts-v1';
+var CUSTOM_COVER_STORE_KEY = 'orangesea-custom-covers';
+var CUSTOM_LYRIC_STORE_KEY = 'orangesea-custom-lyrics-v1';
+var CUSTOM_LYRIC_PREF_STORE_KEY = 'orangesea-custom-lyric-prefs-v1';
+var CUSTOM_LYRIC_FONT_STORE_KEY = 'orangesea-custom-lyric-fonts-v1';
 var CUSTOM_LYRIC_FONT_MAX_COUNT = 6;
 var CUSTOM_LYRIC_FONT_MAX_BYTES = 3.6 * 1024 * 1024;
-var LYRIC_LAYOUT_STORE_KEY = 'mineradio-lyric-layout-v1';
-var CURRENT_FX_AUTOSAVE_STORE_KEY = 'mineradio-current-fx-autosave-v1';
+var LYRIC_LAYOUT_STORE_KEY = 'orangesea-lyric-layout-v1';
+var CURRENT_FX_AUTOSAVE_STORE_KEY = 'orangesea-current-fx-autosave-v1';
 var CURRENT_FX_AUTOSAVE_SCHEMA = 'current-fx-autosave-v2';
 var VISUAL_PRESET_SCHEMA = 'skull-preset-v2';
 var MAX_VISUAL_PRESET_INDEX = 7;
@@ -107,13 +107,13 @@ function normalizeSavedVisualPresetIndex(value) {
   if (preset === LEGACY_REMOVED_VISUAL_PRESET_INDEX) return SONIC_PRESET_INDEX;
   return Math.max(0, Math.min(MAX_VISUAL_PRESET_INDEX, preset));
 }
-var PLAYBACK_QUALITY_STORE_KEY = 'mineradio-playback-quality-v1';
-var AUDIO_OUTPUT_DEVICE_STORE_KEY = 'mineradio-audio-output-device-v1';
-var AUDIO_OUTPUT_MIRROR_STORE_KEY = 'mineradio-audio-output-mirror-v1';
-var AUDIO_INPUT_BRIDGE_STORE_KEY = 'mineradio-audio-input-bridge-v1';
-var PROVIDER_VIP_AUDIT_STORE_KEY = 'mineradio-provider-vip-audit-v1';
-var QQ_PLAYBACK_VIP_EVIDENCE_STORE_KEY = 'mineradio-qq-playback-vip-evidence-v1';
-var LOGIN_COOKIE_EXPORT_STORE_KEY = 'mineradio-login-cookie-export-v1';
+var PLAYBACK_QUALITY_STORE_KEY = 'orangesea-playback-quality-v1';
+var AUDIO_OUTPUT_DEVICE_STORE_KEY = 'orangesea-audio-output-device-v1';
+var AUDIO_OUTPUT_MIRROR_STORE_KEY = 'orangesea-audio-output-mirror-v1';
+var AUDIO_INPUT_BRIDGE_STORE_KEY = 'orangesea-audio-input-bridge-v1';
+var PROVIDER_VIP_AUDIT_STORE_KEY = 'orangesea-provider-vip-audit-v1';
+var QQ_PLAYBACK_VIP_EVIDENCE_STORE_KEY = 'orangesea-qq-playback-vip-evidence-v1';
+var LOGIN_COOKIE_EXPORT_STORE_KEY = 'orangesea-login-cookie-export-v1';
 var PLAYBACK_QUALITY_DEFAULTS = { netease: 'hires', qq: 'lossless', kugou: 'lossless', qishui: 'standard', spotify: 'standard' };
 var PLAYBACK_QUALITY_OPTIONS = {
   netease: [
@@ -142,23 +142,23 @@ var PLAYBACK_QUALITY_OPTIONS = {
     { key: 'standard', title: 'Spotify 匹配源', sub: 'SP 搜索 / 播放自动换源' }
   ]
 };
-var UPLOAD_TIP_STORE_KEY = 'mineradio-upload-tip-seen';
-var DIY_MODE_STORE_KEY = 'mineradio-diy-player-mode-v1';
-var PLAYLIST_PANEL_PIN_STORE_KEY = 'mineradio-playlist-panel-pinned-v1';
-var PLAYLIST_PANEL_TAB_STORE_KEY = 'mineradio-playlist-panel-tab-v1';
-var USER_CAPSULE_AUTO_HIDE_STORE_KEY = 'mineradio-user-capsule-auto-hide-v1';
-var FX_FAB_AUTO_HIDE_STORE_KEY = 'mineradio-fx-fab-auto-hide-v1';
-var CONTROLS_AUTO_HIDE_STORE_KEY = 'mineradio-controls-auto-hide-v1';
-var FREE_CAMERA_STORE_KEY = 'mineradio-free-camera-v1';
-var HOTKEY_SETTINGS_STORE_KEY = 'mineradio-hotkey-settings-v1';
-var VISUAL_GUIDE_SEEN_STORE_KEY = 'mineradio-visual-guide-seen-v2';
-var CLOSE_BEHAVIOR_STORE_KEY = 'mineradio-close-behavior-v1';
-var LAST_PLAYBACK_STORE_KEY = 'mineradio-last-playback-v1';
-var STARTUP_AUTOPLAY_STORE_KEY = 'mineradio-startup-autoplay-v1';
-var STARTUP_FAST_SKIP_STORE_KEY = 'mineradio-startup-fast-skip-v1';
-var STARTUP_RESUME_MODE_STORE_KEY = 'mineradio-startup-resume-mode-v1';
-var LOCAL_BEATMAP_STORE_KEY = 'mineradio-local-beatmaps-v1';
-var LOCAL_BEAT_PREF_STORE_KEY = 'mineradio-local-beatmap-prefs-v1';
+var UPLOAD_TIP_STORE_KEY = 'orangesea-upload-tip-seen';
+var DIY_MODE_STORE_KEY = 'orangesea-diy-player-mode-v1';
+var PLAYLIST_PANEL_PIN_STORE_KEY = 'orangesea-playlist-panel-pinned-v1';
+var PLAYLIST_PANEL_TAB_STORE_KEY = 'orangesea-playlist-panel-tab-v1';
+var USER_CAPSULE_AUTO_HIDE_STORE_KEY = 'orangesea-user-capsule-auto-hide-v1';
+var FX_FAB_AUTO_HIDE_STORE_KEY = 'orangesea-fx-fab-auto-hide-v1';
+var CONTROLS_AUTO_HIDE_STORE_KEY = 'orangesea-controls-auto-hide-v1';
+var FREE_CAMERA_STORE_KEY = 'orangesea-free-camera-v1';
+var HOTKEY_SETTINGS_STORE_KEY = 'orangesea-hotkey-settings-v1';
+var VISUAL_GUIDE_SEEN_STORE_KEY = 'orangesea-visual-guide-seen-v2';
+var CLOSE_BEHAVIOR_STORE_KEY = 'orangesea-close-behavior-v1';
+var LAST_PLAYBACK_STORE_KEY = 'orangesea-last-playback-v1';
+var STARTUP_AUTOPLAY_STORE_KEY = 'orangesea-startup-autoplay-v1';
+var STARTUP_FAST_SKIP_STORE_KEY = 'orangesea-startup-fast-skip-v1';
+var STARTUP_RESUME_MODE_STORE_KEY = 'orangesea-startup-resume-mode-v1';
+var LOCAL_BEATMAP_STORE_KEY = 'orangesea-local-beatmaps-v1';
+var LOCAL_BEAT_PREF_STORE_KEY = 'orangesea-local-beatmap-prefs-v1';
 var LOCAL_BEAT_COMBOS = ['', 'downbeat', 'push', 'drop', 'rebound', 'accent'];
 var HOTKEY_ACTIONS = [
   { key: 'togglePlay', label: '播放 / 暂停', category: '播放', local: 'Space', global: 'Ctrl+Alt+Space' },
@@ -208,7 +208,7 @@ var homeDiscoverState = { loading: false, loaded: false, loggedIn: false, mode: 
 var homeDiscoverToken = 0;
 var homeVisualPresetActive = false;
 var homeVisualPrevPreset = 0;
-var HOME_LISTEN_STATS_KEY = 'mineradio-listen-stats-v1';
+var HOME_LISTEN_STATS_KEY = 'orangesea-listen-stats-v1';
 var activeRadioContext = null;
 var listenStatsState = loadListenStatsState();
 var listenSession = null;

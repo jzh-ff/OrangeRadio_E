@@ -4,10 +4,10 @@ var homeDashboardQuickFingerprint = '';
 var homeDashboardDiscoveryFingerprint = '';
 var homeDashboardDiscoveryCache = [];
 var homeDashboardRefreshTimer = null;
-var HOME_DASHBOARD_VIDEO_DB_NAME = 'mineradio-home-dashboard-video-v1';
+var HOME_DASHBOARD_VIDEO_DB_NAME = 'orangesea-home-dashboard-video-v1';
 var HOME_DASHBOARD_VIDEO_STORE = 'media';
 var HOME_DASHBOARD_VIDEO_BLOB_ID = 'home-hero-video';
-var HOME_DASHBOARD_VIDEO_META_KEY = 'mineradio-home-dashboard-video-meta-v1';
+var HOME_DASHBOARD_VIDEO_META_KEY = 'orangesea-home-dashboard-video-meta-v1';
 var HOME_DASHBOARD_VIDEO_MAX_BYTES = 300 * 1024 * 1024;
 var homeDashboardVideoDbPromise = null;
 var homeDashboardVideoObjectUrl = '';
@@ -87,7 +87,7 @@ function homeDashboardGeneratedCover(title, label, tone) {
 
 function homeDashboardReadReviews() {
   try {
-    var saved = JSON.parse(localStorage.getItem('mineradio-daily-review-quotes-v1') || '[]');
+    var saved = JSON.parse(localStorage.getItem('orangesea-daily-review-quotes-v1') || '[]');
     if (Array.isArray(saved) && saved.length) {
       var normalized = saved.map(function (item) {
         if (typeof item === 'string') return { text: item.trim(), source: '我的热评' };

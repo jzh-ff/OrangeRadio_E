@@ -1,4 +1,4 @@
-var LOGIN_EASTER_EGG_BROWSER_PREVIEW_KEY = 'mineradio-login-easter-egg-browser-preview-v1';
+var LOGIN_EASTER_EGG_BROWSER_PREVIEW_KEY = 'orangesea-login-easter-egg-browser-preview-v1';
 var loginEasterEggStatusPromise = null;
 var loginEasterEggState = {
   ready: false,

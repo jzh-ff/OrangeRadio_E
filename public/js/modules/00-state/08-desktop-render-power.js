@@ -322,12 +322,12 @@ function collectRuntimePerfSnapshot(now) {
       ? collectFrameGateSnapshot(mainFrameGates)
       : null,
     deepSleep: isDeepBackgroundMode(),
-    probe: (window.__mineradioPerf && window.__mineradioPerf.summary)
-      ? window.__mineradioPerf.summary()
+    probe: (window.__orangeseaPerf && window.__orangeseaPerf.summary)
+      ? window.__orangeseaPerf.summary()
       : null
   };
 }
-window.__mineradioPerfSnapshot = collectRuntimePerfSnapshot;
+window.__orangeseaPerfSnapshot = collectRuntimePerfSnapshot;
 
 function requestBackgroundAppMemoryTrim(reason, delayMs) {
   if (!window.desktopWindow || typeof window.desktopWindow.trimAppMemory !== 'function') return;

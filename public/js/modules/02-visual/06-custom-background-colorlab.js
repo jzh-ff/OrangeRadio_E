@@ -50,7 +50,7 @@ function customBackgroundMediaLabel(media) {
   if (media.type === 'album') return '\u5c01\u9762\u539f\u56fe';
   return media.type === 'video' ? '\u89c6\u9891\u5df2\u8bbe\u7f6e' : '\u56fe\u7247\u5df2\u8bbe\u7f6e';
 }
-var CUSTOM_BG_DB_NAME = 'mineradio-custom-background-v1';
+var CUSTOM_BG_DB_NAME = 'orangesea-custom-background-v1';
 var CUSTOM_BG_STORE = 'media';
 var customBgObjectUrl = '';
 var customBgApplyToken = 0;

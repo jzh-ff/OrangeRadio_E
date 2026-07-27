@@ -1,4 +1,4 @@
-var HOME_LISTEN_ROLLUP_V2_KEY = 'mineradio-listen-rollup-v2';
+var HOME_LISTEN_ROLLUP_V2_KEY = 'orangesea-listen-rollup-v2';
 var listenSessionSerial = 0;
 
 function emptyListenRollupV2() {

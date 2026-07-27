@@ -1070,7 +1070,7 @@
     }
   }
 
-  global.MineradioSonicTopography = {
+  global.OrangeseaSonicTopography = {
     INDEX: INDEX,
     isActive: isActive,
     update: update,

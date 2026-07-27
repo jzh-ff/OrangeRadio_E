@@ -1,6 +1,6 @@
 var loginRefreshRequestSeq = 0;
 var loginWorkflowDrag = null;
-var LOGIN_WORKFLOW_CONNECTION_STORE_KEY = 'mineradio-login-workflow-connections-v1';
+var LOGIN_WORKFLOW_CONNECTION_STORE_KEY = 'orangesea-login-workflow-connections-v1';
 var LOGIN_WORKFLOW_PROVIDERS = ['netease', 'qq', 'kugou', 'qishui', 'spotify'];
 var loginWorkflowPendingProvider = '';
 var loginWorkflowVerifiedSession = {};

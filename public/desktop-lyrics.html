@@ -1214,10 +1214,10 @@
         }
       });
     }
-    window.__mineradioDesktopLyricsApplyState = applyState;
+    window.__orangeseaDesktopLyricsApplyState = applyState;
     window.addEventListener('message', function(event){
       var data = event && event.data;
-      if (!data || data.type !== 'mineradio-desktop-lyrics-state') return;
+      if (!data || data.type !== 'orangesea-desktop-lyrics-state') return;
       applyState(data.payload || {});
     });
     window.addEventListener('resize', resize);

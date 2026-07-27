@@ -119,6 +119,6 @@
   }
 
   const script = document.createElement('script');
-  script.text = modulePaths.map(readModule).join('') + '\n//# sourceURL=mineradio-index-modules.js\n';
+  script.text = modulePaths.map(readModule).join('') + '\n//# sourceURL=orangesea-index-modules.js\n';
   document.currentScript.parentNode.insertBefore(script, document.currentScript.nextSibling);
 })();

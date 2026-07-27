@@ -227,8 +227,8 @@ function buildLyricMesh(input, preparedRowLayerBundle, preparedMasks) {
 function disposeCooperativeLyricBuildMask(mask) {
   if (!mask || !mask.texture) return;
   mask.texture.userData = mask.texture.userData || {};
-  if (mask.texture.userData.__mineradioDisposed) return;
-  mask.texture.userData.__mineradioDisposed = true;
+  if (mask.texture.userData.__orangeseaDisposed) return;
+  mask.texture.userData.__orangeseaDisposed = true;
   mask.texture.dispose();
 }
 

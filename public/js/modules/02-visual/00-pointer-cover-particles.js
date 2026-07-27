@@ -140,12 +140,12 @@ window.addEventListener('mouseup', function (e) {
   orbit.rotating = false;
   particlePointerSpin.active = false;
   idleGuidePointerUp();
-  if (window.MineradioSonicTopography && MineradioSonicTopography.isActive(fx) && !mouseDownAt.hadDrag && !isPointerOverUi(e)) {
+  if (window.OrangeseaSonicTopography && OrangeseaSonicTopography.isActive(fx) && !mouseDownAt.hadDrag && !isPointerOverUi(e)) {
     var pressMs = Math.max(0, performance.now() - (mouseDownAt.t || 0));
     var strength = Math.min(0.25 + (pressMs / 1000) * 2.6, 3.0);
     var nx = (e.clientX / Math.max(1, innerWidth) - 0.5) * 34;
     var nz = (0.5 - e.clientY / Math.max(1, innerHeight)) * 34;
-    MineradioSonicTopography.pointerRipple(nx, nz, strength);
+    OrangeseaSonicTopography.pointerRipple(nx, nz, strength);
   }
 });
 renderer.domElement.addEventListener('mouseleave', function () {

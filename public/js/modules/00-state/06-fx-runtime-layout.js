@@ -53,8 +53,8 @@ function applyPlaylistPanelFxSettings() {
   var openMs = Math.round((fx && isFinite(fx.playlistPanelOpenDuration) ? fx.playlistPanelOpenDuration : fxDefaults.playlistPanelOpenDuration) * 1000);
   var closeMs = Math.round((fx && isFinite(fx.playlistPanelCloseDuration) ? fx.playlistPanelCloseDuration : fxDefaults.playlistPanelCloseDuration) * 1000);
   var alphas = playlistPanelAlphaVars(density);
-  setPlaylistPanelCssVar('--mineradio-playlist-panel-open-ms', openMs + 'ms');
-  setPlaylistPanelCssVar('--mineradio-playlist-panel-close-ms', closeMs + 'ms');
+  setPlaylistPanelCssVar('--orangesea-playlist-panel-open-ms', openMs + 'ms');
+  setPlaylistPanelCssVar('--orangesea-playlist-panel-close-ms', closeMs + 'ms');
   setPlaylistPanelCssVar('--playlist-panel-open-ms', openMs + 'ms');
   setPlaylistPanelCssVar('--playlist-panel-close-ms', closeMs + 'ms');
   setPlaylistPanelCssVar('--playlist-sticky-blur', blur + 'px');
