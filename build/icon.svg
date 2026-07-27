@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2340"/>
+      <stop offset="0.55" stop-color="#3a2a5e"/>
+      <stop offset="1" stop-color="#0c1220"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc46b"/>
+      <stop offset="0.6" stop-color="#ff7a3d"/>
+      <stop offset="1" stop-color="#ff5e62"/>
+    </linearGradient>
+    <clipPath id="round"><rect x="8" y="8" width="240" height="240" rx="56"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect x="8" y="8" width="240" height="240" fill="url(#sea)"/>
+    <circle cx="128" cy="118" r="62" fill="url(#sun)"/>
+    <path d="M8 150 Q48 134 88 150 T168 150 T248 150 L248 248 L8 248 Z" fill="#0c1220" opacity="0.82"/>
+    <path d="M8 168 Q48 152 88 168 T168 168 T248 168 L248 248 L8 248 Z" fill="#101a30" opacity="0.9"/>
+    <path d="M8 186 Q48 170 88 186 T168 186 T248 186 L248 248 L8 248 Z" fill="#16223c"/>
+    <g fill="#ffc46b">
+      <circle cx="84" cy="104" r="4"/>
+      <circle cx="128" cy="92" r="5"/>
+      <circle cx="172" cy="104" r="4"/>
+    </g>
+  </g>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="none" stroke="#ffc46b" stroke-opacity="0.35" stroke-width="3"/>
+</svg>
