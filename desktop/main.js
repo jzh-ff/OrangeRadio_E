@@ -105,7 +105,7 @@ const APP_PACKAGE_INFO = (() => {
   }
 })();
 const APP_METADATA = APP_PACKAGE_INFO.mineradio || {};
-const APP_NAME = process.env.MINERADIO_RUNTIME_NAME || APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'Mineradio';
+const APP_NAME = process.env.MINERADIO_RUNTIME_NAME || APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'OrangeSea';
 const APP_USER_MODEL_ID = process.env.MINERADIO_APP_USER_MODEL_ID || APP_METADATA.appUserModelId || (APP_PACKAGE_INFO.build && APP_PACKAGE_INFO.build.appId) || 'com.mineradio.desktop';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
 const CURRENT_FX_AUTOSAVE_FILE = 'current-fx-autosave.json';
@@ -274,7 +274,7 @@ function cacheSettingsConfigPath() {
 function defaultCacheRootPath() {
   const dDrive = 'D:\\';
   return fs.existsSync(dDrive)
-    ? path.join(dDrive, 'MineradioCache')
+    ? path.join(dDrive, 'OrangeSeaCache')
     : path.join(app.getPath('userData'), 'cache');
 }
 
@@ -2211,7 +2211,7 @@ function reportWindowCreationFailure(context, error) {
     try {
       // Keep this literal visible for startup dialog regression checks:
       // dialog.showErrorBox('Mineradio 启动失败'
-      dialog.showErrorBox(`Mineradio 启动失败 (${code})`, buildStartupErrorMessage(context, code, logInfo, error));
+      dialog.showErrorBox(`OrangeSea 启动失败 (${code})`, buildStartupErrorMessage(context, code, logInfo, error));
     } catch (_) {}
   }
   if (!startupCompleted) {
@@ -3232,7 +3232,7 @@ async function openQishuiOfficialWebLoginWindow(owner, config) {
         '</style><main>',
         '<div class="brand">QISHUI MUSIC</div>',
         '<h1>使用汽水音乐 App 扫码</h1>',
-        '<p>请用汽水音乐 App 扫码并确认。确认后 Mineradio 会自动保存汽水登录态，同步汽水歌单与我的喜欢。</p>',
+        '<p>请用汽水音乐 App 扫码并确认。确认后 OrangeSea 会自动保存汽水登录态，同步汽水歌单与我的喜欢。</p>',
         qrImg ? ('<div class="qr"><img src="' + escaped(qrImg) + '" alt="汽水音乐扫码登录"></div>') : '',
         '<div class="status" id="status">' + escaped(statusLine) + '</div>',
         qrPayload && qrPayload.qrcodeIndexUrl ? '<p>这个二维码来自汽水 PC 登录接口；抖音 App 扫描可能打开 404 页面，请用汽水音乐 App。</p>' : '',
@@ -3625,11 +3625,11 @@ async function openQishuiMusicLoginWindow(owner) {
       source: imported.source,
       importMethod: imported.method || 'cookie-db',
       localSessionDiagnostics: imported.diagnostics || null,
-      message: '已读取本机汽水 PC 登录态，正在导入 Mineradio 并同步我的喜欢和歌单',
+      message: '已读取本机汽水 PC 登录态，正在导入 OrangeSea 并同步我的喜欢和歌单',
     };
   }
 
-  // Reuse Mineradio's last imported copy only when the official client data is
+  // Reuse OrangeSea's last imported copy only when the official client data is
   // temporarily unavailable. This keeps normal use stable without ever
   // falling through to the obsolete QR/OAuth flows.
   const saved = readSavedQishuiCookieHeader();
@@ -3661,8 +3661,8 @@ async function openQishuiMusicLoginWindow(owner) {
       importMethod: saved.method,
       localSessionDiagnostics: imported && imported.diagnostics || null,
       message: imported && imported.locked
-        ? '本机汽水登录数据库暂时被占用，已继续使用 Mineradio 上次导入的有效登录态。'
-        : '已继续使用 Mineradio 上次从本机汽水 PC 导入的登录态。',
+        ? '本机汽水登录数据库暂时被占用，已继续使用 OrangeSea 上次导入的有效登录态。'
+        : '已继续使用 OrangeSea 上次从本机汽水 PC 导入的登录态。',
     };
   }
 
@@ -3770,7 +3770,7 @@ function startSpotifyOAuthCallbackServer(redirectUri, onCallback) {
         const result = await onCallback(current);
         const ok = !!(result && result.ok);
         res.writeHead(ok ? 200 : 500, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(spotifyOAuthResultHtml(ok, (result && (result.message || result.error)) || (ok ? '可以回到 Mineradio。' : '请回到 Mineradio 重新尝试。')));
+        res.end(spotifyOAuthResultHtml(ok, (result && (result.message || result.error)) || (ok ? '可以回到 OrangeSea。' : '请回到 OrangeSea 重新尝试。')));
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(spotifyOAuthResultHtml(false, e && e.message || 'SPOTIFY_OAUTH_CALLBACK_FAILED'));
@@ -4391,7 +4391,7 @@ function createDesktopLyricsWindow(payload = {}) {
     focusable: false,
     skipTaskbar: true,
     show: false,
-    title: 'Mineradio Desktop Lyrics',
+    title: 'OrangeSea Desktop Lyrics',
     webPreferences: {
       preload: path.join(__dirname, 'overlay-preload.js'),
       contextIsolation: true,
@@ -4664,7 +4664,7 @@ ipcMain.handle('mineradio-memory-purge-system', async (_event, payload = {}) => 
     if (isMainWindowForegroundVisible()) {
       return {
         ok: true,
-        result: { ok: false, skipped: true, reason: 'foreground-visible', message: 'System memory purge is skipped while Mineradio is visible.' },
+        result: { ok: false, skipped: true, reason: 'foreground-visible', message: 'System memory purge is skipped while OrangeSea is visible.' },
         snapshot: systemMemory.getMemorySnapshot(),
         elevated: false,
         systemPurgeAvailable: systemMemory.SYSTEM_PURGE_AVAILABLE === true,
@@ -4703,7 +4703,7 @@ ipcMain.handle('mineradio-cache-get-settings', async () => {
 
 ipcMain.handle('mineradio-cache-choose-directory', async () => {
   const result = await dialog.showOpenDialog({
-    title: '选择 Mineradio 缓存目录',
+    title: '选择 OrangeSea 缓存目录',
     defaultPath: cacheSettings.rootPath,
     properties: ['openDirectory', 'createDirectory'],
   });
@@ -5204,7 +5204,7 @@ ipcMain.handle('mineradio-export-json-file', async (event, payload = {}) => {
     const owner = getSenderWindow(event);
     const defaultName = String(payload.defaultName || 'mineradio-export.json').replace(/[\\/:*?"<>|]+/g, '-');
     const result = await dialog.showSaveDialog(owner, {
-      title: '导出 Mineradio 存档',
+      title: '导出 OrangeSea 存档',
       defaultPath: defaultName.toLowerCase().endsWith('.json') ? defaultName : `${defaultName}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
@@ -5221,7 +5221,7 @@ ipcMain.handle('mineradio-import-json-file', async (event) => {
   try {
     const owner = getSenderWindow(event);
     const result = await dialog.showOpenDialog(owner, {
-      title: '导入 Mineradio 存档',
+      title: '导入 OrangeSea 存档',
       properties: ['openFile'],
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
