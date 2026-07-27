@@ -1,6 +1,6 @@
 {
   "appId": "com.mineradio.beat.internal",
-  "productName": "Mineradio_Beat",
+  "productName": "OrangeSea_Beat",
   "directories": {
     "output": "dist-internal-beta",
     "buildResources": "build"
@@ -11,11 +11,11 @@
   },
   "extraMetadata": {
     "name": "mineradio-beat-internal",
-    "productName": "Mineradio_Beat",
+    "productName": "OrangeSea_Beat",
     "version": "1.1.2",
     "mineradio": {
       "internalBeta": true,
-      "runtimeName": "Mineradio_Beat",
+      "runtimeName": "OrangeSea_Beat",
       "appUserModelId": "com.mineradio.beat.internal",
       "update": {
         "disabled": true,
@@ -44,7 +44,7 @@
   ],
   "asar": true,
   "win": {
-    "executableName": "Mineradio_Beat",
+    "executableName": "OrangeSea_Beat",
     "icon": "build/icon.ico",
     "signAndEditExecutable": false,
     "target": [
@@ -62,14 +62,14 @@
     "allowToChangeInstallationDirectory": false,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "Mineradio_Beat",
+    "shortcutName": "OrangeSea_Beat",
     "installerIcon": "build/icon.ico",
     "uninstallerIcon": "build/icon.ico",
     "installerSidebar": "build/installerSidebar.bmp",
     "uninstallerSidebar": "build/installerSidebar.bmp",
     "installerHeader": "build/installerHeader.bmp",
     "include": "build/installer-internal-beta.nsh",
-    "artifactName": "Mineradio_Beat-v${version}-灰度内测版-Setup.${ext}"
+    "artifactName": "OrangeSea_Beat-v${version}-灰度内测版-Setup.${ext}"
   },
   "publish": null
 }

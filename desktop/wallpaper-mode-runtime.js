@@ -2,7 +2,7 @@ const path = require('path');
 
 const DEFAULT_WALLPAPER_STATE = Object.freeze({
   enabled: false,
-  title: 'Mineradio',
+  title: 'OrangeSea',
   artist: '',
   cover: '',
   playing: false,
@@ -55,7 +55,7 @@ function normalizeWallpaperState(previous, payload, enabledOverride) {
       : current.enabled === true;
   return {
     enabled,
-    title: String(Object.prototype.hasOwnProperty.call(source, 'title') ? source.title : current.title || 'Mineradio').slice(0, 512),
+    title: String(Object.prototype.hasOwnProperty.call(source, 'title') ? source.title : current.title || 'OrangeSea').slice(0, 512),
     artist: String(Object.prototype.hasOwnProperty.call(source, 'artist') ? source.artist : current.artist || '').slice(0, 512),
     cover: String(Object.prototype.hasOwnProperty.call(source, 'cover') ? source.cover : current.cover || ''),
     playing: Object.prototype.hasOwnProperty.call(source, 'playing') ? source.playing === true : current.playing === true,
@@ -449,7 +449,7 @@ class DesktopWallpaperRuntime {
       focusable: false,
       skipTaskbar: true,
       show: false,
-      title: 'Mineradio Desktop Wallpaper',
+      title: 'OrangeSea Desktop Wallpaper',
       webPreferences: {
         preload: this.preloadPath,
         contextIsolation: true,

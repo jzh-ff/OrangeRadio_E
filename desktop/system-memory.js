@@ -126,7 +126,7 @@ function defaultNativeTempPath() {
   const configured = String(process.env.MINERADIO_NATIVE_TEMP_DIR || '').trim();
   if (configured) return path.resolve(configured);
   const localRoot = String(process.env.LOCALAPPDATA || process.env.APPDATA || os.tmpdir()).trim();
-  return path.join(localRoot, 'Mineradio', 'native-helper-temp');
+  return path.join(localRoot, 'OrangeSea', 'native-helper-temp');
 }
 
 function setNativeTempPath(value) {
@@ -361,7 +361,7 @@ function purgeSystemMemoryElevated(mask, options) {
       ok: false,
       disabled: true,
       needAdmin: false,
-      message: 'Elevated memory purge is disabled by default; Mineradio will not open administrator PowerShell windows.',
+      message: 'Elevated memory purge is disabled by default; OrangeSea will not open administrator PowerShell windows.',
     });
   }
   if (!isWin) {
