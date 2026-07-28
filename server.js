@@ -131,6 +131,7 @@ const {
   readCuefieldFeedbackStats,
 } = require('./cuefield/feedback-log');
 const { planCuefieldTransitionFromCache } = require('./cuefield/mineradio-bridge');
+const localLibrary = require('./local-library');
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -5338,7 +5339,97 @@ const server = http.createServer(async (req, res) => {
         commentsRead: false, commentsWrite: false, listenReport: false,
         missingWriteScopes: spotifyStatus.missingWriteScopes || [],
       },
+      local: {
+        search: true,
+        scan: true,
+        playlists: false, likeRead: false, likeWrite: false,
+        albumRead: false, albumCollect: false,
+        commentsRead: false, commentsWrite: false, listenReport: false,
+      },
     });
+    return;
+  }
+
+  /* ---------- 本地音乐库（Local Library）音源端点 ---------- */
+  if (pn === '/api/local/scan') {
+    if (req.method !== 'GET') { sendJSON(res, { ok: false, error: 'METHOD_NOT_ALLOWED' }, 405); return; }
+    const dir = url.searchParams.get('dir') || '';
+    if (!dir) { sendJSON(res, { ok: false, error: 'MISSING_DIR' }, 400); return; }
+    const result = await localLibrary.scanDirectory(dir);
+    sendJSON(res, result);
+    return;
+  }
+
+  if (pn === '/api/local/status') {
+    sendJSON(res, localLibrary.getLibraryStatus());
+    return;
+  }
+
+  if (pn === '/api/local/search') {
+    const keywords = url.searchParams.get('keywords') || '';
+    const limit = url.searchParams.get('limit') || '50';
+    const offset = url.searchParams.get('offset') || '0';
+    sendJSON(res, localLibrary.searchLibrary(keywords, limit, offset));
+    return;
+  }
+
+  if (pn === '/api/local/song/url') {
+    const songPath = url.searchParams.get('path') || url.searchParams.get('localKey') || '';
+    sendJSON(res, localLibrary.resolveLocalSongUrl(songPath));
+    return;
+  }
+
+  if (pn === '/api/local/lyric') {
+    const songPath = url.searchParams.get('path') || '';
+    sendJSON(res, localLibrary.readLocalLyric(songPath));
+    return;
+  }
+
+  if (pn === '/api/local/audio') {
+    const songPath = url.searchParams.get('path') || '';
+    if (!localLibrary.isPathAllowed(songPath)) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'PATH_NOT_ALLOWED' }));
+      return;
+    }
+    const fsLocal = require('fs');
+    const pathLocal = require('path');
+    let stat;
+    try { stat = fsLocal.statSync(songPath); } catch (e) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'FILE_NOT_FOUND' }));
+      return;
+    }
+    const ext = pathLocal.extname(songPath).toLowerCase();
+    const mimeMap = { '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.opus': 'audio/opus', '.wma': 'audio/x-ms-wma', '.aiff': 'audio/aiff', '.aif': 'audio/aiff' };
+    const contentType = mimeMap[ext] || 'application/octet-stream';
+    const rangeHeader = req.headers.range;
+    if (rangeHeader) {
+      const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+      if (m) {
+        const start = m[1] ? parseInt(m[1], 10) : 0;
+        const end = m[2] ? parseInt(m[2], 10) : stat.size - 1;
+        const chunkSize = end - start + 1;
+        res.writeHead(206, {
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'Content-Range': 'bytes ' + start + '-' + end + '/' + stat.size,
+          'Content-Length': chunkSize,
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store'
+        });
+        fsLocal.createReadStream(songPath, { start: start, end: end }).pipe(res);
+        return;
+      }
+    }
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': stat.size,
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-store'
+    });
+    fsLocal.createReadStream(songPath).pipe(res);
     return;
   }
 
