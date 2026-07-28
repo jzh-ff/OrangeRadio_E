@@ -79,6 +79,15 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   },
   setDesktopLyricsEnabled: (enabled, payload) => ipcRenderer.invoke('mineradio-desktop-lyrics-set-enabled', !!enabled, payload || {}),
   updateDesktopLyrics: (payload) => ipcRenderer.invoke('mineradio-desktop-lyrics-update', payload || {}),
+  setMiniPlayerEnabled: (enabled) => ipcRenderer.invoke('mineradio-mini-player-set-enabled', !!enabled),
+  getMiniPlayerEnabled: () => ipcRenderer.invoke('mineradio-mini-player-get-enabled'),
+  sendMiniPlayerUpdate: (payload) => ipcRenderer.send('mineradio-mini-player-update', payload || {}),
+  onMiniPlayerEnabledState: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => callback(payload || {});
+    ipcRenderer.on('mineradio-mini-player-enabled-state', listener);
+    return () => ipcRenderer.removeListener('mineradio-mini-player-enabled-state', listener);
+  },
   onDesktopLyricsLockState: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});

@@ -12,6 +12,7 @@ const {
 } = require('./wallpaper-engine-library');
 const { WallpaperEngineRuntime } = require('./wallpaper-engine-runtime');
 const { FullDesktopModeRuntime } = require('./full-desktop-mode-runtime');
+const miniPlayer = require('./mini-player-runtime');
 const {
   LoginEasterEggGate,
   LOGIN_EASTER_EGG_GATE_VERSION,
@@ -2056,6 +2057,11 @@ function createOrUpdateTray() {
       click: () => disableFullDesktopMode('tray-exit-desktop-mode').catch((error) => {
         console.warn('[FullDesktopMode] tray exit failed:', error && error.message || error);
       }),
+    },
+    { type: 'separator' },
+    {
+      label: miniPlayer.isMiniPlayerEnabled() ? '隐藏迷你播放器' : '显示迷你播放器',
+      click: () => { try { miniPlayer.setMiniPlayerEnabled(!miniPlayer.isMiniPlayerEnabled()); } catch (e) { } },
     },
     { type: 'separator' },
     {
@@ -6060,6 +6066,8 @@ if (!gotSingleInstanceLock) {
     } catch (error) {
       console.warn('[Wallpaper Engine] local media protocol unavailable:', error && error.message || error);
     }
+    // 迷你播放器 IPC 注册
+    try { miniPlayer.registerMiniPlayerIpc(); } catch (e) { console.warn('Mini player IPC register failed:', e.message); }
     const handleDisplayLayoutChanged = (_event, _display, changedMetrics) => {
       positionDesktopLyricsWindow();
       positionWallpaperWindow(Array.isArray(changedMetrics) ? 'display-metrics-changed' : 'display-layout-changed');
@@ -6091,6 +6099,8 @@ if (!gotSingleInstanceLock) {
 
   app.on('before-quit', (event) => {
     appQuitting = true;
+    // 迷你播放器无需 HWND 清理，立即关闭
+    try { miniPlayer.closeMiniPlayerWindow(); } catch (e) { }
     if (appQuitCleanupComplete) return;
     event.preventDefault();
     if (appQuitCleanupPromise) return;
