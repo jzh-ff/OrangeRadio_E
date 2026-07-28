@@ -7,6 +7,8 @@ function disconnectAudioGraphNodes(keepSource) {
     if (!node) return;
     try { node.disconnect(); } catch (e) { }
   });
+  // EQ 链跨重建复用，仅 disconnect 不清空
+  if (typeof disconnectEqChain === 'function') disconnectEqChain();
   if (!keepSource) {
     source = null;
     audioSourceMedia = null;
@@ -182,13 +184,28 @@ function initAudio() {
   beatAnalyser.smoothingTimeConstant = 0.10;
   source.connect(analyser);
   source.connect(beatAnalyser);
+  // 创建/复用 EQ 链，插入 analyser 与 gainNode/analysisSinkNode 之间
+  if (typeof ensureEqChain === 'function') ensureEqChain(audioCtx);
+  var eqInput = (typeof eqChainInput !== 'undefined') ? eqChainInput : null;
+  var eqOutput = (typeof eqChainOutput !== 'undefined') ? eqChainOutput : null;
   if (gainNode) {
-    analyser.connect(gainNode);
+    if (eqInput && eqOutput) {
+      analyser.connect(eqInput);
+      eqOutput.connect(gainNode);
+    } else {
+      analyser.connect(gainNode);
+    }
     gainNode.connect(audioCtx.destination);
   } else if (analysisSinkNode) {
-    analyser.connect(analysisSinkNode);
+    if (eqInput && eqOutput) {
+      analyser.connect(eqInput);
+      eqOutput.connect(analysisSinkNode);
+    } else {
+      analyser.connect(analysisSinkNode);
+    }
     analysisSinkNode.connect(audioCtx.destination);
   }
+  if (typeof applyEqGains === 'function') applyEqGains();
   applyVolumeToAudio();
   frequencyData.fill(0);
   beatFrequencyData.fill(0);

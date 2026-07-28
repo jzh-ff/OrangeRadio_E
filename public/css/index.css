@@ -17822,3 +17822,192 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
     width: calc(100vw - var(--desktop-safe-left) - var(--desktop-safe-right) - 24px);
   }
 }
+
+/* =========================================================================
+   EQ 均衡器面板（复用 volume-control 的 glass 弹层风格）
+   ========================================================================= */
+.eq-control {
+  position: relative;
+  display: inline-flex;
+}
+#eq-btn {
+  position: relative;
+}
+#eq-btn::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--home-accent, #ff7a3d);
+  opacity: 0;
+  transition: opacity .2s;
+}
+#eq-btn.on::after { opacity: .9; }
+
+.eq-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 340px;
+  padding: 16px 18px 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(20, 14, 8, .88), rgba(12, 18, 32, .92));
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid rgba(var(--home-accent-rgb), .22);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .5), 0 0 24px rgba(var(--home-accent-rgb), .08), inset 0 1px 0 rgba(255, 255, 255, .08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(.96);
+  transition: opacity .22s, transform .22s;
+  z-index: 30;
+}
+.eq-control.open .eq-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.eq-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.eq-popover-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(245, 240, 230, .9);
+  letter-spacing: .04em;
+}
+
+/* 启用/禁用开关 */
+.eq-toggle-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.eq-toggle-track {
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(245, 240, 230, .18);
+  position: relative;
+  transition: background .2s;
+}
+.eq-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+}
+.eq-toggle-btn[aria-pressed="true"] .eq-toggle-track {
+  background: var(--home-accent, #ff7a3d);
+}
+.eq-toggle-btn[aria-pressed="true"] .eq-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* 降级警告 */
+.eq-degraded-warn {
+  font-size: 11px;
+  color: rgba(255, 180, 120, .85);
+  background: rgba(255, 122, 61, .12);
+  border: 1px solid rgba(255, 122, 61, .3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+}
+
+/* 预设按钮 */
+.eq-presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.eq-preset-btn {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(245, 240, 230, .6);
+  background: rgba(245, 240, 230, .06);
+  border: 1px solid rgba(245, 240, 230, .1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .18s;
+}
+.eq-preset-btn:hover {
+  color: rgba(245, 240, 230, .9);
+  background: rgba(245, 240, 230, .1);
+}
+.eq-preset-btn.active {
+  color: #1a120a;
+  background: var(--home-accent, #ff7a3d);
+  border-color: var(--home-accent, #ff7a3d);
+}
+
+/* 频段滑块（垂直） */
+.eq-bands {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 4px;
+  height: 130px;
+  padding: 4px 0;
+}
+.eq-band {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.eq-slider {
+  -webkit-appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 24px;
+  flex: 1;
+  min-height: 80px;
+  background: transparent;
+  cursor: pointer;
+}
+.eq-value {
+  font-size: 9px;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  color: rgba(245, 240, 230, .7);
+  min-height: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.eq-freq {
+  font-size: 9.5px;
+  color: rgba(245, 240, 230, .5);
+  font-weight: 500;
+}
+
+/* 禁用态：滑块和预设变灰 */
+.eq-disabled .eq-slider,
+.eq-disabled .eq-preset-btn {
+  opacity: .4;
+  pointer-events: none;
+}
+.eq-disabled .eq-presets {
+  pointer-events: none;
+}
+
+/* 降级态：整个面板内容变灰 */
+.eq-degraded .eq-bands,
+.eq-degraded .eq-presets {
+  opacity: .5;
+  pointer-events: none;
+}
