@@ -224,53 +224,115 @@ function encodeBmp(rgba, w, h) {
 }
 
 // ---------- installer artwork: sidebar (164x314) and header (150x57) ----------
+// 设计意图：把侧边栏做成一张日落海景海报，而非脏渐变。
+// 构图：深夜空（顶）→ 落日光晕（中上）→ 海平线 + 海面反光（中）→ 深海（底）
 function renderInstallerArt(w, h, variant) {
   const buf = Buffer.alloc(w * h * 4);
+  // 落日中心位置（侧边栏居中偏上）
+  const sunCx = variant === 'sidebar' ? w * 0.5 : w * 0.7;
+  const sunCy = variant === 'sidebar' ? h * 0.42 : h * 0.5;
+  const sunR = variant === 'sidebar' ? Math.min(w, h) * 0.16 : Math.min(w, h) * 0.22;
+  // 海平线 y（归一化）
+  const horizonNorm = variant === 'sidebar' ? 0.56 : 0.62;
+
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const yNorm = y / h;
-      // 日落渐变：顶部深褐紫 → 中部暖橙 → 底部深蓝黑
+      const dx = x - sunCx, dy = y - sunCy;
+      const distSun = Math.sqrt(dx * dx + dy * dy);
       let r, g, b;
+
       if (variant === 'sidebar') {
-        // 侧边栏：纵向日落渐变 + 海浪
-        if (yNorm < 0.35) {
-          // 天空：深紫褐 → 暖橙
-          const t = yNorm / 0.35;
-          r = lerp(26, 92, t); g = lerp(16, 42, t); b = lerp(10, 20, t);
-        } else if (yNorm < 0.55) {
-          // 日落带：暖橙 → 珊瑚红
-          const t = (yNorm - 0.35) / 0.20;
-          r = lerp(92, 255, t); g = lerp(42, 94, t); b = lerp(20, 98, t);
-        } else if (yNorm < 0.72) {
-          // 海面反光：珊瑚红 → 深褐
-          const t = (yNorm - 0.55) / 0.17;
-          r = lerp(255, 60, t); g = lerp(94, 30, t); b = lerp(98, 20, t);
+        // ===== 侧边栏：完整日落海景 =====
+        if (yNorm < horizonNorm) {
+          // --- 天空（三段渐变 + 落日）---
+          const skyT = yNorm / horizonNorm;
+          let sky;
+          if (skyT < 0.4) {
+            // 顶部：深夜紫
+            sky = mixRgb(parseHex('#1a0f2e'), parseHex('#3d1a3a'), skyT / 0.4);
+          } else if (skyT < 0.75) {
+            // 中部：暖紫粉过渡
+            sky = mixRgb(parseHex('#3d1a3a'), parseHex('#8a2a2a'), (skyT - 0.4) / 0.35);
+          } else {
+            // 接近海平线：暖橙红
+            sky = mixRgb(parseHex('#8a2a2a'), parseHex('#e8622a'), (skyT - 0.75) / 0.25);
+          }
+          r = sky[0]; g = sky[1]; b = sky[2];
+          // 落日光晕（径向，柔和）
+          if (distSun < sunR * 4) {
+            const glowT = 1 - (distSun / (sunR * 4));
+            const glowStrength = Math.pow(glowT, 2.5) * (distSun < sunR ? 1 : 0.45);
+            const glowColor = distSun < sunR * 1.5
+              ? parseHex('#ffe8a0')
+              : parseHex('#ff7030');
+            r = lerp(r, glowColor[0], glowStrength);
+            g = lerp(g, glowColor[1], glowStrength);
+            b = lerp(b, glowColor[2], glowStrength);
+          }
+          // 落日本体（实心圆 + 中心高光）
+          if (distSun < sunR) {
+            const coreT = distSun / sunR;
+            const core = mixRgb(parseHex('#fff8dc'), parseHex('#ffb840'), coreT);
+            r = core[0]; g = core[1]; b = core[2];
+          }
         } else {
-          // 深海：深褐 → 深蓝黑
-          const t = (yNorm - 0.72) / 0.28;
-          r = lerp(60, 12, t); g = lerp(30, 18, t); b = lerp(20, 32, t);
-        }
-        // 海浪线（在 0.72 附近）
-        if (yNorm > 0.70 && yNorm < 0.74) {
-          const wave = Math.sin(x / w * Math.PI * 3) * 0.02;
-          if (Math.abs(yNorm - 0.72 - wave) < 0.012) {
-            r = 255; g = 200; b = 130;
+          // --- 海面 ---
+          const seaT = (yNorm - horizonNorm) / (1 - horizonNorm);
+          // 海面：近处倒映落日橙 → 远处深蓝黑
+          const sea = mixRgb(parseHex('#b8401e'), parseHex('#080d1a'), Math.pow(seaT, 0.55));
+          r = sea[0]; g = sea[1]; b = sea[2];
+          // 海面落日反光带（垂直延伸的亮带，模拟太阳在水面的倒影）
+          const reflWidth = sunR * 1.8;
+          if (Math.abs(x - sunCx) < reflWidth && seaT < 0.7) {
+            const reflT = 1 - (Math.abs(x - sunCx) / reflWidth);
+            const reflStrength = Math.pow(reflT, 2) * (1 - seaT / 0.7) * 0.8;
+            // 反光颜色：近处金黄 → 远处暗橙
+            const reflColor = mixRgb(parseHex('#ffd070'), parseHex('#aa3010'), seaT * 1.5);
+            r = lerp(r, reflColor[0], reflStrength);
+            g = lerp(g, reflColor[1], reflStrength);
+            b = lerp(b, reflColor[2], reflStrength);
+          }
+          // 水平波纹线（细横线模拟海面波光，越远越密越暗）
+          const waveCount = 7;
+          for (let wl = 0; wl < waveCount; wl++) {
+            const waveYNorm = horizonNorm + 0.025 + Math.pow(wl / waveCount, 0.8) * 0.35;
+            const waveAmp = 0.006 + wl * 0.002;
+            const wavePhase = Math.sin(x / w * Math.PI * (3 + wl * 0.5) + wl * 1.3);
+            if (Math.abs(yNorm - waveYNorm - wavePhase * waveAmp) < 0.0035) {
+              const sparkle = (1 - wl / waveCount) * (1 - seaT * 0.5);
+              r = lerp(r, 255, sparkle * 0.4);
+              g = lerp(g, 210, sparkle * 0.35);
+              b = lerp(b, 130, sparkle * 0.2);
+            }
           }
         }
       } else {
-        // 头部图：横向日落渐变（左深右亮）
+        // ===== 头部图：横向日落渐变（窄条，简洁）=====
         const xNorm = x / w;
-        r = lerp(20, 80, xNorm) + lerp(0, 40, yNorm);
-        g = lerp(14, 36, xNorm) + lerp(0, 16, yNorm);
-        b = lerp(10, 18, xNorm) + lerp(0, 8, yNorm);
-        // 底部暖光
-        if (yNorm > 0.6) {
-          const t = (yNorm - 0.6) / 0.4;
-          r = lerp(r, 200, t * 0.4); g = lerp(g, 100, t * 0.4); b = lerp(b, 50, t * 0.4);
+        // 左深右暖
+        const base = mixRgb(parseHex('#14100a'), parseHex('#2a1810'), xNorm);
+        r = base[0]; g = base[1]; b = base[2];
+        // 右侧落日暖光
+        if (xNorm > 0.5) {
+          const warmT = (xNorm - 0.5) / 0.5;
+          r = lerp(r, 180, warmT * 0.5);
+          g = lerp(g, 70, warmT * 0.5);
+          b = lerp(b, 30, warmT * 0.4);
+        }
+        // 底部一抹暖光
+        if (yNorm > 0.5) {
+          const botT = (yNorm - 0.5) / 0.5;
+          r = lerp(r, 120, botT * 0.3);
+          g = lerp(g, 50, botT * 0.3);
         }
       }
+
       const i = (y * w + x) * 4;
-      buf[i] = clamp(r | 0, 0, 255); buf[i + 1] = clamp(g | 0, 0, 255); buf[i + 2] = clamp(b | 0, 0, 255); buf[i + 3] = 255;
+      buf[i] = clamp(r | 0, 0, 255);
+      buf[i + 1] = clamp(g | 0, 0, 255);
+      buf[i + 2] = clamp(b | 0, 0, 255);
+      buf[i + 3] = 255;
     }
   }
   return buf;
