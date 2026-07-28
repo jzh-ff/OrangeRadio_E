@@ -65,3 +65,4 @@ tmp/
 *.png.tmp
 verification/
 screenshots/
+.zcode/
