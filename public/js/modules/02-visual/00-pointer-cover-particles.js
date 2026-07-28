@@ -343,7 +343,7 @@ var uniforms = {
   uBgFade: { value: 0.20 },
   uBloomStrength: { value: 0.62 },
   uBloomSize: { value: 2.65 },
-  uTintColor: { value: new THREE.Color('#9db8cf') },
+  uTintColor: { value: new THREE.Color('#ff9c6e') },
   uTintStrength: { value: 0 },
   uCoverTex: { value: coverTex },
   uPrevCoverTex: { value: prevCoverTex },

@@ -282,8 +282,8 @@ function drawHandSkeleton(lm, isPinch, openness, isFist) {
   openness = clampRange(openness == null ? 1 : openness, 0, 1);
   var palm = palmCenter(lm);
   var px = palm.x * W, py = palm.y * H;
-  var primary = isFist ? 'rgba(244,210,138,0.92)' : (isPinch ? 'rgba(156,255,223,0.95)' : 'rgba(226,247,255,0.92)');
-  var soft = isFist ? 'rgba(244,210,138,0.18)' : (isPinch ? 'rgba(156,255,223,0.20)' : 'rgba(143,233,255,0.18)');
+  var primary = isFist ? 'rgba(244,210,138,0.92)' : (isPinch ? 'rgba(255, 122, 61,0.95)' : 'rgba(226,247,255,0.92)');
+  var soft = isFist ? 'rgba(244,210,138,0.18)' : (isPinch ? 'rgba(255, 122, 61,0.20)' : 'rgba(143,233,255,0.18)');
   var coreR = 26 + openness * 34;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';

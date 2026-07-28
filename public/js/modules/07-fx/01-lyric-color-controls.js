@@ -47,18 +47,18 @@ function updateLyricHighlightControls() {
 function lyricPaletteColorToHex(value, fallback, minLum) {
   if (typeof lyricThreeColor === 'function') {
     try {
-      var c = lyricThreeColor(value, fallback || '#9db8cf', minLum == null ? 0.36 : minLum);
+      var c = lyricThreeColor(value, fallback || '#ff9c6e', minLum == null ? 0.36 : minLum);
       if (c && c.getHexString) return '#' + c.getHexString();
     } catch (e) { }
   }
-  return normalizeHexColor(value || fallback || '#9db8cf', fallback || '#9db8cf');
+  return normalizeHexColor(value || fallback || '#ff9c6e', fallback || '#ff9c6e');
 }
 function lyricGlowControlTone() {
   var pal = lyricControlPalette();
   var glow = fx.lyricGlowLinked === false
     ? fx.lyricGlowColor
     : (pal.glowColor || pal.secondary || pal.highlight || pal.primary || fx.lyricGlowColor);
-  return lyricPaletteColorToHex(glow, '#9db8cf', fx.lyricGlowLinked === false ? 0.36 : 0.40);
+  return lyricPaletteColorToHex(glow, '#ff9c6e', fx.lyricGlowLinked === false ? 0.36 : 0.40);
 }
 function updateLyricGlowControls() {
   var row = document.getElementById('lyric-glow-row');
@@ -68,7 +68,7 @@ function updateLyricGlowControls() {
   var glowEnableBtn = document.getElementById('lyric-glow-enable-btn');
   var glowBeatBtn = document.getElementById('lyric-glow-beat-btn');
   var linked = fx.lyricGlowLinked !== false;
-  var color = normalizeHexColor(fx.lyricGlowColor || '#9db8cf');
+  var color = normalizeHexColor(fx.lyricGlowColor || '#ff9c6e');
   var tone = lyricGlowControlTone();
   if (picker) picker.value = linked ? tone : color;
   if (row) {

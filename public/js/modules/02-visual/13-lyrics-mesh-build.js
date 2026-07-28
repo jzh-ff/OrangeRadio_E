@@ -118,7 +118,7 @@ function buildLyricMesh(input, preparedRowLayerBundle, preparedMasks) {
     var glowTex = makeLyricGlowTexture(payload ? payload.text : text, activeMask.fontSize, activeMask.activeTextWidth || activeMask.textWidth, activeMask.lines, activeMask.lineHeight, activeMask.fitScaleX, activeMask.entries, activeMask.activeLine, null);
     glowMat = new THREE.MeshBasicMaterial({
       map: glowTex, transparent: true, opacity: 0, depthWrite: false, depthTest: false,
-      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, color: lyricStageGlowThreeColor(pal, '#9cffdf', 0.36)
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, color: lyricStageGlowThreeColor(pal, '#ff7a3d', 0.36)
     });
     glowMeta = glowTex.userData || {};
     var glowWorldW = textWorldW * ((glowMeta.width || activeMask.width) / Math.max(1, glowMeta.textWidth || activeMask.activeTextWidth || activeMask.textWidth));

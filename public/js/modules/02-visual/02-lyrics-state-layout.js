@@ -12,14 +12,14 @@ var stageLyrics = {
   glowFollowRoll: 0,
   palette: {
     primary: '#d6f8ff',
-    secondary: '#9cffdf',
+    secondary: '#ff7a3d',
     highlight: '#eef7ff',
     shadow: 'rgba(2,8,12,0.42)',
     glow: 'rgba(143,233,255,0.34)',
   },
   coverPalette: {
     primary: '#d6f8ff',
-    secondary: '#9cffdf',
+    secondary: '#ff7a3d',
     highlight: '#eef7ff',
     shadow: 'rgba(2,8,12,0.42)',
     glow: 'rgba(143,233,255,0.34)',

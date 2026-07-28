@@ -22,8 +22,8 @@ var presetIcons = [
 var presetDisplayOrder = [0, 6, 7, 5, 4, 2, 1, 3];
 var lyricColorPresets = [
   { name: '雾蓝', color: '#a9b8c8' },
-  { name: '银蓝', color: '#9db8cf' },
-  { name: '冰川', color: '#7ec8d8' },
+  { name: '银蓝', color: '#ff9c6e' },
+  { name: '冰川', color: '#ffb38a' },
   { name: '青绿', color: '#66d2b5' },
   { name: '松针', color: '#7fa894' },
   { name: '月白', color: '#d7d2c4' },

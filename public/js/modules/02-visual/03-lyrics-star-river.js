@@ -42,7 +42,7 @@ function ensureLyricStarRiver() {
       uWidth: { value: stageLyrics.starRiverWidth || 4.2 },
       uHeight: { value: stageLyrics.starRiverHeight || 0.58 },
       uOpacity: { value: 0 },
-      uColorA: { value: lyricThreeColor(stageLyrics.palette.secondary, '#9cffdf', 0.42) },
+      uColorA: { value: lyricThreeColor(stageLyrics.palette.secondary, '#ff7a3d', 0.42) },
       uColorB: { value: lyricThreeColor(stageLyrics.palette.highlight, '#fff7d2', 0.44) }
     },
     vertexShader: [
@@ -133,7 +133,7 @@ function updateLyricStarRiver(dt) {
     ? clampRange(0.22 + lyricGlowStrength * 0.58 + stageLyrics.highBloom * 0.16 + stageLyrics.beatGlow * 0.12, 0.16, 0.86)
     : 0;
   u.uOpacity.value += (targetOpacity - u.uOpacity.value) * (targetOpacity > u.uOpacity.value ? 0.10 : 0.055);
-  u.uColorA.value.copy(lyricThreeColor(stageLyrics.palette.secondary || stageLyrics.palette.primary, '#9cffdf', 0.42));
+  u.uColorA.value.copy(lyricThreeColor(stageLyrics.palette.secondary || stageLyrics.palette.primary, '#ff7a3d', 0.42));
   u.uColorB.value.copy(lyricThreeColor(stageLyrics.palette.highlight || stageLyrics.palette.primary, '#fff7d2', 0.46));
   river.visible = u.uOpacity.value > 0.01 || !!stageLyrics.current;
   var t = uniforms.uTime.value;

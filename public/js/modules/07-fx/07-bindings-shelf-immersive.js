@@ -221,7 +221,7 @@ function bindFxPanel() {
   var visualIconPicker = document.getElementById('visual-icon-picker');
   if (visualIconPicker) {
     visualIconPicker.addEventListener('input', function () { setVisualIconColor(visualIconPicker.value, true); });
-    visualIconPicker.addEventListener('change', function () { showToast('视觉图标: ' + normalizeHexColor(visualIconPicker.value, '#7fd8ff').toUpperCase()); });
+    visualIconPicker.addEventListener('change', function () { showToast('视觉图标: ' + normalizeHexColor(visualIconPicker.value, '#ff9c6e').toUpperCase()); });
   }
   var bgColorPicker = document.getElementById('bg-color-picker');
   if (bgColorPicker) {

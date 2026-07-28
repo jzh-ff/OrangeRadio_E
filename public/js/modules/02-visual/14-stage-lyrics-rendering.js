@@ -2423,7 +2423,7 @@ function updateStageLyrics3D(dt) {
         var glowTarget = lyricGlowStrength > 0 ? Math.min(shelfDetailLyricProfile.glowCap, (0.075 + solar * 0.34 + stageLyrics.beatGlow * 0.16 * shelfDetailLyricDim) * Math.min(3.0, glowDrive) * (lyricMotion.glowLift || 1)) : 0;
         if (data.suppressStaticGlow) glowTarget = 0;
         data.glowMat.opacity += (glowTarget - data.glowMat.opacity) * (glowTarget > data.glowMat.opacity ? 0.095 : (shelfDetailOpen ? 0.20 : 0.055));
-        data.glowMat.color.copy(lyricStageGlowThreeColor(stageLyrics.palette, '#9cffdf', 0.36)).lerp(lyricSunHotColor, warmth);
+        data.glowMat.color.copy(lyricStageGlowThreeColor(stageLyrics.palette, '#ff7a3d', 0.36)).lerp(lyricSunHotColor, warmth);
       }
       if (data.sparkMat) {
         var sparkTarget = lyricGlowStrength > 0 && fx.lyricGlowParticles && !shelfDetailOpen ? Math.min(0.42, (0.10 + solar * 0.14 + stageLyrics.beatGlow * 0.10) * Math.min(1.6, glowDrive)) : 0;

@@ -174,8 +174,8 @@ function effectiveSkullVisualTint() {
   var custom = fx && fx.visualTintMode === 'custom';
   var color = custom
     ? fx.visualTintColor
-    : (pal.secondary || pal.primary || fx.visualTintColor || fxDefaults.visualTintColor || '#9db8cf');
-  color = normalizeHexColor(color || '#9db8cf', '#9db8cf');
+    : (pal.secondary || pal.primary || fx.visualTintColor || fxDefaults.visualTintColor || '#ff9c6e');
+  color = normalizeHexColor(color || '#ff9c6e', '#ff9c6e');
   var strength = custom ? 0.98 : (pal && (pal.secondary || pal.primary) ? 0.30 : 0.14);
   return { color: color, strength: strength, custom: custom };
 }

@@ -183,7 +183,7 @@ function readSavedLyricLayoutCriticalFallback(raw, err) {
   if (!raw) return {};
   return {
     lyricColorMode: raw.lyricColorMode === 'custom' ? 'custom' : 'auto',
-    lyricColor: normalizeHexColor(raw.lyricColor || fxDefaults.lyricColor || '#a9b8c8', fxDefaults.lyricColor || '#a9b8c8'),
+    lyricColor: normalizeHexColor(raw.lyricColor || fxDefaults.lyricColor || '#ffb38a', fxDefaults.lyricColor || '#ffb38a'),
     lyricHighlightMode: raw.lyricHighlightMode === 'custom' ? 'custom' : 'auto',
     lyricHighlightColor: normalizeHexColor(raw.lyricHighlightColor || fxDefaults.lyricHighlightColor || '#fac900', fxDefaults.lyricHighlightColor || '#fac900'),
     lyricGlowLinked: raw.lyricGlowLinked !== false,
@@ -253,11 +253,11 @@ function readSavedLyricLayout() {
       lyricTiltY: layoutNumber(raw.lyricTiltY, 0, -84, 84),
       lyricCameraLock: !!raw.lyricCameraLock,
       lyricColorMode: raw.lyricColorMode === 'custom' ? 'custom' : 'auto',
-      lyricColor: normalizeHexColor(raw.lyricColor || '#a9b8c8'),
+      lyricColor: normalizeHexColor(raw.lyricColor || '#ffb38a'),
       lyricHighlightMode: raw.lyricHighlightMode === 'custom' ? 'custom' : 'auto',
       lyricHighlightColor: normalizeHexColor(raw.lyricHighlightColor || '#fff0b8'),
       lyricGlowLinked: raw.lyricGlowLinked !== false,
-      lyricGlowColor: normalizeHexColor(raw.lyricGlowColor || '#9db8cf'),
+      lyricGlowColor: normalizeHexColor(raw.lyricGlowColor || '#ff9c6e'),
       lyricDisplayMode: normalizeSavedLyricDisplayMode(raw.lyricDisplayMode || fxDefaults.lyricDisplayMode),
       lyricTranslationMode: normalizeSavedLyricTranslationMode(raw.lyricTranslationMode || fxDefaults.lyricTranslationMode),
       lyricMotionStyle: normalizeSavedLyricMotionStyle(raw.lyricMotionStyle || fxDefaults.lyricMotionStyle),
@@ -295,14 +295,14 @@ function readSavedLyricLayout() {
       particleLyrics: raw.particleLyrics !== false,
       backCover: raw.backCover === true,
       visualTintMode: raw.visualTintMode === 'custom' ? 'custom' : 'auto',
-      visualTintColor: normalizeHexColor(raw.visualTintColor || '#9db8cf'),
+      visualTintColor: normalizeHexColor(raw.visualTintColor || '#ff9c6e'),
       uiAccentColor: normalizeHexColor(
         raw.uiAccentColor || fxDefaults.uiAccentColor || '#ffffff',
         fxDefaults.uiAccentColor || '#ffffff'
       ),
-      homeAccentColor: normalizeHexColor(raw.homeAccentColor || '#00f5d4'),
+      homeAccentColor: normalizeHexColor(raw.homeAccentColor || '#ff7a3d'),
       homeIconColor: normalizeHexColor(raw.homeIconColor || fxDefaults.homeIconColor || '#f4d28a', '#f4d28a'),
-      visualIconColor: normalizeHexColor(raw.visualIconColor || fxDefaults.visualIconColor || '#7fd8ff', '#7fd8ff'),
+      visualIconColor: normalizeHexColor(raw.visualIconColor || fxDefaults.visualIconColor || '#ff9c6e', '#ff9c6e'),
       backgroundColorMode: savedBgCustom ? 'custom' : 'cover',
       backgroundColor: savedBgColor,
       backgroundOpacity: savedBgOpacity,
@@ -602,7 +602,7 @@ function currentFxAutosaveHasUserVisualState(raw) {
   if (raw.autosaveUser === true) return true;
   if (raw.lyricColorMode === 'custom' || raw.lyricHighlightMode === 'custom') return true;
   if (raw.lyricGlowLinked === false) return true;
-  if (normalizeHexColor(raw.lyricColor || fxDefaults.lyricColor, fxDefaults.lyricColor) !== normalizeHexColor(fxDefaults.lyricColor, '#a9b8c8')) return true;
+  if (normalizeHexColor(raw.lyricColor || fxDefaults.lyricColor, fxDefaults.lyricColor) !== normalizeHexColor(fxDefaults.lyricColor, '#ffb38a')) return true;
   if (normalizeHexColor(raw.lyricHighlightColor || fxDefaults.lyricHighlightColor, fxDefaults.lyricHighlightColor) !== normalizeHexColor(fxDefaults.lyricHighlightColor, '#fac900')) return true;
   if (normalizeHexColor(raw.lyricGlowColor || fxDefaults.lyricGlowColor, fxDefaults.lyricGlowColor) !== normalizeHexColor(fxDefaults.lyricGlowColor, '#008aff')) return true;
   if (layoutNumber(raw.controlGlassChromaticOffset, fxDefaults.controlGlassChromaticOffset, 30, 140) !== layoutNumber(fxDefaults.controlGlassChromaticOffset, 90, 30, 140)) return true;
@@ -614,7 +614,7 @@ function currentFxAutosavePayloadLooksDefaultCritical(payload) {
   return (payload.lyricColorMode !== 'custom')
     && (payload.lyricHighlightMode !== 'custom')
     && payload.lyricGlowLinked !== false
-    && normalizeHexColor(payload.lyricColor || fxDefaults.lyricColor, fxDefaults.lyricColor) === normalizeHexColor(fxDefaults.lyricColor, '#a9b8c8')
+    && normalizeHexColor(payload.lyricColor || fxDefaults.lyricColor, fxDefaults.lyricColor) === normalizeHexColor(fxDefaults.lyricColor, '#ffb38a')
     && normalizeHexColor(payload.lyricHighlightColor || fxDefaults.lyricHighlightColor, fxDefaults.lyricHighlightColor) === normalizeHexColor(fxDefaults.lyricHighlightColor, '#fac900')
     && normalizeHexColor(payload.lyricGlowColor || fxDefaults.lyricGlowColor, fxDefaults.lyricGlowColor) === normalizeHexColor(fxDefaults.lyricGlowColor, '#008aff')
     && layoutNumber(payload.controlGlassChromaticOffset, fxDefaults.controlGlassChromaticOffset, 30, 140) === layoutNumber(fxDefaults.controlGlassChromaticOffset, 90, 30, 140);
@@ -649,11 +649,11 @@ function currentFxAutosaveCriticalPatch() {
   if (!fx) return {};
   return {
     lyricColorMode: fx.lyricColorMode === 'custom' ? 'custom' : 'auto',
-    lyricColor: normalizeHexColor(fx.lyricColor || '#a9b8c8'),
+    lyricColor: normalizeHexColor(fx.lyricColor || '#ffb38a'),
     lyricHighlightMode: fx.lyricHighlightMode === 'custom' ? 'custom' : 'auto',
     lyricHighlightColor: normalizeHexColor(fx.lyricHighlightColor || '#fff0b8'),
     lyricGlowLinked: fx.lyricGlowLinked !== false,
-    lyricGlowColor: normalizeHexColor(fx.lyricGlowColor || '#9db8cf'),
+    lyricGlowColor: normalizeHexColor(fx.lyricGlowColor || '#ff9c6e'),
     lyricDisplayMode: normalizeSavedLyricDisplayMode(fx.lyricDisplayMode || fxDefaults.lyricDisplayMode),
     lyricTranslationMode: normalizeSavedLyricTranslationMode(fx.lyricTranslationMode || fxDefaults.lyricTranslationMode),
     lyricMotionStyle: normalizeSavedLyricMotionStyle(fx.lyricMotionStyle || fxDefaults.lyricMotionStyle),
@@ -740,11 +740,11 @@ function saveLyricLayout(opts) {
       lyricTiltY: layoutNumber(fx.lyricTiltY, 0, -84, 84),
       lyricCameraLock: !!fx.lyricCameraLock,
       lyricColorMode: fx.lyricColorMode === 'custom' ? 'custom' : 'auto',
-      lyricColor: normalizeHexColor(fx.lyricColor || '#a9b8c8'),
+      lyricColor: normalizeHexColor(fx.lyricColor || '#ffb38a'),
       lyricHighlightMode: fx.lyricHighlightMode === 'custom' ? 'custom' : 'auto',
       lyricHighlightColor: normalizeHexColor(fx.lyricHighlightColor || '#fff0b8'),
       lyricGlowLinked: fx.lyricGlowLinked !== false,
-      lyricGlowColor: normalizeHexColor(fx.lyricGlowColor || '#9db8cf'),
+      lyricGlowColor: normalizeHexColor(fx.lyricGlowColor || '#ff9c6e'),
       lyricDisplayMode: normalizeSavedLyricDisplayMode(fx.lyricDisplayMode || fxDefaults.lyricDisplayMode),
       lyricTranslationMode: normalizeSavedLyricTranslationMode(fx.lyricTranslationMode || fxDefaults.lyricTranslationMode),
       lyricMotionStyle: normalizeSavedLyricMotionStyle(fx.lyricMotionStyle || fxDefaults.lyricMotionStyle),
@@ -781,14 +781,14 @@ function saveLyricLayout(opts) {
       particleLyrics: fx.particleLyrics !== false,
       backCover: !!fx.backCover,
       visualTintMode: fx.visualTintMode === 'custom' ? 'custom' : 'auto',
-      visualTintColor: normalizeHexColor(fx.visualTintColor || '#9db8cf'),
+      visualTintColor: normalizeHexColor(fx.visualTintColor || '#ff9c6e'),
       uiAccentColor: normalizeHexColor(
         fx.uiAccentColor || fxDefaults.uiAccentColor || '#ffffff',
         fxDefaults.uiAccentColor || '#ffffff'
       ),
-      homeAccentColor: normalizeHexColor(fx.homeAccentColor || '#00f5d4'),
+      homeAccentColor: normalizeHexColor(fx.homeAccentColor || '#ff7a3d'),
       homeIconColor: normalizeHexColor(fx.homeIconColor || '#f4d28a', '#f4d28a'),
-      visualIconColor: normalizeHexColor(fx.visualIconColor || '#7fd8ff', '#7fd8ff'),
+      visualIconColor: normalizeHexColor(fx.visualIconColor || '#ff9c6e', '#ff9c6e'),
       backgroundColorMode: fx.backgroundColorMode === 'custom' || fx.backgroundColorCustom ? 'custom' : 'cover',
       backgroundColor: normalizeHexColor(fx.backgroundColor || '#000000', '#000000'),
       backgroundOpacity: clampRange(fx.backgroundOpacity == null ? fxDefaults.backgroundOpacity : Number(fx.backgroundOpacity), 0, 1),
@@ -963,7 +963,7 @@ function normalizeHexColor(value, fallback) {
   if (/^#[0-9a-f]{3}$/i.test(hex)) {
     hex = '#' + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2) + hex.charAt(3) + hex.charAt(3);
   }
-  fallback = /^#[0-9a-f]{6}$/i.test(String(fallback || '')) ? String(fallback).toLowerCase() : '#a9b8c8';
+  fallback = /^#[0-9a-f]{6}$/i.test(String(fallback || '')) ? String(fallback).toLowerCase() : '#ffb38a';
   return /^#[0-9a-f]{6}$/i.test(hex) ? hex.toLowerCase() : fallback;
 }
 function normalizeDesktopLyricsFps(value) {

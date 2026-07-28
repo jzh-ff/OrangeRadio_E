@@ -73,7 +73,7 @@ function makeLyricShaderMaterial(mask, pal, motionProfile) {
       uOpacity: { value: 0 },
       uBaseColor: { value: lyricThreeColor(pal.primary, '#d6f8ff', 0.38) },
       uHiColor: { value: lyricThreeColor(pal.highlight || pal.primary, '#fff0b8', 0.48) },
-      uGlowColor: { value: lyricStageGlowThreeColor(pal, '#9cffdf', 0.36) },
+      uGlowColor: { value: lyricStageGlowThreeColor(pal, '#ff7a3d', 0.36) },
       uSolarColor: { value: lyricBeatGlowThreeColor(pal, '#fff0b8', 0.50) },
       uFeather: { value: lyricsHasNativeKaraoke ? 0.030 : 0.055 },
       uSolar: { value: 0 },

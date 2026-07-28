@@ -57,10 +57,10 @@ function homeDashboardCoverInitials(text) {
 
 function homeDashboardGeneratedCover(title, label, tone) {
   var palettes = {
-    search: ['#9db8cf', '#f8f4ee', '#00f5d4'],
-    playlist: ['#9db8cf', '#00f5d4', '#2442ff'],
-    library: ['#00f5d4', '#f8f4ee', '#2442ff'],
-    mix: ['#f8f4ee', '#00f5d4', '#2442ff'],
+    search: ['#ff9c6e', '#f8f4ee', '#ff7a3d'],
+    playlist: ['#ff9c6e', '#ff7a3d', '#2442ff'],
+    library: ['#ff7a3d', '#f8f4ee', '#2442ff'],
+    mix: ['#f8f4ee', '#ff7a3d', '#2442ff'],
   };
   var palette = palettes[tone] || palettes.playlist;
   var letters = homeDashboardSvgText(homeDashboardCoverInitials(title || label));

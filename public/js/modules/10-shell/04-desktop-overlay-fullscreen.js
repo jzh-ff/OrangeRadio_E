@@ -967,9 +967,9 @@ function desktopOverlayColors() {
   var pal = stageLyrics && stageLyrics.palette || {};
   return {
     primary: desktopOverlayColorValue(pal.primary || fx.lyricColor || '#d6f8ff', '#d6f8ff'),
-    secondary: desktopOverlayColorValue(pal.secondary || fx.visualTintColor || '#9cffdf', '#9cffdf'),
+    secondary: desktopOverlayColorValue(pal.secondary || fx.visualTintColor || '#ff7a3d', '#ff7a3d'),
     highlight: desktopOverlayColorValue(pal.highlight || fx.lyricHighlightColor || '#fff0b8', '#fff0b8'),
-    glow: desktopOverlayColorValue(pal.glowColor || pal.secondary || pal.primary || fx.lyricGlowColor || '#9cffdf', '#9cffdf')
+    glow: desktopOverlayColorValue(pal.glowColor || pal.secondary || pal.primary || fx.lyricGlowColor || '#ff7a3d', '#ff7a3d')
   };
 }
 function desktopLyricsMotionPayload() {

@@ -1,29 +1,29 @@
 function applyHomeAccentColor() {
-  var color = normalizeHexColor(fx.homeAccentColor || '#00f5d4');
+  var color = normalizeHexColor(fx.homeAccentColor || '#ff7a3d');
   var rgb = hexToRgb(color);
   document.documentElement.style.setProperty('--home-accent', color);
   document.documentElement.style.setProperty('--home-accent-rgb', rgb.r + ',' + rgb.g + ',' + rgb.b);
 }
 function updateHomeAccentControls() {
   applyHomeAccentColor();
-  var color = normalizeHexColor(fx.homeAccentColor || '#00f5d4');
+  var color = normalizeHexColor(fx.homeAccentColor || '#ff7a3d');
   var picker = document.getElementById('home-accent-picker');
   var value = document.getElementById('home-accent-value');
   if (picker) picker.value = color;
   if (value) value.textContent = color.toUpperCase();
 }
 function setHomeAccentColor(color, silent) {
-  fx.homeAccentColor = normalizeHexColor(color || '#00f5d4');
+  fx.homeAccentColor = normalizeHexColor(color || '#ff7a3d');
   updateHomeAccentControls();
   saveLyricLayout({ user: true, reason: 'homeAccentColor' });
   if (!silent) showToast('Home 填充: ' + fx.homeAccentColor.toUpperCase());
 }
 function resetHomeAccentColor() {
-  setHomeAccentColor(fxDefaults.homeAccentColor || '#00f5d4');
+  setHomeAccentColor(fxDefaults.homeAccentColor || '#ff7a3d');
 }
 function applyIconAccentColors() {
   var homeColor = normalizeHexColor(fx.homeIconColor || fxDefaults.homeIconColor || '#f4d28a', '#f4d28a');
-  var visualColor = normalizeHexColor(fx.visualIconColor || fxDefaults.visualIconColor || '#7fd8ff', '#7fd8ff');
+  var visualColor = normalizeHexColor(fx.visualIconColor || fxDefaults.visualIconColor || '#ff9c6e', '#ff9c6e');
   var homeRgb = hexToRgb(homeColor);
   var visualRgb = hexToRgb(visualColor);
   var root = document.documentElement;
@@ -35,7 +35,7 @@ function applyIconAccentColors() {
 function updateIconAccentControls() {
   applyIconAccentColors();
   var homeColor = normalizeHexColor(fx.homeIconColor || fxDefaults.homeIconColor || '#f4d28a', '#f4d28a');
-  var visualColor = normalizeHexColor(fx.visualIconColor || fxDefaults.visualIconColor || '#7fd8ff', '#7fd8ff');
+  var visualColor = normalizeHexColor(fx.visualIconColor || fxDefaults.visualIconColor || '#ff9c6e', '#ff9c6e');
   var homePicker = document.getElementById('home-icon-picker');
   var homeValue = document.getElementById('home-icon-value');
   var visualPicker = document.getElementById('visual-icon-picker');
@@ -55,13 +55,13 @@ function resetHomeIconColor() {
   setHomeIconColor(fxDefaults.homeIconColor || '#f4d28a');
 }
 function setVisualIconColor(color, silent) {
-  fx.visualIconColor = normalizeHexColor(color || fxDefaults.visualIconColor || '#7fd8ff', '#7fd8ff');
+  fx.visualIconColor = normalizeHexColor(color || fxDefaults.visualIconColor || '#ff9c6e', '#ff9c6e');
   updateIconAccentControls();
   saveLyricLayout({ user: true, reason: 'visualIconColor' });
   if (!silent) showToast('视觉图标: ' + fx.visualIconColor.toUpperCase());
 }
 function resetVisualIconColor() {
-  setVisualIconColor(fxDefaults.visualIconColor || '#7fd8ff');
+  setVisualIconColor(fxDefaults.visualIconColor || '#ff9c6e');
 }
 function customBackgroundCropNumber(key, fallback, min, max) {
   var n = Number(fx && fx[key]);
@@ -649,7 +649,7 @@ function updateVisualTintControls() {
   var picker = document.getElementById('visual-tint-picker');
   var value = document.getElementById('visual-tint-value');
   var autoBtn = document.getElementById('visual-tint-auto-btn');
-  var color = normalizeHexColor(fx.visualTintColor || '#9db8cf');
+  var color = normalizeHexColor(fx.visualTintColor || '#ff9c6e');
   document.documentElement.style.setProperty('--visual-tint', color);
   if (picker) picker.value = color;
   if (value) value.textContent = fx.visualTintMode === 'custom' ? color.toUpperCase() : '封面取色';
@@ -664,7 +664,7 @@ function setVisualTintAuto() {
 }
 function resetVisualTintColor() {
   fx.visualTintMode = 'auto';
-  fx.visualTintColor = normalizeHexColor(fxDefaults.visualTintColor || '#9db8cf');
+  fx.visualTintColor = normalizeHexColor(fxDefaults.visualTintColor || '#ff9c6e');
   updateVisualTintControls();
   syncFxUniforms();
   saveLyricLayout({ user: true, reason: 'visualTintReset' });
@@ -672,7 +672,7 @@ function resetVisualTintColor() {
 }
 function setVisualTintCustom(color, silent) {
   fx.visualTintMode = 'custom';
-  fx.visualTintColor = normalizeHexColor(color || '#9db8cf');
+  fx.visualTintColor = normalizeHexColor(color || '#ff9c6e');
   updateVisualTintControls();
   syncFxUniforms();
   saveLyricLayout({ user: true, reason: 'visualTintColor' });
@@ -723,8 +723,8 @@ function sonicRawPaletteHex(value, fallback) {
 }
 function sonicGroundCoverPreviewColors() {
   var pal = stageLyrics && (stageLyrics.coverPalette || stageLyrics.palette) || {};
-  var primary = sonicPaletteHex(pal.primary || pal.secondary || pal.highlight, '#33e6ff', 0.42);
-  var secondary = sonicPaletteHex(pal.secondary || pal.primary || pal.highlight, '#7fd8ff', 0.40);
+  var primary = sonicPaletteHex(pal.primary || pal.secondary || pal.highlight, '#ffb38a', 0.42);
+  var secondary = sonicPaletteHex(pal.secondary || pal.primary || pal.highlight, '#ff9c6e', 0.40);
   var highlight = sonicPaletteHex(pal.highlight || pal.primary || pal.secondary, '#ffd070', 0.48);
   return {
     sonicGroundBaseColor: sonicMixHex('#05070c', primary, 0.12),
@@ -737,7 +737,7 @@ function updateSonicGroundColorControls() {
   var customMode = fx.sonicGroundColorMode === 'custom';
   var coverPreview = customMode ? null : sonicGroundCoverPreviewColors();
   SONIC_GROUND_COLOR_CONTROLS.forEach(function (item) {
-    var fallback = fxDefaults[item.key] || '#33e6ff';
+    var fallback = fxDefaults[item.key] || '#ffb38a';
     var color = customMode ? normalizeHexColor(fx[item.key] || fallback, fallback) : normalizeHexColor(coverPreview[item.key] || fallback, fallback);
     var picker = document.getElementById(item.picker);
     var value = document.getElementById(item.value);
@@ -747,7 +747,7 @@ function updateSonicGroundColorControls() {
   });
   if (!customMode) {
     SONIC_GROUND_COLOR_CONTROLS.forEach(function (item) {
-      var fallback = fxDefaults[item.key] || '#33e6ff';
+      var fallback = fxDefaults[item.key] || '#ffb38a';
       var color = normalizeHexColor((coverPreview && coverPreview[item.key]) || fallback, fallback);
       var value = document.getElementById(item.value);
       if (value) value.textContent = '封面 ' + color.toUpperCase();
@@ -757,7 +757,7 @@ function updateSonicGroundColorControls() {
 function setSonicGroundColor(key, color, silent) {
   var item = sonicGroundColorControl(key);
   if (!item) return;
-  var fallback = fxDefaults[item.key] || '#33e6ff';
+  var fallback = fxDefaults[item.key] || '#ffb38a';
   fx.sonicGroundColorMode = 'custom';
   fx[item.key] = normalizeHexColor(color || fallback, fallback);
   updateSonicGroundColorControls();
@@ -770,7 +770,7 @@ function resetSonicGroundColor(key) {
   if (!item) return;
   fx.sonicGroundColorMode = 'cover';
   SONIC_GROUND_COLOR_CONTROLS.forEach(function (control) {
-    fx[control.key] = normalizeHexColor(fxDefaults[control.key] || '#33e6ff', '#33e6ff');
+    fx[control.key] = normalizeHexColor(fxDefaults[control.key] || '#ffb38a', '#ffb38a');
   });
   updateSonicGroundColorControls();
   syncFxUniforms();

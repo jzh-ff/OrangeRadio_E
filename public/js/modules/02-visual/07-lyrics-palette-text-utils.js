@@ -8,7 +8,7 @@ function uiAccentRgba(alpha, fallback) {
   return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + (alpha == null ? 1 : alpha) + ')';
 }
 function readableInkForHex(hex) {
-  var c = hexToRgb(hex || '#00f5d4');
+  var c = hexToRgb(hex || '#ff7a3d');
   var lum = (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) / 255;
   return lum > 0.54 ? '#06100f' : '#f8fbff';
 }
@@ -51,7 +51,7 @@ function lyricPaletteFromHex(hex) {
 function silverBlueLyricPalette() {
   return {
     primary: '#d8f1ff',
-    secondary: '#9db8cf',
+    secondary: '#ff9c6e',
     highlight: '#eef7ff',
     shadow: 'rgba(0,7,12,0.48)',
     glow: 'rgba(138,190,255,0.26)',
@@ -89,11 +89,11 @@ function lyricDetachedGlowThreeColor(fallback, minLum) {
 }
 function lyricResolvedGlowColor(pal, fallback) {
   pal = pal || {};
-  return pal.glowColor || pal.secondary || pal.highlight || pal.primary || fallback || '#9cffdf';
+  return pal.glowColor || pal.secondary || pal.highlight || pal.primary || fallback || '#ff7a3d';
 }
 function lyricStageGlowThreeColor(pal, fallback, minLum) {
   pal = pal || {};
-  return lyricThreeColor(lyricResolvedGlowColor(pal, fallback || '#9cffdf'), fallback || '#9cffdf', minLum == null ? 0.36 : minLum);
+  return lyricThreeColor(lyricResolvedGlowColor(pal, fallback || '#ff7a3d'), fallback || '#ff7a3d', minLum == null ? 0.36 : minLum);
 }
 function lyricBeatGlowThreeColor(pal, fallback, minLum) {
   pal = pal || {};
@@ -101,10 +101,10 @@ function lyricBeatGlowThreeColor(pal, fallback, minLum) {
 }
 function lyricRowGlowThreeColor(pal, isTranslation) {
   pal = pal || {};
-  if (fx && fx.lyricGlowLinked === false) return lyricDetachedGlowThreeColor(isTranslation ? '#fff2bf' : '#9cffdf', isTranslation ? 0.34 : 0.40);
+  if (fx && fx.lyricGlowLinked === false) return lyricDetachedGlowThreeColor(isTranslation ? '#fff2bf' : '#ff7a3d', isTranslation ? 0.34 : 0.40);
   return isTranslation
     ? lyricThreeColor(lyricResolvedGlowColor(pal, '#fff2bf'), '#fff2bf', 0.34)
-    : lyricThreeColor(lyricResolvedGlowColor(pal, '#9cffdf'), '#9cffdf', 0.40);
+    : lyricThreeColor(lyricResolvedGlowColor(pal, '#ff7a3d'), '#ff7a3d', 0.40);
 }
 function setLyricSparkColor(data, color) {
   if (!data || !data.sparkMat) return;
@@ -125,13 +125,13 @@ function applyLyricPaletteToMesh(mesh) {
     var u = data.textMat.uniforms;
     if (u.uBaseColor) u.uBaseColor.value.copy(lyricThreeColor(pal.primary, '#d6f8ff', 0.38));
     if (u.uHiColor) u.uHiColor.value.copy(lyricThreeColor(pal.highlight || pal.primary, '#fff0b8', 0.48));
-    if (u.uGlowColor) u.uGlowColor.value.copy(lyricStageGlowThreeColor(pal, '#9cffdf', 0.36));
+    if (u.uGlowColor) u.uGlowColor.value.copy(lyricStageGlowThreeColor(pal, '#ff7a3d', 0.36));
     if (u.uSolarColor) u.uSolarColor.value.copy(lyricBeatGlowThreeColor(pal, '#fff0b8', 0.50));
     if (u.uSolar && !isFinite(u.uSolar.value)) u.uSolar.value = 0;
     if (u.uOpacity && !isFinite(u.uOpacity.value)) u.uOpacity.value = 0;
     data.textMat.needsUpdate = true;
   }
-  if (data.glowMat) data.glowMat.color.copy(lyricStageGlowThreeColor(pal, '#9cffdf', 0.36));
+  if (data.glowMat) data.glowMat.color.copy(lyricStageGlowThreeColor(pal, '#ff7a3d', 0.36));
   if (data.contextMat) data.contextMat.color.copy(lyricThreeColor(pal.primary || pal.secondary, '#d6f8ff', 0.34));
   if (data.rowLayers) {
     data.rowLayers.forEach(function (row) {
@@ -141,7 +141,7 @@ function applyLyricPaletteToMesh(mesh) {
         var ru = row.mat.uniforms;
         if (ru.uBaseColor) ru.uBaseColor.value.copy(lyricThreeColor(pal.primary, '#d6f8ff', 0.38));
         if (ru.uHiColor) ru.uHiColor.value.copy(lyricThreeColor(pal.highlight || pal.primary, '#fff0b8', 0.48));
-        if (ru.uGlowColor) ru.uGlowColor.value.copy(lyricStageGlowThreeColor(pal, '#9cffdf', 0.36));
+        if (ru.uGlowColor) ru.uGlowColor.value.copy(lyricStageGlowThreeColor(pal, '#ff7a3d', 0.36));
         if (ru.uSolarColor) ru.uSolarColor.value.copy(lyricBeatGlowThreeColor(pal, '#fff0b8', 0.50));
         if (ru.uColor) ru.uColor.value.copy(row.isTranslation
           ? lyricThreeColor(pal.highlight || pal.primary, '#eaf6ff', 0.42)
@@ -163,7 +163,7 @@ function effectiveLyricPalette(pal) {
   var src = pal || stageLyrics.coverPalette || stageLyrics.palette || {};
   var out = {
     primary: src.primary || '#d6f8ff',
-    secondary: src.secondary || '#9cffdf',
+    secondary: src.secondary || '#ff7a3d',
     highlight: src.highlight || '#eef7ff',
     shadow: src.shadow || 'rgba(2,8,12,0.42)',
     glow: src.glow || 'rgba(143,233,255,0.34)'
@@ -177,7 +177,7 @@ function effectiveLyricPalette(pal) {
     }
   }
   if (fx.lyricGlowLinked === false) {
-    var glowPal = lyricPaletteFromHex(fx.lyricGlowColor || '#9db8cf');
+    var glowPal = lyricPaletteFromHex(fx.lyricGlowColor || '#ff9c6e');
     out.glowColor = glowPal.primary;
     out.glow = glowPal.glow || out.glow;
   }
@@ -196,11 +196,11 @@ function mixStageLyricPalette(from, to, t) {
   to = to || {};
   return {
     primary: lerpStageLyricPaletteColor(from.primary, to.primary, t, '#d6f8ff', 0.38),
-    secondary: lerpStageLyricPaletteColor(from.secondary, to.secondary, t, '#9cffdf', 0.36),
+    secondary: lerpStageLyricPaletteColor(from.secondary, to.secondary, t, '#ff7a3d', 0.36),
     highlight: lerpStageLyricPaletteColor(from.highlight, to.highlight, t, '#fff0b8', 0.48),
     shadow: t >= 0.999 ? (to.shadow || from.shadow || 'rgba(2,8,12,0.42)') : (from.shadow || to.shadow || 'rgba(2,8,12,0.42)'),
     glow: t >= 0.999 ? (to.glow || from.glow || 'rgba(143,233,255,0.34)') : (from.glow || to.glow || 'rgba(143,233,255,0.34)'),
-    glowColor: lerpStageLyricPaletteColor(from.glowColor || from.secondary, to.glowColor || to.secondary, t, '#9cffdf', 0.36)
+    glowColor: lerpStageLyricPaletteColor(from.glowColor || from.secondary, to.glowColor || to.secondary, t, '#ff7a3d', 0.36)
   };
 }
 function applyStageLyricPaletteNow(pal) {

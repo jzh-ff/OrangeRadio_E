@@ -18,7 +18,7 @@ function coverPickerSwatchColors() {
 }
 function setCoverPickerPreview(hex) {
   var preview = document.getElementById('cover-color-preview');
-  if (preview) preview.style.setProperty('--picked', normalizeHexColor(hex || '#9db8cf'));
+  if (preview) preview.style.setProperty('--picked', normalizeHexColor(hex || '#ff9c6e'));
 }
 function renderCoverPickerSwatches() {
   var wrap = document.getElementById('cover-color-swatches');
@@ -51,7 +51,7 @@ function openCoverColorPicker(target) {
   try { imgSrc = cv.toDataURL('image/jpeg', 0.84); } catch (e) { }
   if (!imgSrc && currentCoverSource && currentCoverSource.src) imgSrc = currentCoverSource.src;
   art.style.backgroundImage = imgSrc ? 'url("' + cssImageUrl(imgSrc) + '")' : '';
-  setCoverPickerPreview(fx.visualTintColor || (stageLyrics.coverPalette && stageLyrics.coverPalette.primary) || '#9db8cf');
+  setCoverPickerPreview(fx.visualTintColor || (stageLyrics.coverPalette && stageLyrics.coverPalette.primary) || '#ff9c6e');
   renderCoverPickerSwatches();
   if (hint) hint.textContent = '点击专辑封面任意位置取色，或使用下方推荐色。';
   pop.classList.add('show');
@@ -63,7 +63,7 @@ function closeCoverColorPicker() {
   hideCoverColorLoupe();
 }
 function applyCoverPickerColor(hex) {
-  hex = normalizeHexColor(hex || '#9db8cf');
+  hex = normalizeHexColor(hex || '#ff9c6e');
   setCoverPickerPreview(hex);
   if (coverColorPickerState.target === 'visualTint') {
     setVisualTintCustom(hex, true);
@@ -243,7 +243,7 @@ function applyLyricPaletteLive(reason) {
 }
 function setLyricGlowLinked(linked, openPicker) {
   fx.lyricGlowLinked = linked !== false;
-  if (!fx.lyricGlowLinked) fx.lyricGlowColor = normalizeHexColor(fx.lyricGlowColor || fx.lyricHighlightColor || '#9db8cf');
+  if (!fx.lyricGlowLinked) fx.lyricGlowColor = normalizeHexColor(fx.lyricGlowColor || fx.lyricHighlightColor || '#ff9c6e');
   applyLyricPaletteLive('lyricGlowLinked');
   updateLyricGlowControls();
   saveLyricLayout({ syncDisk: true, user: true, reason: 'lyricGlowLinked' });
@@ -266,7 +266,7 @@ function handleLyricGlowRowClick(e) {
 }
 function setLyricGlowCustom(color, silent) {
   fx.lyricGlowLinked = false;
-  fx.lyricGlowColor = normalizeHexColor(color || '#9db8cf');
+  fx.lyricGlowColor = normalizeHexColor(color || '#ff9c6e');
   applyLyricPaletteLive('lyricGlowColor');
   updateLyricGlowControls();
   saveLyricLayout({ syncDisk: true, user: true, reason: 'lyricGlowColor' });
