@@ -229,18 +229,48 @@ function renderInstallerArt(w, h, variant) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const yNorm = y / h;
-      const seaC = seaColor(yNorm);
-      let r = seaC[0], g = seaC[1], b = seaC[2];
-      const i = (y * w + x) * 4;
-      // bottom wave band (lower quarter)
-      const bandStart = h * (variant === 'sidebar' ? 0.78 : 0.55);
-      if (y >= bandStart) {
-        const top = waveTopY(x / w, bandStart, variant === 'sidebar' ? 6 : 3);
-        if (y >= top) {
-          r = parseHex('#16223c')[0]; g = parseHex('#16223c')[1]; b = parseHex('#16223c')[2];
+      // 日落渐变：顶部深褐紫 → 中部暖橙 → 底部深蓝黑
+      let r, g, b;
+      if (variant === 'sidebar') {
+        // 侧边栏：纵向日落渐变 + 海浪
+        if (yNorm < 0.35) {
+          // 天空：深紫褐 → 暖橙
+          const t = yNorm / 0.35;
+          r = lerp(26, 92, t); g = lerp(16, 42, t); b = lerp(10, 20, t);
+        } else if (yNorm < 0.55) {
+          // 日落带：暖橙 → 珊瑚红
+          const t = (yNorm - 0.35) / 0.20;
+          r = lerp(92, 255, t); g = lerp(42, 94, t); b = lerp(20, 98, t);
+        } else if (yNorm < 0.72) {
+          // 海面反光：珊瑚红 → 深褐
+          const t = (yNorm - 0.55) / 0.17;
+          r = lerp(255, 60, t); g = lerp(94, 30, t); b = lerp(98, 20, t);
+        } else {
+          // 深海：深褐 → 深蓝黑
+          const t = (yNorm - 0.72) / 0.28;
+          r = lerp(60, 12, t); g = lerp(30, 18, t); b = lerp(20, 32, t);
+        }
+        // 海浪线（在 0.72 附近）
+        if (yNorm > 0.70 && yNorm < 0.74) {
+          const wave = Math.sin(x / w * Math.PI * 3) * 0.02;
+          if (Math.abs(yNorm - 0.72 - wave) < 0.012) {
+            r = 255; g = 200; b = 130;
+          }
+        }
+      } else {
+        // 头部图：横向日落渐变（左深右亮）
+        const xNorm = x / w;
+        r = lerp(20, 80, xNorm) + lerp(0, 40, yNorm);
+        g = lerp(14, 36, xNorm) + lerp(0, 16, yNorm);
+        b = lerp(10, 18, xNorm) + lerp(0, 8, yNorm);
+        // 底部暖光
+        if (yNorm > 0.6) {
+          const t = (yNorm - 0.6) / 0.4;
+          r = lerp(r, 200, t * 0.4); g = lerp(g, 100, t * 0.4); b = lerp(b, 50, t * 0.4);
         }
       }
-      buf[i] = r | 0; buf[i + 1] = g | 0; buf[i + 2] = b | 0; buf[i + 3] = 255;
+      const i = (y * w + x) * 4;
+      buf[i] = clamp(r | 0, 0, 255); buf[i + 1] = clamp(g | 0, 0, 255); buf[i + 2] = clamp(b | 0, 0, 255); buf[i + 3] = 255;
     }
   }
   return buf;
