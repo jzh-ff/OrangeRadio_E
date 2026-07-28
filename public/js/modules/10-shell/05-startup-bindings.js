@@ -1,4 +1,6 @@
 applyDiyMode(diyPlayerMode, { save: false });
+syncFilmRadioButton();
+if (filmRadioMode) applyFilmRadioMode(filmRadioMode, { save: false });
 bindFxPanel();
 applySavedLyricPaletteState();
 bindQualityControl();

@@ -114,3 +114,15 @@ npm run build:win:internal-beta              # 内测通道包
 ```
 
 打包后必测：首次启动 → 搜索播放 → 歌词舞台 → 预设切换 → 桌面模式 → 更新检测（确认指向新 repo 或已禁用）。
+
+## 附录：国内打包环境配置
+
+electron-builder 默认从 GitHub 下载 winCodeSign 会超时。打包前设置镜像环境变量：
+
+```bash
+export ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
+export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm run build:win:dir   # 或 build:win
+```
+
+首次打包约需 3-5 分钟（下载 Electron + winCodeSign + 解压 + after-pack 注入图标）。产物在 `dist/win-unpacked/OrangeSea.exe`。
