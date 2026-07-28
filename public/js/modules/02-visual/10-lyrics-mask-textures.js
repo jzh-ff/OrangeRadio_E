@@ -350,7 +350,7 @@ function makeLyricMask(input, layoutOverride) {
   applyLyricVerticalEdgeFade(ctx, W, H, lyricEdgeFadeValue() * (payload.contextLayer ? 1.15 : 0.74), activeLine, lines.length);
   var tex = new THREE.CanvasTexture(canvas);
   tex.userData = tex.userData || {};
-  tex.userData.__orangeseaLyricOwned = true;
+  tex.userData.__mineradioLyricOwned = true;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
@@ -468,9 +468,9 @@ function makeLyricQualityTexture(mask, tier) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   var texture = new THREE.CanvasTexture(canvas);
   texture.userData = texture.userData || {};
-  texture.userData.__orangeseaLyricOwned = true;
-  texture.userData.__orangeseaLyricQuality = true;
-  texture.userData.__orangeseaLyricQualityBytes = target.bytes;
+  texture.userData.__mineradioLyricOwned = true;
+  texture.userData.__mineradioLyricQuality = true;
+  texture.userData.__mineradioLyricQualityBytes = target.bytes;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;
@@ -551,14 +551,14 @@ function compactLyricLineMaskTexture(mask) {
   compactCtx.drawImage(sourceCanvas, 0, 0, compactCanvas.width, compactCanvas.height);
   var compactTexture = new THREE.CanvasTexture(compactCanvas);
   compactTexture.userData = compactTexture.userData || {};
-  compactTexture.userData.__orangeseaLyricOwned = true;
+  compactTexture.userData.__mineradioLyricOwned = true;
   compactTexture.minFilter = THREE.LinearFilter;
   compactTexture.magFilter = THREE.LinearFilter;
   compactTexture.generateMipmaps = false;
   compactTexture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 1);
   var originalTexture = mask.texture;
   originalTexture.userData = originalTexture.userData || {};
-  originalTexture.userData.__orangeseaDisposed = true;
+  originalTexture.userData.__mineradioDisposed = true;
   originalTexture.dispose();
   sourceCanvas.width = 1;
   sourceCanvas.height = 1;
@@ -698,7 +698,7 @@ function stepLyricReadabilityTextureBuild(state) {
   applyLyricVerticalEdgeFade(ctx, state.W, state.H, lyricEdgeFadeValue() * (state.mask && state.mask.contextLayer ? 1.08 : 0.62), state.activeLine, state.lines.length);
   var tex = new THREE.CanvasTexture(state.canvas);
   tex.userData = tex.userData || {};
-  tex.userData.__orangeseaLyricOwned = true;
+  tex.userData.__mineradioLyricOwned = true;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
@@ -851,7 +851,7 @@ function finishLyricGlowTexturePixels(state) {
   ctx.restore();
   var tex = new THREE.CanvasTexture(state.canvas);
   tex.userData = tex.userData || {};
-  tex.userData.__orangeseaLyricOwned = true;
+  tex.userData.__mineradioLyricOwned = true;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;

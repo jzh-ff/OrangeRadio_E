@@ -29,7 +29,7 @@ assert(
 );
 assert(
   /fetch\('\/api\/listen\/report'/.test(listenStats)
-    && /mineradio-listen-rollup-v2/.test(listenStats)
+    && /orangesea-listen-rollup-v2/.test(listenStats)
     && /sessionId:\s*createListenSessionId\(\)/.test(listenStats),
   'local rollup and idempotent listen reporting must stay connected'
 );

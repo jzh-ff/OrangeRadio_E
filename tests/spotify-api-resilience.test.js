@@ -39,7 +39,7 @@ function withHttpsMock(handler, task) {
 }
 
 async function run() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-spotify-resilience-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orangesea-spotify-resilience-'));
   const configFile = path.join(root, '.spotify-credentials.json');
   const tokenFile = path.join(root, '.spotify-token.json');
   process.env.SPOTIFY_CONFIG_FILE = configFile;

@@ -122,8 +122,8 @@ function cancelStageLyricPrewarmBuildOnly() {
     cancelCooperativeLyricMeshBuild(stageLyricPrewarm.build.state);
   }
   stageLyricPrewarm.build = null;
-  if (typeof window !== 'undefined' && window.__orangeseaLyricBuildStats) {
-    window.__orangeseaLyricBuildStats.active = false;
+  if (typeof window !== 'undefined' && window.__mineradioLyricBuildStats) {
+    window.__mineradioLyricBuildStats.active = false;
   }
 }
 
@@ -729,8 +729,8 @@ function cancelStageLyricResidentBuild() {
     if (typeof cancelLyricRowLayerGroupBuild === 'function') cancelLyricRowLayerGroupBuild(job.state);
     else if (job.state.root) disposeLyricMesh(job.state.root);
   }
-  if (typeof window !== 'undefined' && window.__orangeseaLyricResidentStats) {
-    window.__orangeseaLyricResidentStats.active = false;
+  if (typeof window !== 'undefined' && window.__mineradioLyricResidentStats) {
+    window.__mineradioLyricResidentStats.active = false;
   }
 }
 
@@ -993,7 +993,7 @@ function finishStageLyricResidentBuild(job) {
     interactive: !!(job.interactive || stageLyricProgressPreviewActive())
   });
   if (typeof window !== 'undefined') {
-    window.__orangeseaLyricResidentStats = {
+    window.__mineradioLyricResidentStats = {
       active: !!stageLyricResidentBuild.job,
       rootId: job.mesh.id,
       trackKey: data.trackKey,
@@ -1082,7 +1082,7 @@ function startStageLyricResidentBuild(mesh, targetIndex, start, end, options) {
   };
   stageLyricResidentBuild.job = job;
   if (typeof window !== 'undefined') {
-    window.__orangeseaLyricResidentStats = {
+    window.__mineradioLyricResidentStats = {
       active: true,
       rootId: mesh.id,
       trackKey: data.trackKey,
@@ -1571,7 +1571,7 @@ function stageLyricShouldBuildCooperatively(payload) {
 
 function updateStageLyricBuildStats(job, active, chunkMs) {
   if (typeof window === 'undefined') return;
-  var stats = window.__orangeseaLyricBuildStats || {};
+  var stats = window.__mineradioLyricBuildStats || {};
   var buildState = job && job.state;
   var rowState = job && job.state && job.state.rowState;
   var phase = job && job.lastPhase || buildState && buildState.lastPhase || '';
@@ -1589,7 +1589,7 @@ function updateStageLyricBuildStats(job, active, chunkMs) {
   if (phase) stats.phaseMaxMs[phase] = Math.max(Number(stats.phaseMaxMs[phase]) || 0, Number(chunkMs) || 0);
   if (job && job.startedAt) stats.elapsedMs = Math.max(0, stageLyricNowMs() - job.startedAt);
   if (!active && job && job.startedAt) stats.lastBuildMs = Math.max(0, stageLyricNowMs() - job.startedAt);
-  window.__orangeseaLyricBuildStats = stats;
+  window.__mineradioLyricBuildStats = stats;
 }
 
 function finishStageLyricCooperativePrewarm(job) {
@@ -1737,7 +1737,7 @@ function startStageLyricCooperativePrewarm(payload, key, token, lightweight, rea
   };
   stageLyricPrewarm.build = job;
   if (typeof window !== 'undefined') {
-    window.__orangeseaLyricBuildStats = {
+    window.__mineradioLyricBuildStats = {
       active: true,
       reason: job.reason,
       lightweight: job.lightweight,

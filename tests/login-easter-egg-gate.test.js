@@ -15,7 +15,7 @@ const { normalizeLoginEasterEggCharacters } = require('../public/js/modules/08-a
 async function run() {
   const hiddenPhrase = String.fromCodePoint(19990, 30028, 21644, 24179);
   const nearMiss = Array.from(hiddenPhrase).slice(0, 3).join('') + String.fromCodePoint(27668);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-login-gate-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orangesea-login-gate-'));
   try {
     const migrationRoot = path.join(root, 'chromium-session');
     fs.mkdirSync(migrationRoot, { recursive: true });

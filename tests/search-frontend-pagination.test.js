@@ -88,7 +88,7 @@ function functionBundle(names, prelude, expose) {
 
 test('legacy search histories migrate into one list shared by every tab', () => {
   const values = new Map([
-    ['mineradio-search-history', JSON.stringify(['晴天', '晴天', '夜曲'])],
+    ['orangesea-search-history', JSON.stringify(['晴天', '晴天', '夜曲'])],
   ]);
   const sandbox = {
     searchMode: 'song',
@@ -106,7 +106,7 @@ test('legacy search histories migrate into one list shared by every tab', () => 
     'writeSearchHistory',
     'rememberSearchQuery',
   ], `
-    var SEARCH_HISTORY_STORE_KEY = 'mineradio-search-history';
+    var SEARCH_HISTORY_STORE_KEY = 'orangesea-search-history';
     var SEARCH_HISTORY_STORE_VERSION = 3;
     var SEARCH_HISTORY_MODES = ['song', 'netease', 'qq', 'kugou', 'qishui', 'spotify', 'podcast'];
   `, `
@@ -118,12 +118,12 @@ test('legacy search histories migrate into one list shared by every tab', () => 
   assert.deepEqual(Array.from(sandbox.readSearchHistory('song')), ['晴天', '夜曲']);
   assert.deepEqual(Array.from(sandbox.readSearchHistory('qq')), ['晴天', '夜曲']);
   sandbox.rememberSearchQuery('稻香', 'qq');
-  let stored = JSON.parse(values.get('mineradio-search-history'));
+  let stored = JSON.parse(values.get('orangesea-search-history'));
   assert.equal(stored.version, 3);
   assert.deepEqual(stored.items, ['稻香', '晴天', '夜曲']);
   assert.deepEqual(Array.from(sandbox.readSearchHistory('podcast')), stored.items);
 
-  values.set('mineradio-search-history', JSON.stringify({
+  values.set('orangesea-search-history', JSON.stringify({
     version: 2,
     modes: {
       song: ['晴天', '夜曲'],
@@ -134,11 +134,11 @@ test('legacy search histories migrate into one list shared by every tab', () => 
   }));
   assert.deepEqual(Array.from(sandbox.readSearchHistory('spotify')), ['晴天', '夜曲', '海阔天空', '稻香', '故事 FM']);
   sandbox.rememberSearchQuery('一路向北', 'podcast');
-  stored = JSON.parse(values.get('mineradio-search-history'));
+  stored = JSON.parse(values.get('orangesea-search-history'));
   assert.deepEqual(stored.items, ['一路向北', '晴天', '夜曲', '海阔天空', '稻香', '故事 FM']);
 
   sandbox.writeSearchHistory([], 'qq');
-  assert.deepEqual(JSON.parse(values.get('mineradio-search-history')).items, []);
+  assert.deepEqual(JSON.parse(values.get('orangesea-search-history')).items, []);
   assert.deepEqual(Array.from(sandbox.readSearchHistory('song')), []);
 });
 

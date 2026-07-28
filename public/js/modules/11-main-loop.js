@@ -16,11 +16,11 @@ var renderPerfState = {
   lastRenderAt: 0,
   lastSampleAt: performance.now()
 };
-window.__orangeseaRenderPerf = renderPerfState;
-if (window.__orangeseaPerf && typeof window.__orangeseaPerf.registerRenderState === 'function') {
-  window.__orangeseaPerf.registerRenderState(renderPerfState);
+window.__mineradioRenderPerf = renderPerfState;
+if (window.__mineradioPerf && typeof window.__mineradioPerf.registerRenderState === 'function') {
+  window.__mineradioPerf.registerRenderState(renderPerfState);
 } else {
-  window.__orangeseaPerf = renderPerfState;
+  window.__mineradioPerf = renderPerfState;
 }
 var splashWarmRenderLast = 0;
 var fixedRenderCadenceState = {
@@ -130,7 +130,7 @@ function shouldSkipAdaptiveRenderFrame(now) {
     renderPerfState.adaptiveCadenceTick += 1;
     if (cadence.divisor > 1 && (renderPerfState.adaptiveCadenceTick - 1) % cadence.divisor !== 0) {
       renderPerfState.skipped += 1;
-      if (window.__orangeseaPerf && window.__orangeseaPerf.count) window.__orangeseaPerf.count('frame.skipped');
+      if (window.__mineradioPerf && window.__mineradioPerf.count) window.__mineradioPerf.count('frame.skipped');
       return true;
     }
     renderPerfState.lastRenderAt = now;
@@ -146,7 +146,7 @@ function shouldSkipAdaptiveRenderFrame(now) {
   var fixedCadenceKey = mode + ':' + fps;
   if (shouldSkipFixedRenderCadenceFrame(fixedRenderCadenceState, now, fps, displayHz, fixedCadenceKey)) {
     renderPerfState.skipped += 1;
-    if (window.__orangeseaPerf && window.__orangeseaPerf.count) window.__orangeseaPerf.count('frame.skipped');
+    if (window.__mineradioPerf && window.__mineradioPerf.count) window.__mineradioPerf.count('frame.skipped');
     return true;
   }
   renderPerfState.lastRenderAt = now;
@@ -171,7 +171,7 @@ var mainFrameGates = {
   homeAudio: createFrameGate('main.homeAudio', 15),
   desktopOverlay: createFrameGate('main.desktopOverlay', 12)
 };
-window.__orangeseaMainFrameGates = mainFrameGates;
+window.__mineradioMainFrameGates = mainFrameGates;
 var mainLoopBackgroundTimer = 0;
 var mainLoopAnimationRequested = false;
 function mainLoopDeepBackgroundSleeping() {
@@ -296,7 +296,7 @@ function targetMainDesktopOverlayFps(now) {
 function animate() {
   mainLoopAnimationRequested = false;
   scheduleNextMainLoopFrame();
-  var perfProbe = window.__orangeseaPerf;
+  var perfProbe = window.__mineradioPerf;
   var framePerfStart = performance.now();
   var now = performance.now();
   if (mainLoopDeepBackgroundSleeping()) {

@@ -282,7 +282,7 @@ function renderMiniQueuePanel(opts) {
     var i = windowInfo.start + localIndex;
     var thumb = songCoverSrc(song, 60);
     var imgTag = thumb ? '<img src="' + thumb + '" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0.2">' : '<div class="mini-queue-cover"></div>';
-    return '<div class="mini-queue-item' + (i === currentIdx ? ' now' : '') + '" data-queue-index="' + i + '" onclick="if(window.__orangeseaSuppressReorderClick)return;playQueueAt(' + i + ')">' +
+    return '<div class="mini-queue-item' + (i === currentIdx ? ' now' : '') + '" data-queue-index="' + i + '" onclick="if(window.__mineradioSuppressReorderClick)return;playQueueAt(' + i + ')">' +
       imgTag +
       '<div class="mini-queue-info"><div class="mini-queue-name">' + escHtml(song.name) + '</div><div class="mini-queue-sub">' + escHtml(song.artist || '') + '</div></div>' +
       '<button class="mini-queue-remove mini-queue-next" onclick="event.stopPropagation();queueIndexNext(' + i + ')" title="下一首播放">下</button>' +
@@ -307,9 +307,9 @@ function clearPanelReorderClasses() {
 }
 function markPanelReorderSuppressed(ms) {
   panelReorderState.suppressClickUntil = performance.now() + (ms || 420);
-  window.__orangeseaSuppressReorderClick = true;
+  window.__mineradioSuppressReorderClick = true;
   setTimeout(function () {
-    if (performance.now() >= panelReorderState.suppressClickUntil) window.__orangeseaSuppressReorderClick = false;
+    if (performance.now() >= panelReorderState.suppressClickUntil) window.__mineradioSuppressReorderClick = false;
   }, ms || 420);
 }
 function panelReorderClickSuppressed() {
@@ -372,8 +372,8 @@ function markPanelReorderItem(state) {
   });
 }
 function bindLongPressPanelReorder() {
-  if (document.__orangeseaPanelReorderBound) return;
-  document.__orangeseaPanelReorderBound = true;
+  if (document.__mineradioPanelReorderBound) return;
+  document.__mineradioPanelReorderBound = true;
   document.addEventListener('click', function (e) {
     if (!panelReorderClickSuppressed()) return;
     if (!e.target || !e.target.closest || !e.target.closest('#queue-list,#mini-queue-list,#pl-list')) return;
@@ -463,7 +463,7 @@ function renderQueuePanel(opts) {
     var i = windowInfo.start + localIndex;
     var thumb = songCoverSrc(song, 60);
     var imgTag = thumb ? '<img src="' + thumb + '" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0.2">' : '<div style="width:38px;height:38px;border-radius:6px;background:rgba(255,255,255,.06);flex-shrink:0"></div>';
-    return '<div class="queue-item' + (i === currentIdx ? ' now' : '') + '" data-queue-index="' + i + '" onclick="if(window.__orangeseaSuppressReorderClick)return;playQueueAt(' + i + ')">' +
+    return '<div class="queue-item' + (i === currentIdx ? ' now' : '') + '" data-queue-index="' + i + '" onclick="if(window.__mineradioSuppressReorderClick)return;playQueueAt(' + i + ')">' +
       imgTag +
       '<div class="qi-info"><div class="qi-name">' + escHtml(song.name) + '</div><div class="qi-sub"><button class="queue-artist-link" type="button" onclick="event.stopPropagation();openQueueArtist(' + i + ')">' + escHtml(song.artist || '未知歌手') + '</button></div></div>' +
       '<div class="qi-act">' +

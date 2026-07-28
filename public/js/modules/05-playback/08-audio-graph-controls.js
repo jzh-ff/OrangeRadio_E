@@ -40,7 +40,7 @@ function replaceAudioElementForGraphRecovery(reason, opts) {
   var rate = oldAudio.playbackRate || 1;
   var endedHandler = preservePlayback ? oldAudio.onended : null;
   var metadataHandler = preservePlayback ? oldAudio.onloadedmetadata : null;
-  var queueItemKey = oldAudio.__orangeseaQueueItemKey;
+  var queueItemKey = oldAudio.__mineradioQueueItemKey;
   try { oldAudio.pause(); } catch (e) { }
   disconnectAudioGraphNodes(false);
   try {
@@ -53,7 +53,7 @@ function replaceAudioElementForGraphRecovery(reason, opts) {
   audio.playbackRate = rate;
   audio.onended = endedHandler;
   audio.onloadedmetadata = metadataHandler;
-  audio.__orangeseaQueueItemKey = queueItemKey;
+  audio.__mineradioQueueItemKey = queueItemKey;
   bindPlaybackProgressEvents(audio);
   applyVolumeToAudio();
   if (src) {
@@ -69,9 +69,9 @@ function replaceAudioElementForGraphRecovery(reason, opts) {
 }
 function resetPlaybackAudioGraphForSourceSwitch(reason) {
   if (!audio) return;
-  var preparedGraph = audio.__orangeseaPreparedAudioGraph;
+  var preparedGraph = audio.__mineradioPreparedAudioGraph;
   var previousSourceMedia = audioSourceMedia;
-  var sourceUsesCapture = !!(source && source.__orangeseaUsesCapture);
+  var sourceUsesCapture = !!(source && source.__mineradioUsesCapture);
   var mediaElementChanged = !!(source && previousSourceMedia && previousSourceMedia !== audio);
   // Chromium can permanently freeze the media clock when an element that was
   // once bound to MediaElementSource is later kept on captureStream across a
@@ -98,7 +98,7 @@ function resetPlaybackAudioGraphForSourceSwitch(reason) {
     gainNode = preparedGraph.gainNode;
     analysisSinkNode = null;
     audioSourceMedia = audio;
-    audio.__orangeseaMediaSourceBound = true;
+    audio.__mineradioMediaSourceBound = true;
     preparedGraph.adopted = true;
     audioReady = true;
   }
@@ -111,26 +111,26 @@ function initAudio() {
   if (audioCtx && audioCtx.state === 'closed') replaceAudioElementForGraphRecovery('closed-context');
   if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioContextCtor();
   var keepSource = !!(source && audioSourceMedia === audio && source.context === audioCtx && audioCtx.state !== 'closed');
-  var sourceUsesCapture = !!(keepSource && source.__orangeseaUsesCapture);
+  var sourceUsesCapture = !!(keepSource && source.__mineradioUsesCapture);
   disconnectAudioGraphNodes(keepSource);
   if (!source) {
-    var forceCapture = !!audio.__orangeseaForceCaptureSource;
+    var forceCapture = !!audio.__mineradioForceCaptureSource;
     // Once this Audio element has fallen back from its lifetime-bound
     // MediaElementSource, every later graph rebuild for the same element must
     // stay on captureStream. Keep this marker through failed/overlapping init
     // attempts; clearing it before capture has an audio track reopens the
     // forbidden MediaElementSource rebind path on the next retry.
     var mediaSource = null;
-    if (!forceCapture && !audio.__orangeseaMediaSourceBound && audioCtx.createMediaElementSource) {
+    if (!forceCapture && !audio.__mineradioMediaSourceBound && audioCtx.createMediaElementSource) {
       try {
         mediaSource = audioCtx.createMediaElementSource(audio);
       } catch (mediaErr) {
         mediaSource = null;
-        audio.__orangeseaMediaSourceBound = true;
+        audio.__mineradioMediaSourceBound = true;
         console.warn('media element source unavailable:', mediaErr && (mediaErr.message || mediaErr));
       }
     }
-    if (!forceCapture && !mediaSource && audio.__orangeseaMediaSourceBound) {
+    if (!forceCapture && !mediaSource && audio.__mineradioMediaSourceBound) {
       replaceAudioElementForGraphRecovery('media-source-rebind');
       if (!audioCtx || audioCtx.state === 'closed') audioCtx = new AudioContextCtor();
       try {
@@ -164,11 +164,11 @@ function initAudio() {
       console.warn('capture stream graph unavailable:', captureSourceErr && (captureSourceErr.message || captureSourceErr));
       return false;
     }
-    source.__orangeseaUsesCapture = !mediaSource;
+    source.__mineradioUsesCapture = !mediaSource;
     audioSourceMedia = audio;
     // This is a lifetime marker, not the type of the current graph source.
     // Never reset it merely because the active fallback happens to be capture.
-    if (mediaSource) audio.__orangeseaMediaSourceBound = true;
+    if (mediaSource) audio.__mineradioMediaSourceBound = true;
     sourceUsesCapture = !mediaSource;
   }
   analyser = audioCtx.createAnalyser();
@@ -220,15 +220,15 @@ function rebuildPlaybackGraphWithCapture(reason) {
   // MediaElementSource to captureStream. Reconnect the existing source node
   // instead; a silent analyser must never be repaired by sacrificing the media
   // clock. Fresh, never-bound elements may still use capture as a fallback.
-  if (audio.__orangeseaMediaSourceBound) {
-    if (!source || source.__orangeseaUsesCapture || audioSourceMedia !== audio) return false;
+  if (audio.__mineradioMediaSourceBound) {
+    if (!source || source.__mineradioUsesCapture || audioSourceMedia !== audio) return false;
     disconnectAudioGraphNodes(true);
     var reused = initAudio();
     if (reused) console.warn('audio analyser reconnected with lifetime media source:', reason || 'silent-graph');
     return reused;
   }
   disconnectAudioGraphNodes(false);
-  audio.__orangeseaForceCaptureSource = true;
+  audio.__mineradioForceCaptureSource = true;
   var ok = initAudio();
   if (ok) console.warn('audio analyser recovered with capture stream:', reason || 'silent-graph');
   return ok;
@@ -268,7 +268,7 @@ function schedulePlaybackAnalyserRecovery(reason) {
       // a frozen clock is a media stall and must never be treated as a silent
       // analyser graph.
       if (advancingSilentSamples < 2) return;
-      if (source && !source.__orangeseaUsesCapture && audio.captureStream) {
+      if (source && !source.__mineradioUsesCapture && audio.captureStream) {
         rebuildPlaybackGraphWithCapture(reason || 'silent-after-track-switch');
         ensurePlaybackAudioGraph('analyser-health-capture-' + (reason || 'playback'));
       }

@@ -219,5 +219,5 @@
     registerRenderState: registerRenderState
   };
 
-  window.__orangeseaPerf = api;
+  window.__mineradioPerf = api;
 })();

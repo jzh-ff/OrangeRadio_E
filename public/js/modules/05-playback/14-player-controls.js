@@ -262,7 +262,7 @@ function playbackStallRecoveryOwnerStillCurrent(media, src, token, recoverySeria
   if (!isSameAudioPlaybackTarget(media, src)) return false;
   if (token !== trackSwitchToken || recoverySerial !== playbackResumeRecovery.serial) return false;
   if (media.paused || media.ended || media.seeking) return false;
-  if (queueKey && String(media.__orangeseaQueueItemKey || '') !== queueKey) return false;
+  if (queueKey && String(media.__mineradioQueueItemKey || '') !== queueKey) return false;
   if (typeof playbackMediaMatchesCurrentQueueItem === 'function' && !playbackMediaMatchesCurrentQueueItem(media)) return false;
   return true;
 }
@@ -272,8 +272,8 @@ function schedulePlaybackStallRecovery(reason, opts) {
   var media = opts.ownerMedia || audio;
   if (!media || media !== audio || !media.src) return;
   if (opts.ownerToken != null && Number(opts.ownerToken) !== Number(trackSwitchToken)) return;
-  var queueKey = String(opts.ownerQueueItemKey || media.__orangeseaQueueItemKey || '');
-  if (queueKey && String(media.__orangeseaQueueItemKey || '') !== queueKey) return;
+  var queueKey = String(opts.ownerQueueItemKey || media.__mineradioQueueItemKey || '');
+  if (queueKey && String(media.__mineradioQueueItemKey || '') !== queueKey) return;
   if (typeof playbackMediaMatchesCurrentQueueItem === 'function' && !playbackMediaMatchesCurrentQueueItem(media)) return;
   var song = playQueue[currentIdx];
   if (!trackSwitchStallRecoveryAllowed(song, opts)) return;
@@ -359,7 +359,7 @@ function playbackMediaMatchesCurrentQueueItem(media) {
   if (!media || !media.src || currentIdx < 0 || currentIdx >= playQueue.length) return false;
   var song = playQueue[currentIdx];
   var expectedKey = typeof queueItemKey === 'function' ? queueItemKey(song) : '';
-  var mediaKey = String(media.__orangeseaQueueItemKey || '');
+  var mediaKey = String(media.__mineradioQueueItemKey || '');
   return !!(expectedKey && mediaKey && expectedKey === mediaKey);
 }
 

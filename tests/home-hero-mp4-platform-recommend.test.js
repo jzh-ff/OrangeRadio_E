@@ -58,9 +58,9 @@ test('home hero picker only exposes MP4 files and validates the selected file', 
 });
 
 test('home hero video has isolated persistence and never enters global wallpaper paths', () => {
-  assert.match(dashboardScript, /HOME_DASHBOARD_VIDEO_DB_NAME\s*=\s*['"]mineradio-home-dashboard-video-v1['"]/);
+  assert.match(dashboardScript, /HOME_DASHBOARD_VIDEO_DB_NAME\s*=\s*['"]orangesea-home-dashboard-video-v1['"]/);
   assert.match(dashboardScript, /HOME_DASHBOARD_VIDEO_BLOB_ID\s*=\s*['"]home-hero-video['"]/);
-  assert.match(dashboardScript, /HOME_DASHBOARD_VIDEO_META_KEY\s*=\s*['"]mineradio-home-dashboard-video-meta-v1['"]/);
+  assert.match(dashboardScript, /HOME_DASHBOARD_VIDEO_META_KEY\s*=\s*['"]orangesea-home-dashboard-video-meta-v1['"]/);
   const videoFunctions = [
     'homeDashboardOpenVideoDb',
     'homeDashboardPutVideoBlob',

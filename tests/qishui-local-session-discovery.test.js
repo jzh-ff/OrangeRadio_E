@@ -52,7 +52,7 @@ function namedFunctionSource(source, name) {
 }
 
 function run() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-qishui-local-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'orangesea-qishui-local-'));
   try {
     const roaming = path.join(root, 'AppData', 'Roaming');
     const local = path.join(root, 'AppData', 'Local');
