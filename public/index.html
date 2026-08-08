@@ -1335,6 +1335,30 @@
               </div>
             </div>
           </div>
+          <div id="sleep-timer-control" class="sleep-timer-control">
+            <button id="sleep-timer-btn" class="ctrl-btn" onclick="toggleSleepTimerPanel(event)" title="睡眠定时器">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <circle cx="12" cy="13" r="8" />
+                <path d="M12 9v4l2.6 1.6" />
+                <path d="M8.5 2.5h7" />
+                <path d="M12 2.5V5" />
+              </svg>
+            </button>
+            <div id="sleep-timer-popover" class="sleep-timer-popover" onclick="event.stopPropagation()" style="display:none">
+              <div class="sleep-timer-head">
+                <span class="sleep-timer-title">睡眠定时器</span>
+                <span id="sleep-timer-countdown" class="sleep-timer-countdown"></span>
+              </div>
+              <div class="sleep-timer-options">
+                <button type="button" class="sleep-timer-opt" data-minutes="15">15 分钟</button>
+                <button type="button" class="sleep-timer-opt" data-minutes="30">30 分钟</button>
+                <button type="button" class="sleep-timer-opt" data-minutes="60">60 分钟</button>
+                <button type="button" class="sleep-timer-opt" data-minutes="90">90 分钟</button>
+                <button type="button" class="sleep-timer-opt" data-track-end="1">当前曲目结束</button>
+              </div>
+              <button id="sleep-timer-cancel" type="button" class="sleep-timer-cancel">关闭定时器</button>
+            </div>
+          </div>
           <div id="eq-control" class="eq-control">
             <button id="eq-btn" class="ctrl-btn" onclick="toggleEqPanel(event)" title="均衡器 (EQ)">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

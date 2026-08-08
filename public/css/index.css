@@ -17769,6 +17769,84 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
   position: relative;
   display: inline-flex;
 }
+/* ---------- 睡眠定时器 ---------- */
+.sleep-timer-control {
+  position: relative;
+  display: inline-flex;
+}
+#sleep-timer-btn {
+  position: relative;
+}
+#sleep-timer-btn.on::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--home-accent, #ff7a3d);
+  opacity: .9;
+  transition: opacity .2s;
+}
+.sleep-timer-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 210px;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  background: var(--glass-bg, rgba(18, 20, 26, .92));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, .08));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  z-index: 60;
+}
+.sleep-timer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sleep-timer-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .92);
+}
+.sleep-timer-countdown {
+  font-size: 11px;
+  color: var(--home-accent, #ff7a3d);
+}
+.sleep-timer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sleep-timer-opt {
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .06);
+  color: rgba(255, 255, 255, .86);
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.sleep-timer-opt:hover { background: rgba(255, 255, 255, .1); }
+.sleep-timer-cancel {
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 90, 90, .35);
+  color: rgba(255, 120, 120, .9);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.sleep-timer-cancel:hover { background: rgba(255, 90, 90, .12); }
 #eq-btn {
   position: relative;
 }
