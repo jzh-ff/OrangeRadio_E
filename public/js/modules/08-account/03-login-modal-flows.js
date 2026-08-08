@@ -565,18 +565,10 @@ async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
   var modal = document.getElementById('login-modal');
-  if (typeof setLoginEasterEggMode === 'function' &&
-      (!loginEasterEggState || !loginEasterEggState.ready || !loginEasterEggState.unlocked)) {
-    setLoginEasterEggMode(true);
-  }
   openGsapModal(modal);
-  var unlocked = typeof prepareLoginEasterEggGate === 'function'
-    ? await prepareLoginEasterEggGate()
-    : true;
-  if (!unlocked) return;
-  resumeLoginModalAfterGate();
+  resumeLoginModalWorkflow();
 }
-function resumeLoginModalAfterGate() {
+function resumeLoginModalWorkflow() {
   bindLoginWorkflowPointerEvents();
   setLoginAuthDrawerOpen(false);
   updateLoginProviderUi();

@@ -109,7 +109,7 @@ function openProviderLogin(provider) {
   showLoginModal({ provider: provider });
 }
 
-var logoutAllAccountsResetBusy = false;
+var logoutAllAccountsBusy = false;
 
 function resetAllProviderRendererLoginState() {
   loginStatus = { loggedIn: false, vipType: 0, vipLevel: 'none', isVip: false, isSvip: false, vipLabel: '无VIP' };
@@ -143,10 +143,10 @@ function resetAllProviderRendererLoginState() {
   }
 }
 
-async function logoutAllAccountsAndResetEasterEgg() {
-  if (logoutAllAccountsResetBusy) return;
-  if (!window.confirm('退出全部平台并清除登录 Cookie？\n完成后登录彩蛋会重新锁定，可以再次体验。')) return;
-  logoutAllAccountsResetBusy = true;
+async function logoutAllAccounts() {
+  if (logoutAllAccountsBusy) return;
+  if (!window.confirm('退出全部平台并清除登录 Cookie？')) return;
+  logoutAllAccountsBusy = true;
   var button = document.getElementById('login-reset-all-btn');
   if (button) {
     button.disabled = true;
@@ -160,12 +160,7 @@ async function logoutAllAccountsAndResetEasterEgg() {
       apiJson('/api/qishui/logout'),
       apiJson('/api/spotify/logout')
     ]);
-    var result = await requestLoginEasterEggReplayReset();
-    if (!result || !result.ok || result.unlocked || result.resetComplete === false) {
-      throw new Error(result && (result.error || result.message) || 'LOGIN_EASTER_EGG_REPLAY_RESET_FAILED');
-    }
     resetAllProviderRendererLoginState();
-    resetLoginEasterEggUiForReplay();
     closeCollectModal();
     closeUserModal();
     closeLoginModal();
@@ -178,12 +173,12 @@ async function logoutAllAccountsAndResetEasterEgg() {
     if (typeof setHomeControlsLocked === 'function') setHomeControlsLocked(true);
     if (typeof updateEmptyHomeVisibility === 'function') updateEmptyHomeVisibility({ forceLoad: false });
     if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
-    showToast('已退出全部账号，登录彩蛋已重新开启');
+    showToast('已退出全部账号');
   } catch (error) {
-    console.warn('Logout all accounts and reset easter egg failed:', error);
+    console.warn('Logout all accounts failed:', error);
     showToast('清理未完成，请重启后重试');
   } finally {
-    logoutAllAccountsResetBusy = false;
+    logoutAllAccountsBusy = false;
     if (button) {
       button.disabled = false;
       button.textContent = '退出登录';

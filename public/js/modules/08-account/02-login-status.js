@@ -512,7 +512,7 @@ function renderUserBtn() {
   if (loggedIn && !externalProviders.length) externalProviders = [firstLoggedProvider()];
   var topRight = document.getElementById('top-right');
   if (topRight) topRight.classList.toggle('account-pill-stack', externalProviders.length > 1);
-  btn.classList.remove('multi-account', 'external-account-pills', 'login-eye-avatar', 'logged-in', 'logged-out');
+  btn.classList.remove('multi-account', 'external-account-pills', 'logged-in', 'logged-out');
   if (loggedIn) {
     activeAccountProvider = firstLoggedProvider();
     var st = platformStatus(activeAccountProvider);
@@ -523,11 +523,9 @@ function renderUserBtn() {
       return renderTopAccountPill(provider);
     }).join('');
   } else {
-    btn.classList.add('logged-out', 'login-eye-avatar');
+    btn.classList.add('logged-out');
     btn.title = '登录账号';
-    btn.innerHTML = typeof loginEasterEggEyeMarkup === 'function'
-      ? loginEasterEggEyeMarkup(true)
-      : '<span class="login-word">登录</span>';
+    btn.innerHTML = '<span class="login-word">登录</span>';
   }
   if (typeof updateAccountPillGlassDisplacementMap === 'function') {
     requestAnimationFrame(updateAccountPillGlassDisplacementMap);

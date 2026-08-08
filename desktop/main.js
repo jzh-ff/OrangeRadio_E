@@ -14,11 +14,6 @@ const { WallpaperEngineRuntime } = require('./wallpaper-engine-runtime');
 const { FullDesktopModeRuntime } = require('./full-desktop-mode-runtime');
 const miniPlayer = require('./mini-player-runtime');
 const {
-  LoginEasterEggGate,
-  LOGIN_EASTER_EGG_GATE_VERSION,
-  LOGIN_EASTER_EGG_STATE_FILE,
-} = require('./login-easter-egg-gate');
-const {
   discoverQishuiClientDataRoots,
   discoverQishuiCookieStores,
   qishuiDiscoveryErrorCode,
@@ -107,7 +102,7 @@ const APP_PACKAGE_INFO = (() => {
 })();
 const APP_METADATA = APP_PACKAGE_INFO.mineradio || {};
 const APP_NAME = process.env.MINERADIO_RUNTIME_NAME || APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'OrangeSea';
-const APP_USER_MODEL_ID = process.env.MINERADIO_APP_USER_MODEL_ID || APP_METADATA.appUserModelId || (APP_PACKAGE_INFO.build && APP_PACKAGE_INFO.build.appId) || 'com.mineradio.desktop';
+const APP_USER_MODEL_ID = process.env.MINERADIO_APP_USER_MODEL_ID || APP_METADATA.appUserModelId || (APP_PACKAGE_INFO.build && APP_PACKAGE_INFO.build.appId) || 'com.orangesea.desktop';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
 const CURRENT_FX_AUTOSAVE_FILE = 'current-fx-autosave.json';
 const CURRENT_FX_AUTOSAVE_MAX_BYTES = 12 * 1024 * 1024;
@@ -145,14 +140,6 @@ const STABLE_USER_DATA_PATH = path.join(app.getPath('appData'), APP_NAME);
 fs.mkdirSync(STABLE_USER_DATA_PATH, { recursive: true });
 app.setPath('userData', STABLE_USER_DATA_PATH);
 const INITIAL_CACHE_SETTINGS = ensureCacheDirectories(readCacheSettings());
-const loginEasterEggGate = new LoginEasterEggGate({
-  userDataPath: STABLE_USER_DATA_PATH,
-  credentialRoots: () => [
-    chromiumSessionDataPath(cacheSettings || INITIAL_CACHE_SETTINGS),
-    (() => { try { return app.getPath('sessionData'); } catch (_) { return ''; } })(),
-    path.join(__dirname, '..'),
-  ],
-});
 const NATIVE_HELPER_TEMP_PATH = INITIAL_CACHE_SETTINGS.nativePath;
 fs.mkdirSync(NATIVE_HELPER_TEMP_PATH, { recursive: true });
 process.env.MINERADIO_NATIVE_TEMP_DIR = NATIVE_HELPER_TEMP_PATH;
@@ -1581,6 +1568,61 @@ function scheduleWallpaperEngineHostBoundsRestart(win, reason = 'bounds-changed'
       }
     });
   }, 260);
+}
+
+// ---------- 本地渲染页 CSP ----------
+// 说明：index-loader 在运行时把模块脚本拼接后经 script.text 注入执行，且页面
+// 存在大量内联 onclick 处理器与 music-tempo 的间接 eval，因此 script-src 无法
+// 移除 'unsafe-inline'/'unsafe-eval'。其余指令按实际资源使用收紧：
+// 媒体全部走本地 /api 代理（无外部音频直连）、无 iframe/object/WebSocket；
+// 手势（mediapipe）与 AI 深度估计（transformers）为可选功能，需放行
+// cdn.jsdelivr.net / huggingface.co；多平台封面存在直连原图的兜底路径，故
+// img-src 保留 https:；壁纸媒体走 orangesea-wallpaper:// 特权协议。
+const LOCAL_APP_CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  // 注意：网易云封面 CDN（p1/p3/p4.music.126.net）返回的是 http:// 直连 URL，
+  // 前端存在直连原图路径，因此 img-src 需同时放行 http: 与 https:。
+  "img-src 'self' data: blob: http: https: orangesea-wallpaper:",
+  "media-src 'self' blob: orangesea-wallpaper:",
+  "connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co",
+  "worker-src 'self' blob:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+].join('; ');
+
+// startup.html 以 file:// 加载且无任何脚本，使用最严策略。
+const STARTUP_PAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'";
+
+function configureLocalAppCsp() {
+  const ses = session.defaultSession;
+  if (!ses || ses._mineradioCspConfigured) return;
+  ses._mineradioCspConfigured = true;
+  // 调试/排障时可关闭 CSP（MINERADIO_DISABLE_CSP=1）。
+  if (process.env.MINERADIO_DISABLE_CSP === '1') return;
+  try {
+    ses.webRequest.onHeadersReceived((details, callback) => {
+      const headers = details.responseHeaders ? { ...details.responseHeaders } : {};
+      const contentType = String(headers['content-type'] || headers['Content-Type'] || '').toLowerCase();
+      let csp = '';
+      try {
+        const u = new URL(details.url);
+        const isLocalAppHtml = u.protocol === 'http:'
+          && u.hostname === '127.0.0.1'
+          && Number(u.port || 0) === Number(mainServerPort || 0)
+          && contentType.includes('text/html');
+        if (isLocalAppHtml) csp = LOCAL_APP_CSP;
+        else if (u.protocol === 'file:' && /startup\.html$/i.test(u.pathname)) csp = STARTUP_PAGE_CSP;
+      } catch (_) {}
+      if (csp) headers['Content-Security-Policy'] = [csp];
+      callback({ responseHeaders: headers });
+    });
+  } catch (e) {
+    console.warn('[CSP] install failed:', e.message);
+  }
 }
 
 function configureLocalAppPermissions() {
@@ -3964,27 +4006,6 @@ async function clearSpotifyMusicLoginSession() {
   return { ok: true, provider: 'spotify' };
 }
 
-function loginEasterEggLockedResult() {
-  return {
-    ok: false,
-    unlocked: false,
-    error: 'LOGIN_EASTER_EGG_LOCKED',
-    message: '请先完成登录彩蛋解锁。',
-  };
-}
-
-async function initializeLoginEasterEggGate() {
-  const status = await loginEasterEggGate.initialize(() => clearAllProviderLoginState('startup-gate'));
-  if (status.resetPerformed) {
-    console.log('[LoginEasterEgg] first-run login credentials reset', {
-      gateVersion: LOGIN_EASTER_EGG_GATE_VERSION,
-      ok: status.resetComplete,
-      error: status.error || '',
-    });
-  }
-  return status;
-}
-
 async function clearAllProviderLoginState(reason) {
   if (localServer && typeof localServer.clearAllLoginCredentials === 'function') {
     const result = localServer.clearAllLoginCredentials(reason || 'login-reset');
@@ -4552,7 +4573,9 @@ ipcMain.handle('desktop-window-toggle-maximize', (event) => {
   if (win === mainWindow && fullDesktopModeRuntime.getStatus('window-toggle-maximize').enabled === true) {
     return getWindowState(win);
   }
-  toggleFullscreen(win);
+  // 最大化：铺满屏幕可用区域但保留系统任务栏（区别于真全屏）
+  if (win.isMaximized()) win.unmaximize();
+  else win.maximize();
   return getWindowState(win);
 });
 
@@ -5252,23 +5275,7 @@ ipcMain.handle('mineradio-current-fx-autosave-save', async (_event, payload = {}
   return writeCurrentFxAutosaveFile(payload || {});
 });
 
-ipcMain.handle('mineradio-login-easter-egg-status', async (event) => {
-  if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER', unlocked: false };
-  return loginEasterEggGate.publicStatus();
-});
-
-ipcMain.handle('mineradio-login-easter-egg-unlock', async (event, value) => {
-  if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER', unlocked: false };
-  return loginEasterEggGate.unlock(value);
-});
-
-ipcMain.handle('mineradio-login-easter-egg-reset', async (event) => {
-  if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER', unlocked: false };
-  return loginEasterEggGate.resetForReplay(() => clearAllProviderLoginState('renderer-replay-reset'));
-});
-
 ipcMain.handle('netease-music-open-login', async (event) => {
-  if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
   return openNeteaseMusicLoginWindow(getSenderWindow(event));
 });
 
@@ -5277,7 +5284,6 @@ ipcMain.handle('netease-music-clear-login', async () => {
 });
 
 ipcMain.handle('qq-music-open-login', async (event, options) => {
-  if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
   return openQQMusicLoginWindow(getSenderWindow(event), options || {});
 });
 
@@ -5286,7 +5292,6 @@ ipcMain.handle('qq-music-clear-login', async () => {
 });
 
 ipcMain.handle('kugou-music-open-login', async (event) => {
-  if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
   return openKugouMusicLoginWindow(getSenderWindow(event));
 });
 
@@ -5295,7 +5300,6 @@ ipcMain.handle('kugou-music-clear-login', async () => {
 });
 
 ipcMain.handle('qishui-music-open-login', async (event) => {
-  if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
   return openQishuiMusicLoginWindow(getSenderWindow(event));
 });
 
@@ -5304,7 +5308,6 @@ ipcMain.handle('qishui-music-clear-login', async () => {
 });
 
 ipcMain.handle('spotify-music-open-login', async (event) => {
-  if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
   return openSpotifyMusicLoginWindow(getSenderWindow(event));
 });
 
@@ -5468,8 +5471,6 @@ function configureLocalServerEnvironment(port) {
   process.env.QISHUI_COOKIE_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-cookie');
   process.env.QISHUI_TOKEN_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-token');
   process.env.MINERADIO_LISTEN_SYNC_FILE = path.join(STABLE_USER_DATA_PATH, 'listen-sync-journal.json');
-  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = path.join(STABLE_USER_DATA_PATH, LOGIN_EASTER_EGG_STATE_FILE);
-  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_VERSION = LOGIN_EASTER_EGG_GATE_VERSION;
   if (!process.env.QISHUI_OAUTH_CONFIG_FILE) {
     process.env.QISHUI_OAUTH_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-oauth.json');
   }
@@ -5682,10 +5683,10 @@ async function ensureLocalServerStarted() {
     if (injectedDelay) await startupDelay(injectedDelay);
     const port = await withStartupTimeout(findOpenPort(3000), 5000, 'findOpenPort');
     mainServerPort = port;
+    configureLocalAppCsp();
     configureLocalAppPermissions();
     configureLocalServerEnvironment(port);
     migrateLegacyAuthStorage();
-    await initializeLoginEasterEggGate();
 
     const serverModulePath = path.join(__dirname, '..', 'server.js');
     try { delete require.cache[require.resolve(serverModulePath)]; } catch (_) {}
