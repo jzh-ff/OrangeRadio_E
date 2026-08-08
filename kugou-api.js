@@ -1,8 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
-const http = require('http');
-const https = require('https');
+const {
+  requestText,
+  requestJson,
+} = require('./server/http-utils');
 
 const KUGOU_SEARCH_URL = 'http://songsearch.kugou.com/song_search_v2';
 const KUGOU_PLAY_MOBILE = 'http://m.kugou.com/app/i/getSongInfo.php';
@@ -70,41 +72,7 @@ const KUGOU_QUALITY_CHAIN = [
   { key: 'standard', label: '标准', field: 'FileHash' },
 ];
 
-function requestText(targetUrl, opts, body) {
-  opts = opts || {};
-  return new Promise((resolve, reject) => {
-    const u = new URL(targetUrl);
-    const lib = u.protocol === 'https:' ? https : http;
-    const req = lib.request(u, {
-      method: opts.method || 'GET',
-      headers: opts.headers || {},
-    }, response => {
-      const chunks = [];
-      response.on('data', chunk => chunks.push(chunk));
-      response.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        if (response.statusCode >= 400) {
-          const err = new Error('HTTP ' + response.statusCode);
-          err.statusCode = response.statusCode;
-          err.body = text;
-          reject(err);
-          return;
-        }
-        resolve(text);
-      });
-    });
-    req.setTimeout(12000, () => req.destroy(new Error('Request timeout')));
-    req.on('error', reject);
-    if (body) req.write(body);
-    req.end();
-  });
-}
-
-async function requestJson(targetUrl, opts, body) {
-  const text = await requestText(targetUrl, opts, body);
-  return JSON.parse(text);
-}
-
+/* requestText/requestJson 已收敛到 server/http-utils.js（本文件顶部 require） */
 function createKugouMid(seed) {
   const raw = String(seed || Date.now()) + Math.random();
   return crypto.createHash('md5').update(raw).digest('hex');

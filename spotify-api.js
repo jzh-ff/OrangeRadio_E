@@ -1,8 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-const https = require('https');
 const path = require('path');
+const { requestJson: httpRequestJson } = require('./server/http-utils');
 
 // 版本号统一从 package.json 读取，避免多处硬编码不一致。
 const APP_VERSION_SPOTIFY = (() => {
@@ -312,44 +312,31 @@ function getSpotifyConfig() {
   };
 }
 
-function requestText(targetUrl, opts, body) {
-  opts = opts || {};
-  const timeoutMs = Number(opts.timeoutMs) || 10000;
-  const method = opts.method || (body == null ? 'GET' : 'POST');
-  const headers = Object.assign({ 'User-Agent': SPOTIFY_UA }, opts.headers || {});
-  return new Promise((resolve, reject) => {
-    const req = https.request(targetUrl, { method, headers, timeout: timeoutMs }, (res) => {
-      const chunks = [];
-      res.on('data', chunk => chunks.push(chunk));
-      res.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(text);
-          return;
-        }
-        const err = new Error('SPOTIFY_HTTP_' + res.statusCode);
-        err.statusCode = res.statusCode;
-        err.body = text;
-        err.retryAfter = res.headers && res.headers['retry-after'];
-        reject(err);
-      });
-    });
-    req.on('timeout', () => req.destroy(new Error('SPOTIFY_REQUEST_TIMEOUT')));
-    req.on('error', reject);
-    if (body != null) req.write(body);
-    req.end();
-  });
-}
-
-async function requestJson(targetUrl, opts, body) {
-  const text = await requestText(targetUrl, opts, body);
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    err.message = 'SPOTIFY_JSON_PARSE_FAILED: ' + err.message;
+// 底层 requestText/requestJson 已收敛到 server/http-utils.js；
+// 此处保留薄 wrapper：注入 Spotify UA 并保持错误码前缀语义
+function requestJson(targetUrl, opts, body) {
+  opts = Object.assign({}, opts || {});
+  opts.headers = Object.assign({ 'User-Agent': SPOTIFY_UA }, opts.headers || {});
+  return httpRequestJson(targetUrl, opts, body).catch((err) => {
+    if (err && /^SPOTIFY_/.test(err.message)) throw err;
+    if (err && /Request timeout/.test(err.message)) {
+      const renamed = new Error('SPOTIFY_REQUEST_TIMEOUT');
+      renamed.statusCode = err.statusCode;
+      renamed.body = err.body;
+      throw renamed;
+    }
+    if (err && /^HTTP /.test(err.message)) {
+      const renamed = new Error('SPOTIFY_HTTP_' + err.statusCode);
+      renamed.statusCode = err.statusCode;
+      renamed.body = err.body;
+      renamed.retryAfter = err.retryAfter;
+      throw renamed;
+    }
+    if (err && /Invalid JSON/.test(err.message)) {
+      err.message = 'SPOTIFY_JSON_PARSE_FAILED: ' + err.message;
+    }
     throw err;
-  }
+  });
 }
 
 function spotifyErrorDetails(err) {

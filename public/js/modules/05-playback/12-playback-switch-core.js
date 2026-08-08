@@ -84,7 +84,10 @@ function scheduleAudioResumePosition(media, seconds, token) {
       if (typeof syncBeatMapPlaybackCursor === 'function') syncBeatMapPlaybackCursor(target, true);
       if (typeof syncPodcastDjMapCursor === 'function') syncPodcastDjMapCursor(target, true);
       updatePlaybackProgressUi();
-    } catch (e) { }
+    } catch (e) {
+      // seek 不生效会表现为拖拽进度后回弹，属播放体验问题，留日志便于排查
+      if (typeof console !== 'undefined' && console.warn) console.warn('[SeekResume] apply failed:', target, e && e.message);
+    }
   }
   media.addEventListener('loadedmetadata', applyResume, { once: true });
   media.addEventListener('canplay', applyResume, { once: true });

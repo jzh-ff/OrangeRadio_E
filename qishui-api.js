@@ -5,6 +5,10 @@ const crypto = require('crypto');
 const http = require('http');
 const https = require('https');
 const path = require('path');
+const {
+  requestText,
+  requestJson,
+} = require('./server/http-utils');
 
 // 版本号统一从 package.json 读取，避免多处硬编码不一致。
 const APP_VERSION_QISHUI = (() => {
@@ -213,47 +217,7 @@ const qishuiMembershipCache = createTtlCache(24, 60 * 1000);
 const qishuiTrackMetadataCache = createTtlCache(120, 20 * 1000);
 const qishuiPlaybackCache = createTtlCache(120, 4 * 60 * 1000);
 
-function requestText(targetUrl, opts, body) {
-  opts = opts || {};
-  return new Promise((resolve, reject) => {
-    const u = new URL(targetUrl);
-    const lib = u.protocol === 'https:' ? https : http;
-    const req = lib.request(u, {
-      method: opts.method || 'GET',
-      headers: opts.headers || {},
-    }, response => {
-      const chunks = [];
-      response.on('data', chunk => chunks.push(chunk));
-      response.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
-        if (response.statusCode >= 400) {
-          const err = new Error('HTTP ' + response.statusCode);
-          err.statusCode = response.statusCode;
-          err.body = text;
-          reject(err);
-          return;
-        }
-        resolve(text);
-      });
-    });
-    req.setTimeout(Number(opts.timeoutMs) || 7000, () => req.destroy(new Error('Request timeout')));
-    req.on('error', reject);
-    if (body) req.write(body);
-    req.end();
-  });
-}
-
-async function requestJson(targetUrl, opts, body) {
-  const text = await requestText(targetUrl, opts, body);
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    const err = new Error('Invalid JSON from Qishui OpenAPI');
-    err.cause = e;
-    err.body = text;
-    throw err;
-  }
-}
+/* requestText/requestJson 已收敛到 server/http-utils.js（本文件顶部 require） */
 
 function requestJsonWithMeta(targetUrl, opts, body) {
   opts = opts || {};

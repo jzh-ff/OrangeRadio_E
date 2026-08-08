@@ -1,6 +1,5 @@
 var loginRefreshRequestSeq = 0;
 var loginWorkflowDrag = null;
-var LOGIN_WORKFLOW_CONNECTION_STORE_KEY = 'orangesea-login-workflow-connections-v1';
 var LOGIN_WORKFLOW_PROVIDERS = ['netease', 'qq', 'kugou', 'qishui', 'spotify'];
 var loginWorkflowPendingProvider = '';
 var loginWorkflowVerifiedSession = {};
@@ -43,13 +42,6 @@ function isManualCookieOpenForProvider(provider) {
   if (provider === 'kugou') return !!kugouManualCookieOpen;
   if (provider === 'qishui') return !!qishuiManualCookieOpen;
   return false;
-}
-function readLoginWorkflowConnections() {
-  try { localStorage.removeItem(LOGIN_WORKFLOW_CONNECTION_STORE_KEY); } catch (e) { }
-  return [];
-}
-function saveLoginWorkflowConnections(list) {
-  try { localStorage.removeItem(LOGIN_WORKFLOW_CONNECTION_STORE_KEY); } catch (e) { }
 }
 function providerHasLiveLogin(provider) {
   provider = normalizeLoginProviderKey(provider);

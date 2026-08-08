@@ -260,14 +260,8 @@ var USER_FX_SHARE_KEYS = [
   'backgroundStarRiver',
   'lyricTextureClarity'
 ];
-function defaultUserFxArchiveName(index) {
-  return '存档 ' + (index + 1);
-}
-function normalizeUserFxArchiveName(name, index) {
-  name = String(name || '').replace(/\s+/g, ' ').trim();
-  if (!name) name = defaultUserFxArchiveName(index);
-  return name.slice(0, 18);
-}
+
+
 function archiveNumber(raw, key, fallback, min, max) {
   var value = raw && raw[key] != null ? Number(raw[key]) : fallback;
   if (!isFinite(value)) value = fallback;
@@ -738,77 +732,12 @@ if (!hadStoredUserFxArchives) {
 }
 var userFxArchiveEditing = -1;
 var userFxArchiveShareDraft = '';
-function renderUserFxArchives() {
-  var grid = document.getElementById('user-archive-grid');
-  if (!grid) return;
-  grid.innerHTML = userFxArchives.map(function (slot, index) {
-    var hasSave = !!slot.snapshot;
-    var editing = userFxArchiveEditing === index;
-    var nameHtml = editing
-      ? '<input class="user-archive-input" id="user-archive-input-' + index + '" type="text" maxlength="18" value="' + escHtml(slot.name) + '" onkeydown="handleUserFxArchiveRenameKey(event,' + index + ')">'
-      : '<div class="user-archive-name" title="' + escHtml(slot.name) + '">' + escHtml(slot.name) + '</div>';
-    var actionsHtml = editing
-      ? '<button type="button" onclick="commitUserFxArchiveRename(' + index + ')">确定</button>' +
-      '<button type="button" onclick="cancelUserFxArchiveRename()">取消</button>'
-      : '<button type="button" onclick="applyUserFxArchive(' + index + ')"' + (hasSave ? '' : ' disabled') + '>应用</button>' +
-      '<button type="button" onclick="saveUserFxArchive(' + index + ')">保存</button>' +
-      '<button type="button" onclick="renameUserFxArchive(' + index + ')">命名</button>';
-    return '<div class="user-archive-slot' + (hasSave ? ' has-save' : '') + '" data-slot="' + index + '">' +
-      nameHtml +
-      '<div class="user-archive-meta">' + formatUserArchiveTime(slot.savedAt) + '</div>' +
-      '<div class="user-archive-actions">' +
-      actionsHtml +
-      '</div>' +
-      '</div>';
-  }).join('');
-  if (userFxArchiveEditing >= 0) {
-    setTimeout(function () {
-      var input = document.getElementById('user-archive-input-' + userFxArchiveEditing);
-      if (input) {
-        input.focus();
-        input.select();
-      }
-    }, 0);
-  }
-}
-function saveUserFxArchive(index) {
-  index = clampRange(Number(index) || 0, 0, Math.max(0, userFxArchives.length - 1));
-  userFxArchives[index].snapshot = captureFxArchiveSnapshot();
-  userFxArchives[index].savedAt = Date.now();
-  userFxArchives[index].name = normalizeUserFxArchiveName(userFxArchives[index].name, index);
-  saveUserFxArchives();
-  renderUserFxArchives();
-  showToast('已保存到 ' + userFxArchives[index].name);
-}
-function applyUserFxArchive(index) {
-  index = clampRange(Number(index) || 0, 0, Math.max(0, userFxArchives.length - 1));
-  var slot = userFxArchives[index];
-  if (!slot || !slot.snapshot) {
-    showToast('这个用户存档还是空的');
-    return;
-  }
-  if (applyFxArchiveSnapshot(slot.snapshot)) {
-    showToast('已应用 ' + slot.name);
-  }
-}
-function renameUserFxArchive(index) {
-  index = clampRange(Number(index) || 0, 0, Math.max(0, userFxArchives.length - 1));
-  userFxArchiveEditing = index;
-  renderUserFxArchives();
-}
-function commitUserFxArchiveRename(index) {
-  index = clampRange(Number(index) || 0, 0, Math.max(0, userFxArchives.length - 1));
-  var input = document.getElementById('user-archive-input-' + index);
-  userFxArchives[index].name = normalizeUserFxArchiveName(input && input.value, index);
-  userFxArchiveEditing = -1;
-  saveUserFxArchives();
-  renderUserFxArchives();
-  showToast('已命名为 ' + userFxArchives[index].name);
-}
-function cancelUserFxArchiveRename() {
-  userFxArchiveEditing = -1;
-  renderUserFxArchives();
-}
+
+
+
+
+
+
 function handleUserFxArchiveRenameKey(e, index) {
   if (e.key === 'Enter') {
     e.preventDefault();

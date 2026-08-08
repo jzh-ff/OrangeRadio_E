@@ -1,7 +1,4 @@
 // ============================================================
-function startHeadTracking() { }     // stub: 兼容旧调用
-function stopHeadTracking() { }      // stub
-
 var gestureVideo = null, gestureCamera = null, gestureHands = null;
 var gestureActive = false;
 // 21 个关键点的平滑缓存 (EMA): [{x,y}, ...]
