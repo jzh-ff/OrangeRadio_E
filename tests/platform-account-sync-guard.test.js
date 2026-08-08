@@ -5,7 +5,15 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+// 拆分后：后端逻辑分布在 server.js 装配层 + server/routes/* + server/handlers/*。
+// 这里聚合全部后端源码文本，使路由/能力断言不受拆分影响。
+const serverFiles = ['server.js']
+  .concat(fs.readdirSync(path.join(root, 'server', 'routes')).map(f => path.join('server', 'routes', f)))
+  .concat(fs.readdirSync(path.join(root, 'server', 'handlers')).map(f => path.join('server', 'handlers', f)))
+  .concat(['server/context.js', 'server/utils.js']);
+const server = serverFiles
+  .map(f => fs.readFileSync(path.join(root, f), 'utf8'))
+  .join('\n');
 const listenStats = fs.readFileSync(
   path.join(root, 'public', 'js', 'modules', '05-playback', '02-listen-stats.js'),
   'utf8'

@@ -65,7 +65,6 @@ npm run build:win  # 打包 NSIS 安装包 → dist/
 2. `server.js`：
    - 顶部 require（仿 `server.js:74-128`）
    - cookie 文件常量（仿 `server.js:154-157`）+ cookie store 注册（`server.js:369-407`）
-   - `LOGIN_EASTER_EGG_PROTECTED_ROUTES`（`server.js:142-152`）
    - handler 内加约 10 条对称路由（仿 `server.js:5618-6300` 酷狗段）
    - `/api/platform/capabilities` 加能力声明（`server.js:5308-5343`）
 3. `desktop/main.js`：登录 IPC（仿 `main.js:5264-5308`）+ 凭据迁移

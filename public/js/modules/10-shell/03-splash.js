@@ -16,6 +16,8 @@ var splashSoundFallbackArmed = false;
 var splashTimer = null;
 var reduceSplashMotion = false;
 var splashReadyToEnter = false;
+var splashPointerTargetX = 0, splashPointerTargetY = 0;
+var splashPointerX = 0, splashPointerY = 0;
 
 function splashClamp01(v) { return Math.max(0, Math.min(1, v)); }
 function splashSmoothstep(edge0, edge1, x) {
@@ -28,6 +30,17 @@ function splashEaseOutCubic(t) {
 }
 function splashTimelineElapsed(elapsed) {
   return elapsed;
+}
+function updateSplashParallax() {
+  var easing = reduceSplashMotion ? 1 : 0.075;
+  splashPointerX += (splashPointerTargetX - splashPointerX) * easing;
+  splashPointerY += (splashPointerTargetY - splashPointerY) * easing;
+  var splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.style.setProperty('--splash-fx-x', (-splashPointerX * 15).toFixed(2) + 'px');
+  splash.style.setProperty('--splash-fx-y', (-splashPointerY * 10).toFixed(2) + 'px');
+  splash.style.setProperty('--splash-content-x', (splashPointerX * 5).toFixed(2) + 'px');
+  splash.style.setProperty('--splash-content-y', (splashPointerY * 3).toFixed(2) + 'px');
 }
 function stopSplashIntroSound() {
   if (!splashAudioCtx) return;
@@ -81,100 +94,152 @@ function initMineradioSplashWebgl(canvas) {
     'varying vec2 vUv;',
     'uniform vec2 uResolution;',
     'uniform float uTime;',
+    'uniform vec2 uPointer;',
     '',
     'float saturate(float v){ return clamp(v, 0.0, 1.0); }',
     'float ease(float v){ v = saturate(v); return v * v * (3.0 - 2.0 * v); }',
-    'mat2 rot(float a){ float c = cos(a); float s = sin(a); return mat2(c, -s, s, c); }',
-    'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }',
-    'float noise(vec2 p){',
+    'float hash21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }',
+    'float noise21(vec2 p){',
     '  vec2 i = floor(p);',
     '  vec2 f = fract(p);',
     '  vec2 u = f * f * (3.0 - 2.0 * f);',
-    '  return mix(mix(hash(i), hash(i + vec2(1.0,0.0)), u.x), mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);',
+    '  return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x), u.y);',
     '}',
-    '',
-    'float animatedLoop(vec2 uv, float t, float channel){',
-    '  vec2 q = uv;',
-    '  q *= rot(0.28 + sin(t * 0.18) * 0.12);',
-    '  q.x += 0.055 * sin(t * 0.30 + channel);',
-    '  q.y += 0.040 * cos(t * 0.24 + channel * 1.7);',
-    '  float ang = atan(q.y, q.x);',
-    '  float angularShift = sin(ang * 3.0 + t * 0.72 + channel * 1.9) * 0.078;',
-    '  angularShift += sin(ang * 7.0 - t * 0.54 + channel) * 0.020;',
-    '  float neonD = length(q) + angularShift;',
-    '  float warpD = length(q * vec2(1.34 + 0.06 * sin(t * 0.25), 0.82 + 0.04 * cos(t * 0.31)));',
-    '  warpD += 0.026 * sin(q.x * 4.4 + t * 0.62) + 0.018 * sin(q.y * 5.2 - t * 0.45);',
-    '  float diamondD = abs(q.x) * 1.20 + abs(q.y) * 0.84;',
-    '  float d = mix(warpD, diamondD, 0.32);',
-    '  d = mix(d, neonD, 0.20 + 0.04 * sin(t * 0.18 + channel));',
-    '  float pattern = mod((q.x + q.y) * 0.62 + sin(q.x * 5.5 + t) * 0.015 + sin(q.y * 7.0 - t * 0.75) * 0.012, 0.20);',
-    '  float acc = 0.0;',
-    '  for (int i = 1; i <= 6; i++) {',
-    '    float fi = float(i);',
-    '    float f = fract(t * 0.152 - channel * 0.018 + 0.011 * fi) * 4.70 - d + pattern;',
-    '    acc += 0.00110 * fi * fi / max(abs(f), 0.0065);',
+    'float fbm(vec2 p){',
+    '  float value = 0.0;',
+    '  float amp = 0.52;',
+    '  for(int i = 0; i < 5; i++){',
+    '    value += noise21(p) * amp;',
+    '    p = mat2(1.62, -1.18, 1.18, 1.62) * p + 0.17;',
+    '    amp *= 0.50;',
     '  }',
-    '  float threadCoord = q.x * 0.92 - q.y * 0.58 + 0.030 * sin(q.x * 5.2 + t * 0.72);',
-    '  float threadLines = 0.0065 / max(abs(sin((threadCoord + t * 0.10 + channel * 0.035) * 27.0)), 0.070);',
-    '  acc += threadLines * (0.50 + 0.30 * sin(ang * 1.2 + t + channel));',
-    '  return min(acc, 1.95);',
+    '  return value;',
     '}',
     '',
     'void main(){',
     '  vec2 p = vUv * 2.0 - 1.0;',
-    '  p.x *= uResolution.x / max(uResolution.y, 1.0);',
+    '  float aspect = uResolution.x / max(uResolution.y, 1.0);',
+    '  p.x *= aspect;',
     '  float t = uTime;',
-    '  float intro = ease(t / 0.72);',
-    '  float bloomIn = ease((t - 0.10) / 1.10);',
-    '  float climax = exp(-pow((t - 3.62) / 0.58, 2.0));',
-    '  float preClimax = ease((t - 2.15) / 1.25) * (1.0 - ease((t - 3.86) / 0.72));',
-    '  float afterglow = exp(-pow((t - 4.14) / 0.62, 2.0));',
-    '  float calm = 1.0 - 0.22 * ease((t - 4.75) / 0.70);',
-    '  float settle = 1.0 - 0.34 * ease((t - 5.05) / 0.52);',
-    '  vec2 uv = p * (0.98 + 0.05 * sin(t * 0.25));',
-    '  uv += vec2(0.0, -0.025);',
-    '  vec2 flowAxis = normalize(vec2(0.86, -0.50));',
-    '  vec2 crossAxis = vec2(-flowAxis.y, flowAxis.x);',
-    '  float lane = dot(p, flowAxis);',
-    '  float crossLane = dot(p, crossAxis);',
-    '  float syncWave = sin(crossLane * 5.4 + lane * 1.1 - t * 1.85);',
-    '  uv += flowAxis * syncWave * 0.055 * climax;',
-    '  uv += crossAxis * sin(lane * 7.2 + t * 1.25) * 0.034 * climax;',
-    '  uv *= 1.0 + 0.045 * preClimax - 0.020 * climax;',
-    '  vec3 ch1 = vec3(1.00, 0.13, 0.31);',
-    '  vec3 ch2 = vec3(0.16, 1.00, 0.86);',
-    '  vec3 ch3 = vec3(1.00, 0.76, 0.28);',
-    '  float a = animatedLoop(uv, t, 0.0);',
-    '  float b = animatedLoop(uv * 1.018 + vec2(0.012, -0.008), t + 0.18, 1.0);',
-    '  float c = animatedLoop(uv * 0.986 + vec2(-0.010, 0.010), t + 0.35, 2.0);',
-    '  vec3 loopCol = ch1 * a + ch2 * b + ch3 * c;',
-    '  float tunnel = animatedLoop(uv * 1.42 + vec2(sin(t * 0.2) * 0.08, cos(t * 0.17) * 0.05), t * 1.12 + 1.7, 2.7);',
-    '  loopCol += mix(ch2, ch3, 0.35 + 0.25 * sin(t)) * tunnel * (0.30 + 0.24 * preClimax);',
-    '  float syncBand = exp(-pow((lane + 0.08 * sin(t * 0.72)) / 0.62, 2.0));',
-    '  float phaseThread = pow(0.5 + 0.5 * sin(crossLane * 13.5 + lane * 2.2 - t * 3.1), 8.0);',
-    '  float phaseThread2 = pow(0.5 + 0.5 * sin(crossLane * 9.0 - lane * 5.4 + t * 2.4), 10.0);',
-    '  vec3 climaxCol = (mix(ch2, ch3, 0.36) * phaseThread + ch1 * phaseThread2 * 0.52) * syncBand * climax;',
-    '  float afterBand = exp(-pow((lane - 0.34) / 0.72, 2.0));',
-    '  climaxCol += mix(ch1, ch2, vUv.x) * afterBand * afterglow * 0.13;',
-    '  float centerBeam = exp(-abs(p.y + 0.005 * sin(t * 3.0)) * 24.0) * (0.14 + 0.52 * exp(-pow((t - 0.74) / 0.34, 2.0)));',
-    '  float bladeMask = smoothstep(-1.55, -0.08, p.x) * (1.0 - smoothstep(0.08, 1.55, p.x));',
-    '  vec3 blade = mix(ch1, ch2, vUv.x) * centerBeam * bladeMask * (0.40 + 0.28 * climax);',
-    '  float flare = exp(-dot(p, p) * 3.6) * exp(-pow((t - 0.88) / 0.40, 2.0));',
-    '  vec3 col = vec3(0.002, 0.004, 0.005);',
-    '  col += loopCol * (0.56 + 0.46 * bloomIn) * calm * settle;',
-    '  col += climaxCol * 0.22;',
-    '  float diagonalGlint = exp(-pow(lane * 1.2 + crossLane * 0.10, 2.0) / 0.030) * climax;',
-    '  col += blade + vec3(1.0, 0.78, 0.42) * flare * 0.18 + vec3(1.0, 0.86, 0.58) * diagonalGlint * 0.07;',
-    '  float scan = 0.92 + 0.08 * sin((vUv.y * uResolution.y + t * 52.0) * 0.72);',
-    '  float grain = noise(vUv * uResolution.xy * 0.52 + t * 17.0) - 0.5;',
+    '  p += vec2(uPointer.x * 0.032, -uPointer.y * 0.020);',
+    '  float intro = ease(t / 0.95);',
+    '  float horizon = -0.105;',
+    '  float sunX = aspect * 0.34;',
+    '',
+    '  vec3 night = vec3(0.004, 0.010, 0.017);',
+    '  vec3 blueHour = vec3(0.018, 0.046, 0.064);',
+    '  vec3 dusk = vec3(0.145, 0.055, 0.063);',
+    '  vec3 peach = vec3(0.94, 0.255, 0.105);',
+    '  float skyHeight = smoothstep(horizon - 0.02, 1.04, p.y);',
+    '  vec3 sky = mix(mix(dusk, blueHour, smoothstep(0.00, 0.72, skyHeight)), night, smoothstep(0.58, 1.0, skyHeight));',
+    '  float horizonGlow = exp(-abs(p.y - horizon) * 5.2) * exp(-abs(p.x - sunX) * 0.42);',
+    '  sky += peach * horizonGlow * 0.22;',
+    '',
+    '  float cloudNoise = fbm(vec2(p.x * 0.52 - t * 0.018, p.y * 2.15 + t * 0.006) + vec2(3.1, 1.7));',
+    '  float cloudBand = smoothstep(0.48, 0.78, cloudNoise) * smoothstep(horizon + 0.03, horizon + 0.52, p.y) * (1.0 - smoothstep(0.50, 0.98, p.y));',
+    '  sky += mix(vec3(0.08, 0.15, 0.17), vec3(0.28, 0.10, 0.09), smoothstep(-0.8, 0.8, p.x)) * cloudBand * 0.18;',
+    '  float ribbonA = exp(-abs(p.y - (0.30 + sin(p.x * 1.18 + t * 0.16) * 0.072 + sin(p.x * 2.8 - t * 0.11) * 0.022)) * 19.0);',
+    '  float ribbonB = exp(-abs(p.y - (0.52 + sin(p.x * 0.82 - t * 0.12 + 1.7) * 0.085)) * 15.0);',
+    '  float ribbonMask = smoothstep(horizon + 0.18, horizon + 0.45, p.y) * (1.0 - smoothstep(0.74, 1.02, p.y));',
+    '  sky += mix(vec3(0.04, 0.36, 0.38), vec3(0.40, 0.08, 0.18), smoothstep(-aspect * 0.45, aspect * 0.55, p.x)) * ribbonA * ribbonMask * 0.18;',
+    '  sky += mix(vec3(0.08, 0.18, 0.30), vec3(0.34, 0.12, 0.14), vUv.x) * ribbonB * ribbonMask * 0.105;',
+    '',
+    '  vec2 starUv = vec2((p.x + aspect) * 26.0, (p.y + 1.0) * 22.0);',
+    '  vec2 starCell = floor(starUv);',
+    '  vec2 starLocal = fract(starUv) - 0.5;',
+    '  float starSeed = hash21(starCell);',
+    '  vec2 starOffset = vec2(hash21(starCell + 2.3), hash21(starCell + 7.1)) - 0.5;',
+    '  float starDot = 1.0 - smoothstep(0.018, 0.070, length(starLocal - starOffset * 0.62));',
+    '  float stars = starDot * step(0.945, starSeed) * (0.55 + 0.45 * sin(t * (0.7 + starSeed) + starSeed * 19.0));',
+    '  stars *= smoothstep(horizon + 0.28, 0.92, p.y) * (1.0 - cloudBand);',
+    '  sky += vec3(0.74, 0.88, 0.92) * stars * 0.34;',
+    '',
+    '  float sunRise = ease((t - 0.12) / 1.35);',
+    '  vec2 sunPos = vec2(sunX, mix(horizon - 0.045, 0.115, sunRise));',
+    '  float sunD = length(p - sunPos);',
+    '  float sunDisc = (1.0 - smoothstep(0.186, 0.201, sunD)) * smoothstep(horizon - 0.010, horizon + 0.022, p.y);',
+    '  float sunAura = exp(-sunD * 5.25) * (0.66 + 0.11 * sin(t * 0.72));',
+    '  sky += vec3(1.0, 0.29, 0.10) * sunAura * 0.28 * sunRise;',
+    '  vec2 sunVector = p - sunPos;',
+    '  float sunAngle = atan(sunVector.y, sunVector.x);',
+    '  float rayNoise = fbm(vec2(sunAngle * 2.8, sunD * 2.1 - t * 0.055));',
+    '  float rays = pow(max(0.0, sin(sunAngle * 13.0 + rayNoise * 2.8 + t * 0.08)), 16.0) * exp(-sunD * 1.65);',
+    '  rays *= smoothstep(0.21, 0.34, sunD) * smoothstep(horizon - 0.02, horizon + 0.20, p.y);',
+    '  sky += mix(vec3(1.0, 0.22, 0.07), vec3(0.18, 0.64, 0.66), vUv.x) * rays * 0.055 * sunRise;',
+    '  float ringPhase = fract(max(t - 0.18, 0.0) * 0.18);',
+    '  float energyRing = exp(-abs(sunD - (0.22 + ringPhase * 0.72)) * 105.0) * pow(1.0 - ringPhase, 2.2);',
+    '  sky += mix(vec3(1.0, 0.34, 0.10), vec3(0.24, 0.72, 0.74), vUv.x) * energyRing * 0.22 * sunRise;',
+    '  float sunSurface = fbm(vec2((p.x - sunX) * 8.0, (p.y - sunPos.y) * 13.0 + t * 0.012));',
+    '  float sunBands = 0.94 + 0.035 * sin((p.y - sunPos.y) * 175.0 + sunSurface * 3.2) + (sunSurface - 0.5) * 0.045;',
+    '  vec3 sunColor = mix(vec3(1.0, 0.31, 0.075), vec3(1.0, 0.68, 0.31), smoothstep(-0.20, 0.20, p.y - sunPos.y));',
+    '  float sunRim = exp(-abs(sunD - 0.194) * 82.0) * smoothstep(horizon - 0.010, horizon + 0.022, p.y);',
+    '  sky = mix(sky, sunColor * sunBands, sunDisc * 0.97);',
+    '  sky += vec3(1.0, 0.48, 0.20) * sunRim * 0.085 * sunRise;',
+    '',
+    '  float waterMask = 1.0 - smoothstep(horizon - 0.018, horizon + 0.022, p.y);',
+    '  float depth = saturate((horizon - p.y) / 0.91);',
+    '  vec3 water = mix(vec3(0.025, 0.055, 0.070), vec3(0.002, 0.009, 0.015), smoothstep(0.0, 1.0, depth));',
+    '  float waterNoise = fbm(vec2(p.x * 0.72 + t * 0.028, p.y * 8.0 - t * 0.035));',
+    '  water += vec3(0.02, 0.07, 0.082) * (waterNoise - 0.48) * (0.42 + depth * 0.58);',
+    '',
+    '  float reflectionBand = exp(-abs(p.x - sunX) / (0.055 + depth * 0.38));',
+    '  float reflectionBreak = pow(max(0.0, sin((horizon - p.y) * (145.0 - depth * 58.0) + noise21(vec2((p.x - sunX) * 11.0, p.y * 46.0 - t * 1.5)) * 6.0)), 10.0);',
+    '  float reflection = reflectionBand * reflectionBreak * (1.0 - depth * 0.72);',
+    '  float reflectionCore = exp(-abs(p.x - sunX) / (0.024 + depth * 0.15)) * exp(-depth * 2.15);',
+    '  water += vec3(1.0, 0.24, 0.065) * reflectionBand * exp(-depth * 1.7) * 0.055 * sunRise;',
+    '  water += vec3(1.0, 0.54, 0.22) * reflectionCore * 0.12 * sunRise;',
+    '  water += mix(vec3(1.0, 0.20, 0.06), vec3(1.0, 0.67, 0.34), reflectionBreak) * reflection * 0.72 * sunRise;',
+    '',
+    '  vec3 waveLight = vec3(0.0);',
+    '  for(int i = 0; i < 8; i++){',
+    '    float fi = float(i);',
+    '    float laneY = horizon - 0.024 - fi * 0.046 - fi * fi * 0.0122;',
+    '    float phase = p.x * (8.2 + fi * 1.55) + t * (0.52 + fi * 0.055) + fi * 1.31;',
+    '    float waveY = laneY + sin(phase) * (0.0038 + fi * 0.0018) + sin(phase * 2.13 - t * 0.31) * (0.0014 + fi * 0.0007);',
+    '    float crest = exp(-abs(p.y - waveY) * (300.0 / (1.0 + fi * 0.34)));',
+    '    float sideFade = exp(-abs(p.x) * (0.16 + fi * 0.018));',
+    '    vec3 crestColor = mix(vec3(1.0, 0.34, 0.12), vec3(0.22, 0.72, 0.76), smoothstep(-aspect * 0.35, aspect * 0.52, p.x));',
+    '    waveLight += crestColor * crest * sideFade * (0.075 + fi * 0.007);',
+    '  }',
+    '  water += waveLight * (0.70 + 0.30 * sunRise);',
+    '',
+    '  float audioWaveY = horizon + sin(p.x * 8.5 - t * 1.15) * 0.0045 + sin(p.x * 21.0 + t * 0.74) * 0.0018;',
+    '  float audioTide = exp(-abs(p.y - audioWaveY) * 460.0) * exp(-abs(p.x) * 0.52);',
+    '  vec3 horizonColor = mix(vec3(1.0, 0.30, 0.10), vec3(0.42, 0.88, 0.88), smoothstep(-0.65, 0.78, p.x));',
+    '  water += horizonColor * audioTide * (0.48 + 0.12 * sin(t * 1.4));',
+    '',
+    '  vec3 col = mix(sky, water, waterMask);',
+    '  float skyMask = 1.0 - waterMask;',
+    '  float cometCycle = fract((t + 1.8) * 0.082);',
+    '  vec2 cometHead = vec2(mix(-aspect * 1.24, aspect * 1.24, cometCycle), mix(0.84, 0.24, cometCycle));',
+    '  vec2 cometDelta = p - cometHead;',
+    '  float cometTail = exp(-abs(cometDelta.y + cometDelta.x * 0.235) * 94.0) * exp(cometDelta.x * 3.8) * step(cometDelta.x, 0.0);',
+    '  float cometCore = exp(-length(cometDelta) * 58.0);',
+    '  float cometFade = smoothstep(0.03, 0.15, cometCycle) * (1.0 - smoothstep(0.78, 0.96, cometCycle));',
+    '  col += mix(vec3(1.0, 0.42, 0.18), vec3(0.38, 0.88, 0.94), cometCycle) * (cometTail * 0.15 + cometCore * 0.72) * cometFade * skyMask;',
+    '  vec2 shockUv = vec2((p.x - sunPos.x) / max(aspect, 1.0), (p.y - sunPos.y) * 0.86);',
+    '  float shockPhase = fract(max(t - 0.18, 0.0) * 0.115);',
+    '  float shockRing = exp(-abs(length(shockUv) - (0.10 + shockPhase * 1.34)) * 105.0) * pow(1.0 - shockPhase, 2.0);',
+    '  col += mix(vec3(1.0, 0.20, 0.06), vec3(0.16, 0.72, 0.78), vUv.x) * shockRing * 0.075 * sunRise;',
+    '  float barCell = floor((p.x + aspect) * 38.0);',
+    '  float barSeed = hash21(vec2(barCell, 4.7));',
+    '  float barBeat = 0.45 + 0.55 * sin(t * (1.4 + barSeed * 1.8) + barSeed * 16.0);',
+    '  float barHeight = (0.006 + barSeed * 0.026) * (0.42 + barBeat * 0.58);',
+    '  float spectrumBar = (1.0 - smoothstep(barHeight, barHeight + 0.003, abs(p.y - horizon))) * smoothstep(0.10, 0.48, abs(fract((p.x + aspect) * 38.0) - 0.5));',
+    '  col += mix(vec3(1.0, 0.28, 0.08), vec3(0.24, 0.80, 0.84), vUv.x) * spectrumBar * 0.17;',
+    '  float horizonCore = exp(-abs(p.y - horizon) * 380.0);',
+    '  col += horizonColor * horizonCore * 0.32;',
+    '  float lensFlare = exp(-abs(p.y - horizon) * 92.0) * exp(-abs(p.x - sunX) * 0.62);',
+    '  col += mix(vec3(1.0, 0.24, 0.07), vec3(0.30, 0.78, 0.80), smoothstep(-0.6, 0.72, p.x)) * lensFlare * (0.12 + 0.035 * sin(t * 1.2));',
+    '',
+    '  float scan = 0.975 + 0.025 * sin((vUv.y * uResolution.y + t * 16.0) * 1.22);',
+    '  float grain = hash21(vUv * uResolution.xy + fract(t * 41.0)) - 0.5;',
     '  col *= scan;',
-    '  col += grain * 0.018;',
+    '  col += grain * 0.012;',
+    '  float vignette = smoothstep(1.32, 0.18, length(vec2(p.x / max(aspect, 1.0), p.y) * vec2(0.92, 1.03)));',
+    '  col *= 0.38 + vignette * 0.78;',
     '  col *= intro;',
-    '  col = max(col - vec3(0.010, 0.012, 0.012), 0.0);',
-    '  col = vec3(1.0) - exp(-max(col, 0.0) * (0.62 + 0.18 * climax));',
-    '  float vignette = smoothstep(1.52, 0.20, length(p * vec2(0.78, 1.04)));',
-    '  col *= 0.38 + 0.86 * vignette;',
-    '  col += vec3(0.020, 0.010, 0.014) * (1.0 - vignette);',
+    '  col = vec3(1.0) - exp(-max(col, 0.0) * 1.08);',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
   ].join('\n');
@@ -215,7 +280,8 @@ function initMineradioSplashWebgl(canvas) {
   splashGlUniforms = {
     position: gl.getAttribLocation(program, 'aPosition'),
     resolution: gl.getUniformLocation(program, 'uResolution'),
-    time: gl.getUniformLocation(program, 'uTime')
+    time: gl.getUniformLocation(program, 'uTime'),
+    pointer: gl.getUniformLocation(program, 'uPointer')
   };
   gl.disable(gl.DEPTH_TEST);
   gl.disable(gl.CULL_FACE);
@@ -232,6 +298,7 @@ function drawMineradioSplashWebgl(elapsed) {
   gl.vertexAttribPointer(splashGlUniforms.position, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(splashGlUniforms.resolution, splashCanvas.width, splashCanvas.height);
   gl.uniform1f(splashGlUniforms.time, elapsed);
+  gl.uniform2f(splashGlUniforms.pointer, splashPointerX, splashPointerY);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -303,6 +370,15 @@ function drawMineradioSplashWebgl(elapsed) {
   }
   resize();
   window.addEventListener('resize', resize);
+  window.addEventListener('pointermove', function (event) {
+    if (!splashAnimating || reduceSplashMotion) return;
+    splashPointerTargetX = splashClamp01(event.clientX / Math.max(1, window.innerWidth)) * 2 - 1;
+    splashPointerTargetY = splashClamp01(event.clientY / Math.max(1, window.innerHeight)) * 2 - 1;
+  }, { passive: true });
+  window.addEventListener('pointerleave', function () {
+    splashPointerTargetX = 0;
+    splashPointerTargetY = 0;
+  }, { passive: true });
   drawMineradioSplash();
 })();
 
@@ -310,163 +386,144 @@ function drawMineradioSplash() {
   if (!splashAnimating || (!splashCtx && !splashGl)) return;
   requestAnimationFrame(drawMineradioSplash);
   var elapsed = splashTimelineElapsed((performance.now() - splashStartedAt) / 1000);
+  updateSplashParallax();
   if (splashGl && splashGlProgram) {
     drawMineradioSplashWebgl(elapsed);
     return;
   }
-  splashCtx.clearRect(0, 0, splashW, splashH);
 
-  var base = splashCtx.createLinearGradient(0, 0, splashW, splashH);
-  base.addColorStop(0, 'rgba(1,6,7,0.68)');
-  base.addColorStop(0.45, 'rgba(10,9,12,0.74)');
-  base.addColorStop(1, 'rgba(0,0,0,0.84)');
-  splashCtx.fillStyle = base;
-  splashCtx.fillRect(0, 0, splashW, splashH);
+  splashCtx.clearRect(0, 0, splashW, splashH);
+  var intro = splashSmoothstep(0, 0.95, elapsed);
+  var horizon = splashH * 0.555;
+  var rise = splashSmoothstep(0.10, 1.45, elapsed);
+  var sunY = horizon + 34 - rise * Math.min(116, splashH * 0.145);
+  var sunR = Math.min(splashW, splashH) * 0.098;
+  var sunX2d = splashW * 0.68;
 
   splashCtx.save();
-  splashCtx.globalAlpha = 0.22;
-  splashCtx.fillStyle = 'rgba(255,255,255,0.035)';
-  var scanOffset = (elapsed * 28) % 36;
-  for (var sy = -scanOffset; sy < splashH; sy += 36) splashCtx.fillRect(0, sy, splashW, 1);
-  splashCtx.restore();
+  splashCtx.globalAlpha = intro;
 
-  for (var i = 0; i < splashDust.length; i++) {
-    var d = splashDust[i];
-    d.x += d.vx;
-    d.y += d.vy;
-    d.p += 0.018;
-    if (d.x < -10) d.x = splashW + 10;
-    if (d.x > splashW + 10) d.x = -10;
-    if (d.y < -10) d.y = splashH + 10;
-    if (d.y > splashH + 10) d.y = -10;
-    var alpha = d.a * (0.58 + Math.sin(d.p + elapsed * 0.8) * 0.34);
-    splashCtx.beginPath();
-    splashCtx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-    splashCtx.fillStyle = 'rgba(255,255,255,' + Math.max(0, alpha) + ')';
-    splashCtx.fill();
+  var sky = splashCtx.createLinearGradient(0, 0, 0, horizon + 1);
+  sky.addColorStop(0, '#02070c');
+  sky.addColorStop(0.44, '#07151d');
+  sky.addColorStop(0.78, '#291319');
+  sky.addColorStop(1, '#7d2818');
+  splashCtx.fillStyle = sky;
+  splashCtx.fillRect(0, 0, splashW, horizon + 1);
+
+  var glow = splashCtx.createRadialGradient(sunX2d, sunY, 0, sunX2d, sunY, Math.max(splashW * 0.34, 320));
+  glow.addColorStop(0, 'rgba(255,118,55,.26)');
+  glow.addColorStop(0.28, 'rgba(255,105,48,.10)');
+  glow.addColorStop(1, 'rgba(255,92,42,0)');
+  splashCtx.fillStyle = glow;
+  splashCtx.fillRect(0, 0, splashW, horizon + 1);
+
+  for (var di = 0; di < splashDust.length; di++) {
+    var dust = splashDust[di];
+    if (dust.y > horizon - 30) continue;
+    dust.x += dust.vx * 0.28;
+    dust.y += dust.vy * 0.18;
+    var twinkle = dust.a * (0.28 + Math.sin(dust.p + elapsed * 0.75) * 0.18);
+    splashCtx.fillStyle = 'rgba(214,235,238,' + Math.max(0, twinkle).toFixed(3) + ')';
+    splashCtx.fillRect(dust.x, dust.y, Math.max(.7, dust.r * .7), Math.max(.7, dust.r * .7));
   }
+
+  var aura = splashCtx.createRadialGradient(sunX2d, sunY, sunR * 0.5, sunX2d, sunY, sunR * 2.9);
+  aura.addColorStop(0, 'rgba(255,120,57,.34)');
+  aura.addColorStop(1, 'rgba(255,98,43,0)');
+  splashCtx.fillStyle = aura;
+  splashCtx.beginPath();
+  splashCtx.arc(sunX2d, sunY, sunR * 2.9, 0, Math.PI * 2);
+  splashCtx.fill();
+
+  splashCtx.fillStyle = '#ff7135';
+  splashCtx.shadowColor = 'rgba(255,111,48,.48)';
+  splashCtx.shadowBlur = 34;
+  splashCtx.beginPath();
+  splashCtx.arc(sunX2d, sunY, sunR, 0, Math.PI * 2);
+  splashCtx.fill();
+  splashCtx.shadowBlur = 0;
+
+  var water = splashCtx.createLinearGradient(0, horizon, 0, splashH);
+  water.addColorStop(0, '#09202a');
+  water.addColorStop(0.28, '#04131b');
+  water.addColorStop(1, '#010609');
+  splashCtx.fillStyle = water;
+  splashCtx.fillRect(0, horizon, splashW, splashH - horizon);
 
   splashCtx.save();
   splashCtx.globalCompositeOperation = 'lighter';
-  for (var k = 0; k < splashStreaks.length; k++) {
-    var st = splashStreaks[k];
-    var travel = (elapsed * st.speed * 240 + st.x + Math.sin(elapsed * 0.8 + st.phase) * 28) % (splashW + st.len + 180);
-    var px = travel - st.len - 90;
-    var py = st.y + Math.sin(elapsed * 0.75 + st.phase) * 18;
-    var fade = splashSmoothstep(st.delay * 0.55, st.delay * 0.55 + 0.52, elapsed) * (1 - splashSmoothstep(3.52, 4.12, elapsed));
-    if (fade <= 0) continue;
-    splashCtx.save();
-    splashCtx.translate(px, py);
-    splashCtx.rotate(st.angle);
-    var sg = splashCtx.createLinearGradient(-st.len * 0.5, 0, st.len * 0.5, 0);
-    sg.addColorStop(0, st.color + '0)');
-    sg.addColorStop(0.52, st.color + (st.alpha * fade).toFixed(3) + ')');
-    sg.addColorStop(1, 'rgba(255,255,255,0)');
-    splashCtx.strokeStyle = sg;
-    splashCtx.lineWidth = st.width;
-    splashCtx.shadowColor = st.color + (0.34 * fade).toFixed(3) + ')';
-    splashCtx.shadowBlur = 18;
+  var reflectionRows = reduceSplashMotion ? 18 : 42;
+  for (var ri = 0; ri < reflectionRows; ri++) {
+    var depth = ri / Math.max(1, reflectionRows - 1);
+    var ry = horizon + 8 + depth * depth * (splashH - horizon - 12);
+    var jitter = Math.sin(ri * 2.7 + elapsed * 1.4) * (3 + depth * 19);
+    var halfW = (18 + depth * splashW * 0.16) * (0.46 + Math.abs(Math.sin(ri * 4.1 + elapsed * .55)) * .54);
+    var refAlpha = (1 - depth) * (0.10 + Math.abs(Math.sin(ri * 1.9)) * 0.09);
+    var rg = splashCtx.createLinearGradient(sunX2d - halfW, 0, sunX2d + halfW, 0);
+    rg.addColorStop(0, 'rgba(255,91,37,0)');
+    rg.addColorStop(.5, 'rgba(255,152,79,' + refAlpha.toFixed(3) + ')');
+    rg.addColorStop(1, 'rgba(255,194,123,0)');
+    splashCtx.strokeStyle = rg;
+    splashCtx.lineWidth = 1 + depth * 1.5;
     splashCtx.beginPath();
-    splashCtx.moveTo(-st.len * 0.5, 0);
-    splashCtx.lineTo(st.len * 0.5, 0);
+    splashCtx.moveTo(sunX2d - halfW + jitter, ry);
+    splashCtx.lineTo(sunX2d + halfW + jitter, ry);
     splashCtx.stroke();
-    splashCtx.restore();
   }
 
-  var lineT = splashEaseOutCubic((elapsed - 0.12) / 1.18);
-  var exitFade = 1 - splashSmoothstep(3.58, 4.12, elapsed);
-  if (lineT > 0 && exitFade > 0) {
-    var centerY = splashH * 0.5 + Math.sin(elapsed * 1.4) * 1.6;
-    var slitW = splashW * (0.16 + lineT * 0.72);
-    var left = splashW * 0.5 - slitW * 0.5;
-    var right = splashW * 0.5 + slitW * 0.5;
-    var coreAlpha = (0.34 + lineT * 0.58) * exitFade;
-    var slitGrad = splashCtx.createLinearGradient(left, centerY, right, centerY);
-    slitGrad.addColorStop(0, 'rgba(255,83,103,0)');
-    slitGrad.addColorStop(0.18, 'rgba(255,83,103,' + (0.18 * exitFade).toFixed(3) + ')');
-    slitGrad.addColorStop(0.50, 'rgba(255,255,255,' + coreAlpha.toFixed(3) + ')');
-    slitGrad.addColorStop(0.68, 'rgba(244,210,138,' + (0.38 * exitFade).toFixed(3) + ')');
-    slitGrad.addColorStop(0.84, 'rgba(122,215,194,' + (0.20 * exitFade).toFixed(3) + ')');
-    slitGrad.addColorStop(1, 'rgba(122,215,194,0)');
-    splashCtx.shadowColor = 'rgba(244,210,138,' + (0.48 * exitFade).toFixed(3) + ')';
-    splashCtx.shadowBlur = 42 + lineT * 42;
-    splashCtx.lineCap = 'round';
-    splashCtx.strokeStyle = slitGrad;
-    splashCtx.lineWidth = 1.4 + lineT * 2.2;
+  var waveCount = reduceSplashMotion ? 5 : 9;
+  for (var wi = 0; wi < waveCount; wi++) {
+    var waveDepth = wi / Math.max(1, waveCount - 1);
+    var baseY = horizon + 8 + waveDepth * waveDepth * (splashH - horizon - 18);
+    var amp = 1.4 + waveDepth * 6.2;
+    var freq = 0.012 + waveDepth * 0.007;
+    splashCtx.strokeStyle = wi % 3 === 0
+      ? 'rgba(255,116,56,' + (0.10 - waveDepth * 0.035).toFixed(3) + ')'
+      : 'rgba(87,188,193,' + (0.075 - waveDepth * 0.025).toFixed(3) + ')';
+    splashCtx.lineWidth = .7 + waveDepth * .65;
     splashCtx.beginPath();
-    splashCtx.moveTo(left, centerY);
-    splashCtx.lineTo(right, centerY);
+    for (var x = -20; x <= splashW + 20; x += 8) {
+      var y = baseY + Math.sin(x * freq + elapsed * (.55 + waveDepth * .32) + wi * 1.15) * amp;
+      y += Math.sin(x * freq * 2.16 - elapsed * .31) * amp * .24;
+      if (x === -20) splashCtx.moveTo(x, y);
+      else splashCtx.lineTo(x, y);
+    }
     splashCtx.stroke();
-
-    var ignition = Math.exp(-Math.pow((elapsed - 0.72) / 0.26, 2));
-    if (ignition > 0.018) {
-      var ig = splashCtx.createLinearGradient(0, centerY, splashW, centerY);
-      ig.addColorStop(0, 'rgba(122,215,194,0)');
-      ig.addColorStop(0.46, 'rgba(122,215,194,' + (0.07 * ignition).toFixed(3) + ')');
-      ig.addColorStop(0.50, 'rgba(255,255,255,' + (0.16 * ignition).toFixed(3) + ')');
-      ig.addColorStop(0.54, 'rgba(255,83,103,' + (0.08 * ignition).toFixed(3) + ')');
-      ig.addColorStop(1, 'rgba(244,210,138,0)');
-      splashCtx.fillStyle = ig;
-      splashCtx.fillRect(0, centerY - 48 * ignition, splashW, 96 * ignition);
-    }
-
-    var waveAlpha = splashSmoothstep(0.72, 1.95, elapsed) * exitFade;
-    if (waveAlpha > 0) {
-      splashCtx.shadowBlur = 20;
-      splashCtx.strokeStyle = 'rgba(244,210,138,' + (0.22 * waveAlpha).toFixed(3) + ')';
-      splashCtx.lineWidth = 1;
-      splashCtx.beginPath();
-      var steps = 82;
-      for (var wi = 0; wi <= steps; wi++) {
-        var u = wi / steps;
-        var x = left + slitW * u;
-        var edge = 1 - Math.abs(u - 0.5) * 2;
-        var amp = (4 + 18 * lineT) * Math.pow(Math.max(0, edge), 1.4) * waveAlpha;
-        var y = centerY + Math.sin(u * 34 + elapsed * 8.2) * amp + Math.sin(u * 87 - elapsed * 5.1) * amp * 0.18;
-        if (wi === 0) splashCtx.moveTo(x, y);
-        else splashCtx.lineTo(x, y);
-      }
-      splashCtx.stroke();
-    }
-
-    var shardT = splashSmoothstep(0.72, 2.45, elapsed) * exitFade;
-    for (var si = 0; si < splashShards.length; si++) {
-      var sh = splashShards[si];
-      var drift = Math.sin(elapsed * 1.7 + sh.phase) * 22;
-      var sx = splashW * 0.5 + sh.ox * (0.18 + shardT * 0.82) + drift;
-      var sy2 = centerY + sh.oy * (0.20 + shardT * 0.92);
-      var localAlpha = sh.alpha * shardT * (0.62 + Math.sin(elapsed * 5 + sh.phase) * 0.38);
-      if (localAlpha <= 0) continue;
-      splashCtx.save();
-      splashCtx.translate(sx, sy2);
-      splashCtx.rotate((-6 + sh.skew * 0.10) * Math.PI / 180);
-      splashCtx.fillStyle = sh.color + Math.max(0, localAlpha).toFixed(3) + ')';
-      splashCtx.shadowColor = sh.color + Math.min(0.38, localAlpha * 1.2).toFixed(3) + ')';
-      splashCtx.shadowBlur = 14;
-      splashCtx.beginPath();
-      splashCtx.moveTo(-sh.w * 0.5, -sh.h * 0.5);
-      splashCtx.lineTo(sh.w * 0.5, -sh.h * 0.5);
-      splashCtx.lineTo(sh.w * 0.5 + sh.skew, sh.h * 0.5);
-      splashCtx.lineTo(-sh.w * 0.5 + sh.skew, sh.h * 0.5);
-      splashCtx.closePath();
-      splashCtx.fill();
-      splashCtx.restore();
-    }
-
-    var flash = Math.exp(-Math.pow((elapsed - 2.52) / 0.38, 2));
-    if (flash > 0.015) {
-      var fg = splashCtx.createLinearGradient(0, centerY, splashW, centerY);
-      fg.addColorStop(0, 'rgba(255,83,103,0)');
-      fg.addColorStop(0.48, 'rgba(255,255,255,' + (0.20 * flash).toFixed(3) + ')');
-      fg.addColorStop(0.52, 'rgba(244,210,138,' + (0.24 * flash).toFixed(3) + ')');
-      fg.addColorStop(1, 'rgba(122,215,194,0)');
-      splashCtx.fillStyle = fg;
-      splashCtx.fillRect(0, centerY - 46 * flash, splashW, 92 * flash);
-    }
   }
+
+  var audioWaveAlpha = .38 + Math.sin(elapsed * 1.4) * .08;
+  var horizonGradient = splashCtx.createLinearGradient(splashW * .18, 0, splashW * .82, 0);
+  horizonGradient.addColorStop(0, 'rgba(255,105,47,0)');
+  horizonGradient.addColorStop(.34, 'rgba(255,110,51,' + audioWaveAlpha.toFixed(3) + ')');
+  horizonGradient.addColorStop(.60, 'rgba(255,219,177,' + (audioWaveAlpha * .85).toFixed(3) + ')');
+  horizonGradient.addColorStop(1, 'rgba(89,194,198,0)');
+  splashCtx.strokeStyle = horizonGradient;
+  splashCtx.lineWidth = 1.2;
+  splashCtx.shadowColor = 'rgba(255,111,50,.32)';
+  splashCtx.shadowBlur = 20;
+  splashCtx.beginPath();
+  for (var hx = splashW * .18; hx <= splashW * .82; hx += 5) {
+    var hy = horizon + Math.sin(hx * .018 - elapsed * 1.1) * 1.7 + Math.sin(hx * .044 + elapsed * .7) * .55;
+    if (hx === splashW * .18) splashCtx.moveTo(hx, hy);
+    else splashCtx.lineTo(hx, hy);
+  }
+  splashCtx.stroke();
+  splashCtx.restore();
+
+  var vignette = splashCtx.createRadialGradient(splashW * .5, splashH * .5, Math.min(splashW, splashH) * .16, splashW * .5, splashH * .5, Math.max(splashW, splashH) * .72);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(.72, 'rgba(0,0,0,.18)');
+  vignette.addColorStop(1, 'rgba(0,0,0,.68)');
+  splashCtx.fillStyle = vignette;
+  splashCtx.fillRect(0, 0, splashW, splashH);
+
+  splashCtx.globalAlpha = .055;
+  splashCtx.fillStyle = '#fff';
+  var scanOffset = (elapsed * 14) % 5;
+  for (var sy = -scanOffset; sy < splashH; sy += 5) splashCtx.fillRect(0, sy, splashW, .45);
   splashCtx.restore();
 }
-
 function playMineradioIntroSound() {
   if (splashSoundPlayed) return;
   try {

@@ -1,108 +1,93 @@
 /* =========================================================================
-   OrangeSea · 胶片电台（Vinyl Radio）播放器样式
-   切换式播放器皮肤，body.film-radio 命名空间，与 index.css 完全隔离。
-   配色：深棕褐底 + 暖金（champagne）强调 + 浅米白文字，复古温暖治愈。
+   OrangeSea · 胶片电台（Vinyl Radio）视觉预设模式样式
+   body.film-radio 命名空间，与 index.css 完全隔离。
+   与普通视觉预设一致的交互：DIY 控制台卡片切换，无独立关闭按钮，
+   保留底部控制栏与 DIY 控制台；选择其他预设自动退出。
+   布局：左侧方形专辑封面（上）下压圆形转动黑胶（下），右侧居中歌词 + 底部频谱。
+   注意：背景必须不透明 —— Electron 下 backdrop-filter 不可靠，
+   半透明会把 3D 舞台歌词/粒子场景透出来盖住歌词。
    ========================================================================= */
 
-/* 防 FOUC：在 CSS 加载前就隐藏原播放条，避免闪一下标准条 */
-html.film-radio-preload ~ body #bottom-bar,
-html.film-radio-preload body #bottom-bar { opacity: 0; }
-
-/* ---------- 主容器：全屏覆盖层 ---------- */
+/* ---------- 主区域层：盖住 3D 场景，让出底部控制栏（z6 之上可见） ---------- */
 #film-radio-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 60;                 /* 高于 #bottom-bar(6) 和普通浮层 */
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 124px;             /* 控制栏区域让出（bottom-bar 悬浮在底部） */
+  z-index: 5;                /* 高于 3D 场景，低于 #bottom-bar(6)/#fx-fab(19) */
   display: none;
   flex-direction: column;
   background:
-    radial-gradient(ellipse at 30% 20%, rgba(58, 42, 94, 0.35), transparent 55%),
-    radial-gradient(ellipse at 80% 80%, rgba(255, 122, 61, 0.18), transparent 60%),
-    rgba(20, 14, 8, 0.94);
-  backdrop-filter: blur(40px) saturate(1.3);
-  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+    radial-gradient(ellipse at 26% 34%, rgba(92, 62, 30, 0.5), transparent 58%),
+    radial-gradient(ellipse at 76% 76%, rgba(212, 175, 55, 0.12), transparent 55%),
+    radial-gradient(ellipse at 80% 16%, rgba(58, 42, 94, 0.28), transparent 50%),
+    #14100c;
   color: #F5F0E6;
   font-family: var(--font-sans, "Noto Sans SC", "Inter", sans-serif);
   overflow: hidden;
-  pointer-events: none;        /* 默认不拦截，切到本模式时打开 */
+  pointer-events: none;      /* 默认不拦截，切到本模式时打开 */
 }
 
-/* 进入胶片电台模式：显示覆盖层 + 隐藏原底部播放条 */
 body.film-radio #film-radio-overlay {
   display: flex;
   pointer-events: auto;
 }
-body.film-radio #bottom-bar {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transform: translateY(40px) !important;
-}
 
-/* ---------- 主体三栏：左封面 / 右信息 / 底频谱 ---------- */
+/* ---------- 主体两栏：左专辑 / 右歌词 ---------- */
 .fr-main {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.4fr);
-  gap: 40px;
-  padding: 48px clamp(32px, 5vw, 72px) 8px;
+  grid-template-columns: minmax(300px, 1fr) minmax(380px, 1.35fr);
+  gap: 48px;
+  padding: 36px clamp(32px, 5vw, 72px) 4px;
   align-items: center;
   min-height: 0;               /* 让 grid 子项可滚动 */
 }
 
-/* ---------- 左侧：封面 + 黑胶 CD ---------- */
+/* ---------- 左侧：方形封面（上） + 圆形黑胶（下，探出转动） ---------- */
 .fr-cover-stage {
   position: relative;
-  width: min(340px, 32vw);
+  width: min(360px, 34vw);
   aspect-ratio: 1;
   margin: 0 auto;
 }
+
+/* 方形专辑封面：压在最上层，不旋转 */
 .fr-cover {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 14px;
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
   background-size: cover;
   background-position: center;
   background-color: #1a120a;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(212, 175, 55, 0.15);
+    0 26px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(212, 175, 55, 0.16);
   z-index: 2;
   transition: box-shadow 0.4s;
 }
 .fr-cover.cover-empty {
-  background-image: radial-gradient(circle at 50% 40%, rgba(212, 175, 55, 0.18), transparent 65%);
-}
-.fr-cover::after {
-  /* 封面右下角的胶片打孔装饰 */
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  width: 56px;
-  height: 12px;
-  background:
-    repeating-linear-gradient(90deg, rgba(20, 14, 8, 0.9) 0 4px, transparent 4px 8px);
-  border-radius: 2px;
-  opacity: 0.5;
+  background-image: radial-gradient(circle at 50% 40%, rgba(212, 175, 55, 0.16), transparent 65%);
 }
 
-/* 黑胶 CD：从封面右侧探出，封面压在 CD 上方（z-index 更高） */
+/* 圆形黑胶：被方形封面"下压"，从封面右下探出，播放时旋转。
+   探出量用固定像素而非百分比 —— 百分比会随窗口变窄而压进右侧歌词栏 */
 .fr-vinyl {
   position: absolute;
-  right: -32%;
-  top: 0;
-  width: 100%;
-  height: 100%;
+  right: -56px;
+  top: 4%;
+  width: 88%;
+  height: 88%;
   border-radius: 50%;
   background:
-    repeating-radial-gradient(circle, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 7px),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 7px),
     radial-gradient(circle, #0a0a0a 30%, #161210 100%);
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.6),
-    inset 0 0 0 1px rgba(212, 175, 55, 0.22);
+    0 14px 42px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px rgba(212, 175, 55, 0.2);
   z-index: 1;
-  animation: fr-vinyl-spin 9s linear infinite;
+  animation: fr-spin 10s linear infinite;
 }
 .fr-vinyl::before {
   /* 中心孔 */
@@ -115,9 +100,9 @@ body.film-radio #bottom-bar {
   z-index: 3;
 }
 .fr-vinyl-label {
-  /* CD 中心标签（封面缩略） */
+  /* 黑胶中心标签（封面缩略） */
   position: absolute;
-  inset: 30%;
+  inset: 27%;
   border-radius: 50%;
   background-size: cover;
   background-position: center;
@@ -129,24 +114,28 @@ body.film-radio #bottom-bar {
 body.film-radio .fr-vinyl.is-paused {
   animation-play-state: paused;
 }
-@keyframes fr-vinyl-spin {
+@keyframes fr-spin {
   to { transform: rotate(360deg); }
 }
 
-/* ---------- 右侧：歌名/歌手 + 歌词 + 控制 ---------- */
+/* ---------- 右侧：歌名/歌手 + 居中歌词 ---------- */
 .fr-info-stage {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
   min-height: 0;
   height: 100%;
-  max-width: 640px;
+  max-width: 680px;
+  /* 歌词栏始终压在左侧专辑元素之上，防止黑胶探出时遮挡歌词 */
+  position: relative;
+  z-index: 3;
 }
 
 .fr-meta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .fr-kicker {
   font-family: "Cinzel Decorative", "Noto Sans SC", serif;
@@ -158,7 +147,7 @@ body.film-radio .fr-vinyl.is-paused {
   opacity: 0.85;
 }
 .fr-title {
-  font-size: clamp(24px, 3.2vw, 36px);
+  font-size: clamp(22px, 2.8vw, 32px);
   font-weight: 700;
   color: #F5F0E6;
   line-height: 1.2;
@@ -176,33 +165,45 @@ body.film-radio .fr-vinyl.is-paused {
   white-space: nowrap;
 }
 
-/* ---------- 歌词区 ---------- */
+/* ---------- 歌词区：占满中部，当前行永远居中 ---------- */
 .fr-lyrics {
+  /* position: relative —— 让歌词行的 offsetTop 以本容器为基准，
+     滚动居中的目标位置才准确（否则以 fixed overlay 为基准，偏差一整段） */
+  position: relative;
   flex: 1;
-  min-height: 120px;
-  max-height: 38vh;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 0;
-  mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
-  -webkit-mask-image: linear-gradient(transparent, #000 18%, #000 82%, transparent);
+  /* 左右留出 scale 放大余量：当前行以左缘为原点放大（只向右扩），
+     右侧 40px 足够容纳，最左字符不会被 overflow-x 裁剪 */
+  padding: 10px 40px;
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
   scrollbar-width: none;
   scroll-behavior: smooth;
 }
 .fr-lyrics::-webkit-scrollbar { display: none; }
 .fr-lyric-row {
-  padding: 7px 0;
-  font-size: clamp(15px, 1.5vw, 18px);
+  padding: 8px 0;
+  font-size: clamp(16px, 1.7vw, 20px);
   line-height: 1.5;
-  color: rgba(245, 240, 230, 0.32);
-  transition: color 0.35s, transform 0.35s, opacity 0.35s;
+  color: rgba(245, 240, 230, 0.30);
+  /* 不加 text-shadow 过渡：发光逐帧模糊重绘是行切换卡顿的元凶，
+     阴影随 class 瞬切，颜色/缩放过渡依旧平滑 */
+  transition: color 0.3s, transform 0.3s, opacity 0.3s;
+  /* transform-origin 必须定义在基础行上：若只写在 .active 里，
+     行被移除 active 的瞬间 origin 瞬变回 center，缩放过渡期间会水平跳动 */
+  transform-origin: left center;
   text-align: left;
 }
+/* 当前行：以左缘为原点放大（不向左突出）+ 暖金高亮，稳稳站在正中间 */
 .fr-lyric-row.active {
   color: var(--champagne, #f4d28a);
-  font-weight: 600;
-  transform: scale(1.04);
-  text-shadow: 0 0 20px rgba(212, 175, 55, 0.35);
+  font-weight: 700;
+  transform: scale(1.05);
+  text-shadow: 0 0 24px rgba(212, 175, 55, 0.4);
+  will-change: transform;
 }
 .fr-lyric-row.fallback {
   color: rgba(245, 240, 230, 0.28);
@@ -219,114 +220,14 @@ body.film-radio .fr-vinyl.is-paused {
   font-style: italic;
 }
 
-/* ---------- 控制 + 进度 ---------- */
-.fr-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.fr-progress-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.fr-progress {
-  flex: 1;
-  position: relative;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(245, 240, 230, 0.14);
-  cursor: pointer;
-  overflow: visible;
-}
-.fr-progress-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--champagne-deep, #9a6f2c), var(--champagne, #f4d28a));
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
-  pointer-events: none;
-}
-.fr-progress-fill::after {
-  content: '';
-  position: absolute;
-  right: -7px;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--champagne, #f4d28a);
-  transform: translateY(-50%) scale(0);
-  transition: transform 0.2s;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
-}
-.fr-progress:hover .fr-progress-fill::after,
-.fr-progress.dragging .fr-progress-fill::after {
-  transform: translateY(-50%) scale(1);
-}
-.fr-time {
-  font-size: 12px;
-  color: rgba(245, 240, 230, 0.55);
-  font-variant-numeric: tabular-nums;
-  min-width: 96px;
-  text-align: right;
-  font-family: var(--font-mono, "JetBrains Mono", monospace);
-}
-
-.fr-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-}
-.fr-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: rgba(245, 240, 230, 0.7);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.25s, background 0.25s, transform 0.15s;
-  font-size: 18px;
-}
-.fr-btn:hover {
-  color: var(--champagne, #f4d28a);
-  background: rgba(212, 175, 55, 0.1);
-}
-.fr-btn:active { transform: scale(0.9); }
-.fr-btn.fr-play {
-  width: 58px;
-  height: 58px;
-  background: linear-gradient(145deg, var(--champagne, #f4d28a), var(--champagne-deep, #9a6f2c));
-  color: #1a120a;
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-  font-size: 22px;
-}
-.fr-btn.fr-play:hover {
-  color: #1a120a;
-  background: linear-gradient(145deg, #ffd98a, #b8842c);
-  transform: scale(1.06);
-}
-.fr-btn.liked {
-  color: var(--champagne, #f4d28a);
-}
-.fr-btn svg { width: 20px; height: 20px; }
-
 /* ---------- 底部频谱条 ---------- */
 .fr-spectrum {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  height: 64px;
-  padding: 0 clamp(32px, 5vw, 72px) 24px;
+  height: 56px;
+  padding: 0 clamp(32px, 5vw, 72px) 14px;
   flex-shrink: 0;
 }
 .fr-spectrum-bar {
@@ -345,48 +246,28 @@ body.film-radio .fr-vinyl.is-paused {
   transition: transform 0.06s linear;
 }
 
-/* ---------- 退出按钮（右上角） ---------- */
-.fr-exit {
-  position: absolute;
-  top: 20px;
-  right: 24px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid rgba(245, 240, 230, 0.18);
-  background: rgba(20, 14, 8, 0.5);
-  color: rgba(245, 240, 230, 0.7);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  z-index: 5;
-  transition: color 0.25s, border-color 0.25s, transform 0.15s;
-}
-.fr-exit:hover {
-  color: var(--champagne, #f4d28a);
-  border-color: var(--champagne, #f4d28a);
-  transform: rotate(90deg);
-}
-
 /* ---------- 响应式：小窗口简化 ---------- */
+/* 窄窗口（未触发单列前）：收紧黑胶探出量，避免黑胶侵入右侧歌词栏 */
+@media (max-width: 1140px) and (min-width: 921px) {
+  .fr-cover-stage { width: min(320px, 32vw); }
+  .fr-vinyl { right: -40px; top: 8%; }
+}
 @media (max-width: 920px) {
   .fr-main {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
     gap: 20px;
-    padding: 60px 24px 8px;
+    padding: 48px 24px 4px;
     align-content: start;
   }
-  .fr-cover-stage { width: min(200px, 40vw); }
-  .fr-vinyl { right: -28%; }
+  .fr-cover-stage { width: min(220px, 44vw); }
+  .fr-vinyl { right: -26%; }
   .fr-lyrics { max-height: 26vh; }
-  .fr-spectrum { height: 44px; padding: 0 24px 16px; }
+  .fr-spectrum { height: 40px; padding: 0 24px 12px; }
 }
 @media (max-width: 620px) {
-  .fr-cover-stage { width: 140px; }
-  .fr-vinyl { display: none; }   /* 极小屏隐藏 CD，只留封面 */
+  .fr-cover-stage { width: 150px; }
+  .fr-vinyl { display: none; }   /* 极小屏隐藏黑胶，只留封面 */
   .fr-lyrics { display: none; }  /* 极小屏隐藏歌词，避免拥挤 */
   .fr-title { font-size: 20px; }
 }

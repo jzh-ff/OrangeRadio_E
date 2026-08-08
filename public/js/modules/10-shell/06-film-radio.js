@@ -12,6 +12,9 @@ var filmRadioLastLyricIdx = -99;
 var filmRadioRafId = 0;
 var filmRadioSpectrumBuilt = false;
 var filmRadioSeekDragging = false;
+/* 进入胶片电台时临时降载 3D 渲染（覆盖层已盖住 3D 场景），
+   把帧预算让给歌词行切换动画；退出时恢复原质量档（不写入存档） */
+var filmRadioPrevQuality = null;
 
 /* ---------- 切换 ---------- */
 function syncFilmRadioButton() {
@@ -28,13 +31,26 @@ function applyFilmRadioMode(on, opts) {
   filmRadioMode = !!on;
   document.documentElement.classList.toggle('film-radio-preload', filmRadioMode);
   document.body.classList.toggle('film-radio', filmRadioMode);
+  var overlay = document.getElementById('film-radio-overlay');
+  if (overlay) overlay.setAttribute('aria-hidden', filmRadioMode ? 'false' : 'true');
   syncFilmRadioButton();
   if (opts.save) saveBooleanPreference(FILM_RADIO_STORE_KEY, filmRadioMode);
   if (filmRadioMode) {
     startFilmRadio();
+    // 3D 场景已被覆盖层盖住：临时切 eco 质量档，负载高时 3D 自动跳帧让路
+    if (typeof fx !== 'undefined' && fx && filmRadioPrevQuality === null) {
+      filmRadioPrevQuality = fx.performanceQuality || 'balanced';
+      fx.performanceQuality = 'eco';
+    }
   } else {
     stopFilmRadio();
+    if (filmRadioPrevQuality !== null && typeof fx !== 'undefined' && fx) {
+      fx.performanceQuality = filmRadioPrevQuality;
+      filmRadioPrevQuality = null;
+    }
   }
+  // DIY 控制台的视觉预设卡片与本模式联动（卡片在 07-fx 模块构建）
+  if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast) showToast(filmRadioMode ? '胶片电台已开启' : '已切回标准模式');
   if (opts.animate && window.gsap) {
     var btn = document.getElementById('film-radio-btn');
@@ -131,21 +147,21 @@ function syncFilmRadioProgress() {
   if (frTime && time) frTime.textContent = time.textContent || '0:00 / 0:00';
 }
 
-/* 播放状态：图标 + CD 旋转/停转 + 喜欢态 */
+/* 播放状态：图标 + CD/封面 旋转/停转 + 喜欢态 */
 function syncFilmRadioPlayState() {
-  var playIcon = document.getElementById('play-icon');
   var frPlay = document.getElementById('fr-play');
   var vinyl = document.getElementById('fr-vinyl');
-  if (frPlay && playIcon) {
-    // play-icon 的 path 是 ▶（播放态=暂停图标）或 ❚❚（暂停态=播放图标）
-    var isPlaying = playIcon.innerHTML.indexOf('M6 6h12v12H6z') >= 0 || playIcon.innerHTML.indexOf('h12v12') >= 0;
+  if (frPlay) {
+    // Read the media element directly; SVG markup is presentation, not playback state.
+    var isPlaying = !!(audio && audio.src && !audio.paused && !audio.ended);
     frPlay.innerHTML = isPlaying
       ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     frPlay.classList.toggle('is-playing', isPlaying);
     if (vinyl) vinyl.classList.toggle('is-paused', !isPlaying);
+    var cover = document.getElementById('fr-cover');
+    if (cover) cover.classList.toggle('is-paused', !isPlaying);
   }
-  // 喜欢态
   var heart = document.getElementById('heart-btn');
   var frHeart = document.getElementById('fr-heart');
   if (frHeart && heart) frHeart.classList.toggle('liked', heart.classList.contains('liked'));
@@ -201,11 +217,13 @@ function tickFilmRadioLyrics() {
   for (var i = 0; i < rows.length; i++) {
     rows[i].classList.toggle('active', i === idx);
   }
-  // 滚动当前行居中
+  // 滚动当前行居中：小步（≤2 行高）瞬时定位，避免 smooth 滚动动画
+  // 与行的缩放/颜色过渡同时进行造成切换卡顿；大步（切歌等）才用平滑跟随。
   if (idx >= 0 && idx < rows.length) {
     var active = rows[idx];
     var target = active.offsetTop - container.clientHeight / 2 + active.clientHeight / 2;
-    container.scrollTo({ top: target, behavior: 'smooth' });
+    var step = Math.abs(target - container.scrollTop);
+    container.scrollTo({ top: target, behavior: step < 96 ? 'auto' : 'smooth' });
   }
 }
 
@@ -329,8 +347,9 @@ function initFilmRadioProgressSeek() {
 function initFilmRadio() {
   // 进度条拖动
   initFilmRadioProgressSeek();
-  // 若启动时已是胶片电台模式（刷新恢复），启动各项
-  if (filmRadioMode) startFilmRadio();
+  // 模式变量在本模块执行时才从存储读取。统一在这里提交完整 DOM 状态，
+  // 避免仅残留 html.film-radio-preload，导致标准底栏与胶片播放器同时不可见。
+  applyFilmRadioMode(filmRadioMode, { save: false });
 }
 
 // 延迟到 DOM 就绪后初始化（本模块在 index-loader 末尾加载，DOM 已就绪）

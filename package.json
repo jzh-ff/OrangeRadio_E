@@ -11,7 +11,8 @@
     "start": "electron .",
     "build:win": "electron-builder --win nsis --publish never",
     "build:win:dir": "electron-builder --win dir",
-    "build:win:internal-beta": "electron-builder --config electron-builder.internal-beta.json --win nsis --publish never"
+    "build:win:internal-beta": "electron-builder --config electron-builder.internal-beta.json --win nsis --publish never",
+    "test": "node scripts/run-tests.js"
   },
   "build": {
     "appId": "com.orangesea.desktop",
@@ -30,6 +31,7 @@
       "build/**/*",
       "cuefield/**/*",
       "server.js",
+      "server/**/*",
       "*-api.js",
       "qishui-audio-decryptor/**/*",
       "dj-analyzer.js",
@@ -79,7 +81,9 @@
       "preview": false,
       "preferMirrors": false,
       "mirrors": []
-    }
+    },
+    "runtimeName": "OrangeSea",
+    "appUserModelId": "com.orangesea.desktop"
   },
   "dependencies": {
     "gsap": "^3.15.0",

@@ -238,7 +238,14 @@ function testDesktopReauthCookieSelectionAndBudgets() {
   const mainSource = fs.readFileSync(path.join(ROOT, 'desktop/main.js'), 'utf8');
   const preloadSource = fs.readFileSync(path.join(ROOT, 'desktop/preload.js'), 'utf8');
   const loginSource = fs.readFileSync(path.join(ROOT, 'public/js/modules/08-account/03-login-modal-flows.js'), 'utf8');
-  const serverSource = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  // 拆分后：QQ 探测预算常量在 server/handlers/audio-probe.js，
+  // VIP 状态合并逻辑在 server/handlers/qq-core.js，聚合读取以保持断言语义。
+  const serverSource = [
+    path.join(ROOT, 'server.js'),
+    path.join(ROOT, 'server/handlers/audio-probe.js'),
+    path.join(ROOT, 'server/handlers/qq-core.js'),
+    path.join(ROOT, 'server/handlers/qq-playback.js'),
+  ].map(f => fs.readFileSync(f, 'utf8')).join('\n');
   const playbackSource = fs.readFileSync(path.join(ROOT, 'public/js/modules/05-playback/13-playback-start-audio.js'), 'utf8');
   const prefetchSource = fs.readFileSync(path.join(ROOT, 'public/js/modules/03-beat/00-tempo-worker-cache-prefetch.js'), 'utf8');
   const accountSource = fs.readFileSync(path.join(ROOT, 'public/js/modules/08-account/02-login-status.js'), 'utf8');

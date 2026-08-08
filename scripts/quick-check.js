@@ -20,6 +20,23 @@ function fail(message) {
   throw new Error(message);
 }
 
+// 拆分后后端逻辑分布在 server.js 装配层 + server/routes/* + server/handlers/* +
+// context/utils。此函数聚合全部后端源码文本，供文本断言使用（保持拆分前后语义一致）。
+function serverSourceText() {
+  const files = [path.join(appRoot, 'server.js')];
+  const collectDir = dir => {
+    if (!fs.existsSync(dir)) return;
+    for (const f of fs.readdirSync(dir).sort()) {
+      if (f.endsWith('.js')) files.push(path.join(dir, f));
+    }
+  };
+  collectDir(path.join(appRoot, 'server', 'routes'));
+  collectDir(path.join(appRoot, 'server', 'handlers'));
+  files.push(path.join(appRoot, 'server', 'context.js'));
+  files.push(path.join(appRoot, 'server', 'utils.js'));
+  return files.map(f => fs.readFileSync(f, 'utf8')).join('\n');
+}
+
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -116,21 +133,6 @@ function runQQVipEntitlementRegressionCheck() {
     process.stdout.write(result.stdout || '');
     process.stderr.write(result.stderr || '');
     fail(`QQ VIP entitlement regression failed: ${rel(testFile)}`);
-  }
-  process.stdout.write(result.stdout || '');
-}
-
-function runLoginEasterEggGateRegressionCheck() {
-  logStep('Login easter egg one-time gate regression');
-  const testFile = path.join(appRoot, 'tests', 'login-easter-egg-gate.test.js');
-  const result = spawnSync(process.execPath, [testFile], {
-    cwd: appRoot,
-    encoding: 'utf8'
-  });
-  if (result.status !== 0) {
-    process.stdout.write(result.stdout || '');
-    process.stderr.write(result.stderr || '');
-    fail(`login easter egg gate regression failed: ${rel(testFile)}`);
   }
   process.stdout.write(result.stdout || '');
 }
@@ -1312,7 +1314,7 @@ function checkPersistentCacheStorageGuard() {
   const cssText = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
   const setNameAt = mainText.indexOf('app.setName(APP_NAME)');
   const firstUserDataLookupAt = mainText.indexOf("app.getPath('appData')");
-  if (!/const CACHE_SETTINGS_FILE/.test(mainText) || !/const LYRIC_CACHE_MAX_BYTES = 96 \* 1024 \* 1024/.test(mainText) || !/function defaultCacheRootPath\(\)/.test(mainText) || !/path\.join\(dDrive, 'MineradioCache'\)/.test(mainText) || setNameAt < 0 || firstUserDataLookupAt < 0 || setNameAt > firstUserDataLookupAt || !/const STABLE_USER_DATA_PATH = path\.join\(app\.getPath\('appData'\), APP_NAME\)/.test(mainText) || !/app\.setPath\('userData', STABLE_USER_DATA_PATH\)/.test(mainText) || !/app\.setPath\('sessionData', chromiumSessionDataPath\(cacheSettings\)\)/.test(mainText) || !/const currentChromiumPath = app\.getPath\('sessionData'\)/.test(mainText) || !/MINERADIO_BEAT_CACHE_DIR = cacheSettings\.beatmapsPath/.test(mainText) || !/nativePath:\s*path\.join\(rootPath, 'native-helper-temp'\)/.test(mainText) || !/const NATIVE_HELPER_TEMP_PATH = INITIAL_CACHE_SETTINGS\.nativePath/.test(mainText) || !/activeWallpaperEnginePath/.test(mainText) || !/wallpaperEngineBytes/.test(mainText)) {
+  if (!/const CACHE_SETTINGS_FILE/.test(mainText) || !/const LYRIC_CACHE_MAX_BYTES = 96 \* 1024 \* 1024/.test(mainText) || !/function defaultCacheRootPath\(\)/.test(mainText) || !/path\.join\(dDrive, 'OrangeSeaCache'\)/.test(mainText) || setNameAt < 0 || firstUserDataLookupAt < 0 || setNameAt > firstUserDataLookupAt || !/const STABLE_USER_DATA_PATH = path\.join\(app\.getPath\('appData'\), APP_NAME\)/.test(mainText) || !/app\.setPath\('userData', STABLE_USER_DATA_PATH\)/.test(mainText) || !/app\.setPath\('sessionData', chromiumSessionDataPath\(cacheSettings\)\)/.test(mainText) || !/const currentChromiumPath = app\.getPath\('sessionData'\)/.test(mainText) || !/MINERADIO_BEAT_CACHE_DIR = cacheSettings\.beatmapsPath/.test(mainText) || !/nativePath:\s*path\.join\(rootPath, 'native-helper-temp'\)/.test(mainText) || !/const NATIVE_HELPER_TEMP_PATH = INITIAL_CACHE_SETTINGS\.nativePath/.test(mainText) || !/activeWallpaperEnginePath/.test(mainText) || !/wallpaperEngineBytes/.test(mainText)) {
     fail('desktop cache settings must keep app-owned userData stable and route Chromium sessionData plus beatmaps to the configurable cache root');
   }
   if (!/function migrateMisplacedAppOwnedFiles\(\)/.test(mainText) || !/APP_OWNED_MIGRATION_FILES/.test(mainText) || !/process\.env\.QISHUI_COOKIE_FILE = path\.join\(STABLE_USER_DATA_PATH, '\.qishui-cookie'\)/.test(mainText) || !/process\.env\.SPOTIFY_TOKEN_FILE = path\.join\(STABLE_USER_DATA_PATH, '\.spotify-token\.json'\)/.test(mainText)) {
@@ -1328,7 +1330,7 @@ function checkPersistentCacheStorageGuard() {
   if (!/function persistentLyricCacheKey/.test(lyricText) || !/await readPersistentLyricCache\(song\)/.test(lyricText) || !/refreshPersistentLyricCache\(song\)/.test(lyricText) || !/writePersistentLyricCache\(song, mergedResponse\)/.test(lyricText) || !/function scheduleQueueLyricPrefetch/.test(lyricText) || !/function runQueueLyricPrefetch/.test(lyricText) || !/scheduleQueueLyricPrefetch\(idx, 2400\)/.test(playbackStartText)) {
     fail('lyrics must read persistent cache before network fetch, refresh it without blocking playback, and prefetch the next queue lyric');
   }
-  if (!/07-fx\/08-cache-storage-settings\.js/.test(loaderText) || !/cache-storage-panel/.test(htmlText) || !/cache-storage-lyrics-size/.test(htmlText) || !/cache-storage-chromium-size/.test(htmlText) || !/cache-storage-beatmaps-size/.test(htmlText) || !/cache-storage-updates-size/.test(htmlText) || !/cache-storage-wallpaper-size/.test(htmlText) || !/cache-storage-userdata-size/.test(htmlText) || !/cache-storage-beatmaps-path/.test(cacheUiText) || !/cache-storage-updates-path/.test(cacheUiText) || !/cache-storage-wallpaper-path/.test(cacheUiText) || !/function chooseMineradioCacheRoot/.test(cacheUiText) || !/function refreshMineradioCacheSettings/.test(cacheUiText) || !/\.cache-storage-panel/.test(cssText)) {
+  if (!/07-fx\/08-cache-storage-settings\.js/.test(loaderText) || !/cache-storage-panel/.test(htmlText) || !/cache-storage-lyrics-size/.test(htmlText) || !/cache-storage-chromium-size/.test(htmlText) || !/cache-storage-beatmaps-size/.test(htmlText) || !/cache-storage-updates-size/.test(htmlText) || !/cache-storage-wallpaper-size/.test(htmlText) || !/cache-storage-userdata-size/.test(htmlText) || !/cache-storage-beatmaps-path/.test(cacheUiText) || !/cache-storage-updates-path/.test(cacheUiText) || !/cache-storage-wallpaper-path/.test(cacheUiText) || !/function chooseOrangeSeaCacheRoot/.test(cacheUiText) || !/function refreshOrangeSeaCacheSettings/.test(cacheUiText) || !/\.cache-storage-panel/.test(cssText)) {
     fail('advanced settings must show configurable cache paths and their current usage');
   }
   console.log('[OK] Persistent lyric and application cache paths are configurable and report current usage.');
@@ -1336,7 +1338,8 @@ function checkPersistentCacheStorageGuard() {
 
 function checkLyricTranslationCompletenessGuard() {
   logStep('Netease lyric translation guard');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  // 拆分后 /api/lyric 与歌词合并函数位于 server/routes/netease.js
+  const serverText = fs.readFileSync(path.join(appRoot, 'server', 'routes', 'netease.js'), 'utf8');
   const lyricText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '06-lyrics', '00-lyrics-fetch-parse.js'), 'utf8');
   if (!/lyricBodyHasTranslation/.test(serverText) || !/mergeLyricBodies/.test(serverText) || !/ytlrc/.test(serverText)) {
     fail('server /api/lyric must merge legacy lyric translations and return ytlrc');
@@ -1384,7 +1387,7 @@ function checkLyricVerticalFloatToggleGuard() {
 function checkQishuiProviderGuard() {
   logStep('Qishui provider guard');
   const qishuiText = fs.readFileSync(path.join(appRoot, 'qishui-api.js'), 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const cssText = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
   const coreStoreText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '00-state', '00-core-stores.js'), 'utf8');
   const playlistShellText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '06-lyrics', '01-playlist-panel-shell.js'), 'utf8');
@@ -1512,7 +1515,7 @@ async function checkSpotifyProviderGuard() {
   const spotifyPath = path.join(appRoot, 'spotify-api.js');
   if (!fs.existsSync(spotifyPath)) fail('spotify-api.js must exist as a backend-only Spotify Web API bridge');
   const spotifyText = fs.readFileSync(spotifyPath, 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const indexText = fs.readFileSync(path.join(appRoot, 'public', 'index.html'), 'utf8');
   const cssText = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
   const coreStoreText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '00-state', '00-core-stores.js'), 'utf8');
@@ -1541,7 +1544,7 @@ async function checkSpotifyProviderGuard() {
   if (!/playbackMode:\s*'recommend-match'/.test(spotifyText) || !/provider_limited/.test(spotifyText) || !/handleSpotifySongUrl/.test(spotifyText) || !/handleSpotifyLyric/.test(spotifyText)) {
     fail('Spotify must stay a metadata/search match source, not a fake direct audio provider');
   }
-  if (!/require\('\.\/spotify-api'\)/.test(serverText) || !/\/api\/spotify\/status/.test(serverText) || !/\/api\/spotify\/config/.test(serverText) || !/\/api\/spotify\/search/.test(serverText) || !/\/api\/spotify\/song\/url/.test(serverText) || !/\/api\/spotify\/lyric/.test(serverText)) {
+  if (!/require\(['\"]\.{0,2}\/spotify-api['\"]\)/.test(serverText) || !/\/api\/spotify\/status/.test(serverText) || !/\/api\/spotify\/config/.test(serverText) || !/\/api\/spotify\/search/.test(serverText) || !/\/api\/spotify\/song\/url/.test(serverText) || !/\/api\/spotify\/lyric/.test(serverText)) {
     fail('server.js must route Spotify status/search/song-url/lyric through the backend bridge');
   }
   if (!/search-mode-spotify/.test(indexText) || !/tag-source\.spotify/.test(cssText) || !/spotify-source/.test(cssText)) {
@@ -1751,16 +1754,16 @@ function checkPlaybackControlBadgesGuard() {
   const accountPillGlassSurfaceOk =
     /\.top-account-pill::before/.test(cssText) &&
     /\.top-account-pill\s*>\s*\*/.test(cssText) &&
-    /html\.control-glass-svg-ok\s+\.top-account-pill::before\s*\{[\s\S]*?url\(#mineradio-account-pill-glass-filter\)/.test(cssText);
+    /html\.control-glass-svg-ok\s+\.top-account-pill::before\s*\{[\s\S]*?url\(#orangesea-account-pill-glass-filter\)/.test(cssText);
   const accountPillDirectSvgFilter =
-    /html\.control-glass-svg-ok\s+\.top-account-pill\s*\{[\s\S]*?url\(#mineradio-account-pill-glass-filter\)/.test(cssText) ||
+    /html\.control-glass-svg-ok\s+\.top-account-pill\s*\{[\s\S]*?url\(#orangesea-account-pill-glass-filter\)/.test(cssText) ||
     /html\.control-glass-svg-ok\s+\.top-account-pill,/.test(cssText);
   const lastAccountContainerOverride = cssText.lastIndexOf('#user-btn.multi-account,');
   const lastTopRightIconRule = cssText.lastIndexOf('#top-right .icon-btn');
   const accountContainerGlassDisabledOk =
     lastAccountContainerOverride > lastTopRightIconRule &&
     /#user-btn\.multi-account[\s\S]{0,320}background:\s*transparent\s*!important[\s\S]{0,160}box-shadow:\s*none\s*!important[\s\S]{0,160}backdrop-filter:\s*none\s*!important[\s\S]{0,120}-webkit-backdrop-filter:\s*none\s*!important[\s\S]{0,120}transition:\s*none\s*!important/.test(cssText.slice(lastAccountContainerOverride));
-  const accountFilterText = (indexText.match(/<filter id="mineradio-account-pill-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
+  const accountFilterText = (indexText.match(/<filter id="orangesea-account-pill-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
   const accountPillSimpleRefractionOk =
     /<feDisplacementMap[\s\S]*?scale="28"[\s\S]*?xChannelSelector="R"[\s\S]*?yChannelSelector="G"/.test(accountFilterText) &&
     !/feOffset|feColorMatrix|feBlend|dispRed|dispGreen|dispBlue/.test(accountFilterText);
@@ -1777,7 +1780,7 @@ function checkPlaybackControlBadgesGuard() {
     /#user-btn\.multi-account\.external-account-pills \.top-account-name[\s\S]{0,120}max-width:\s*118px/.test(cssText) &&
     /e\.clientY\s*<\s*rect\.top\s*\+\s*rect\.height\s*\/\s*2/.test(accountUtilsText) &&
     !/e\.clientX\s*<\s*rect\.left\s*\+\s*rect\.width\s*\/\s*2/.test(accountUtilsText);
-  if (!/mineradio-account-pill-glass-filter/.test(indexText) || !/account-pill-glass-map/.test(indexText) || !/url\(#mineradio-account-pill-glass-filter\)/.test(cssText) || !/overflow:\s*hidden/.test(cssText) || !accountPillGlassSurfaceOk || accountPillDirectSvgFilter || !accountContainerGlassDisabledOk || !accountPillSimpleRefractionOk || !accountPillDedicatedMapOk || !accountPillVerticalStackOk || !/function updateAccountPillGlassDisplacementMap/.test(glassText) || !/accountPillKey/.test(glassText) || !/querySelectorAll\('\.top-account-pill'\)/.test(glassText) || !/requestAnimationFrame\(updateAccountPillGlassDisplacementMap\)/.test(loginStatusText)) {
+  if (!/orangesea-account-pill-glass-filter/.test(indexText) || !/account-pill-glass-map/.test(indexText) || !/url\(#orangesea-account-pill-glass-filter\)/.test(cssText) || !/overflow:\s*hidden/.test(cssText) || !accountPillGlassSurfaceOk || accountPillDirectSvgFilter || !accountContainerGlassDisabledOk || !accountPillSimpleRefractionOk || !accountPillDedicatedMapOk || !accountPillVerticalStackOk || !/function updateAccountPillGlassDisplacementMap/.test(glassText) || !/accountPillKey/.test(glassText) || !/querySelectorAll\('\.top-account-pill'\)/.test(glassText) || !/requestAnimationFrame\(updateAccountPillGlassDisplacementMap\)/.test(loginStatusText)) {
     fail('top account VIP capsules must use a dedicated glass map/filter and refresh it after account rendering');
   }
   console.log('[OK] Bottom player title shows source and VIP badges without stretching the control bar.');
@@ -1789,7 +1792,7 @@ async function checkProviderFallbackTerminalStateGuard() {
   const playbackText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '13-playback-start-audio.js'), 'utf8');
   const beatPrefetchText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '03-beat', '00-tempo-worker-cache-prefetch.js'), 'utf8');
   const controlsText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '14-player-controls.js'), 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   if (!/function sourceFallbackProviderReady/.test(fallbackText) || !/status\.playbackKeyReady === true/.test(fallbackText) || !/function alternatePlaybackProviders/.test(fallbackText) || /if \(provider === 'netease'\) return 'qq'/.test(fallbackText)) {
     fail('automatic fallback must only select logged-in direct providers with complete playback authorization');
   }
@@ -2120,7 +2123,7 @@ function checkSearchGlassEntranceGuard() {
   const glassText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '15-control-glass-animations.js'), 'utf8');
   const searchText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '07-search.js'), 'utf8');
   const peekText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '10-shell', '02-peek-panels-upload.js'), 'utf8');
-  const searchPillDirectSvg = /html\.control-glass-svg-ok\s+\.search-mode-tabs button,[ \t]*\r?\nhtml\.control-glass-svg-ok\s+\.search-history-chip\s*\{[\s\S]{0,260}backdrop-filter:\s*url\(#mineradio-search-pill-glass-filter\)\s+saturate\(1\)\s*!important[\s\S]{0,220}-webkit-backdrop-filter:\s*url\(#mineradio-search-pill-glass-filter\)\s+saturate\(1\)\s*!important/.test(cssText);
+  const searchPillDirectSvg = /html\.control-glass-svg-ok\s+\.search-mode-tabs button,[ \t]*\r?\nhtml\.control-glass-svg-ok\s+\.search-history-chip\s*\{[\s\S]{0,260}backdrop-filter:\s*url\(#orangesea-search-pill-glass-filter\)\s+saturate\(1\)\s*!important[\s\S]{0,220}-webkit-backdrop-filter:\s*url\(#orangesea-search-pill-glass-filter\)\s+saturate\(1\)\s*!important/.test(cssText);
   const searchAreaKeepsGlassComposited =
     /#search-area\s*\{[\s\S]{0,120}top:\s*-76px[\s\S]{0,220}transition:\s*top\s+\.45s[\s\S]{0,120}opacity\s+\.35s/.test(cssText) &&
     /#search-area\.peek\s*\{[\s\S]{0,80}top:\s*24px[\s\S]{0,80}opacity:\s*1[\s\S]{0,80}pointer-events:\s*auto/.test(cssText) &&
@@ -2130,13 +2133,13 @@ function checkSearchGlassEntranceGuard() {
     /#search-box::before\s*\{[\s\S]{0,90}content:\s*none\s*!important/.test(cssText) &&
     /#search-box\s*\{[\s\S]{0,220}background:\s*transparent\s*!important[\s\S]{0,220}box-shadow:\s*none\s*!important[\s\S]{0,220}backdrop-filter:\s*none\s*!important[\s\S]{0,160}-webkit-backdrop-filter:\s*none\s*!important/.test(cssText) &&
     /#search-area\.peek\s+#search-box\s*\{[\s\S]{0,220}background:\s*var\(--saved-panel-glass-bg\)\s*!important[\s\S]{0,220}box-shadow:\s*var\(--saved-panel-glass-shadow\)\s*!important[\s\S]{0,220}backdrop-filter:\s*var\(--saved-panel-glass-filter\)\s*!important/.test(cssText) &&
-    /html\.control-glass-svg-ok\s+#search-area\.peek\s+#search-box\s*\{[\s\S]{0,180}backdrop-filter:\s*url\(#mineradio-search-box-glass-filter\)\s+saturate\(1\)\s*!important[\s\S]{0,180}-webkit-backdrop-filter:\s*url\(#mineradio-search-box-glass-filter\)\s+saturate\(1\)\s*!important/.test(cssText) &&
+    /html\.control-glass-svg-ok\s+#search-area\.peek\s+#search-box\s*\{[\s\S]{0,180}backdrop-filter:\s*url\(#orangesea-search-box-glass-filter\)\s+saturate\(1\)\s*!important[\s\S]{0,180}-webkit-backdrop-filter:\s*url\(#orangesea-search-box-glass-filter\)\s+saturate\(1\)\s*!important/.test(cssText) &&
     /html\.control-glass-svg-ok\s+#search-box::before\s*\{[\s\S]{0,90}content:\s*none\s*!important/.test(cssText) &&
     /#search-box\s+#search-icon,[ \t]*\r?\n#search-box\s+#search-input\s*\{[\s\S]{0,80}position:\s*relative[\s\S]{0,80}z-index:\s*1/.test(cssText) &&
-    !/html\.control-glass-svg-ok\s+#search-box::before\s*\{[\s\S]{0,260}url\(#mineradio-search-box-glass-filter\)/.test(cssText) &&
+    !/html\.control-glass-svg-ok\s+#search-box::before\s*\{[\s\S]{0,260}url\(#orangesea-search-box-glass-filter\)/.test(cssText) &&
     !/#search-area\s+#search-box\s*\{[\s\S]{0,260}background:\s*var\(--glass-bg\)\s*!important/.test(cssText);
   const searchPillUsesSavedRgbGlassSurface =
-    /html\.control-glass-svg-ok\s+\.search-mode-tabs button,[ \t]*\r?\nhtml\.control-glass-svg-ok\s+\.search-history-chip\s*\{[\s\S]{0,180}background:\s*var\(--saved-button-glass-bg\)\s*!important[\s\S]{0,180}border-color:\s*transparent\s*!important[\s\S]{0,180}box-shadow:\s*var\(--saved-button-glass-shadow\)\s*!important[\s\S]{0,220}url\(#mineradio-search-pill-glass-filter\)/.test(cssText);
+    /html\.control-glass-svg-ok\s+\.search-mode-tabs button,[ \t]*\r?\nhtml\.control-glass-svg-ok\s+\.search-history-chip\s*\{[\s\S]{0,180}background:\s*var\(--saved-button-glass-bg\)\s*!important[\s\S]{0,180}border-color:\s*transparent\s*!important[\s\S]{0,180}box-shadow:\s*var\(--saved-button-glass-shadow\)\s*!important[\s\S]{0,220}url\(#orangesea-search-pill-glass-filter\)/.test(cssText);
   const searchTabsRailStaysTransparent =
     /#search-area\s+\.search-mode-tabs,[ \t]*\r?\nhtml\.control-glass-svg-ok\s+#search-area\s+\.search-mode-tabs\s*\{[\s\S]{0,160}background:\s*transparent\s*!important[\s\S]{0,160}border-color:\s*transparent\s*!important[\s\S]{0,160}box-shadow:\s*none\s*!important[\s\S]{0,160}backdrop-filter:\s*none\s*!important[\s\S]{0,160}-webkit-backdrop-filter:\s*none\s*!important/.test(cssText);
   const searchHistoryFrostedSurfaceOk =
@@ -2170,8 +2173,8 @@ function checkSearchGlassEntranceGuard() {
     /function doPodcastSearch\(q\)[\s\S]{0,700}rememberSearchQuery\(q\)/.test(searchText) &&
     /if \(!renderSearchHistory\(\) && searchMode === 'podcast'\) loadPodcastHot\(\)/.test(searchText) &&
     !/data-history-mode/.test(searchText);
-  const searchBoxFilterText = (indexText.match(/<filter id="mineradio-search-box-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
-  const searchPillFilterText = (indexText.match(/<filter id="mineradio-search-pill-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
+  const searchBoxFilterText = (indexText.match(/<filter id="orangesea-search-box-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
+  const searchPillFilterText = (indexText.match(/<filter id="orangesea-search-pill-glass-filter"[\s\S]*?<\/filter>/) || [''])[0];
   const searchBoxSourceMergeCount = (searchBoxFilterText.match(/<feMergeNode in="SourceGraphic"/g) || []).length;
   const searchPillSourceMergeCount = (searchPillFilterText.match(/<feMergeNode in="SourceGraphic"/g) || []).length;
   const searchBoxFilterMatchesSavedRgbGlass =
@@ -2204,7 +2207,7 @@ function checkSearchGlassEntranceGuard() {
   const searchGlassUsesSavedRgbMapOk =
     /function generateAccountPillGlassDisplacementMap\(width,\s*height,\s*radius,\s*minWidth,\s*minHeight\)/.test(glassText) &&
     !/SEARCH_BOX_GLASS_CHROMA|SEARCH_PILL_GLASS_CHROMA/.test(glassText) &&
-    !/mineradio-search-box-glass-filter|mineradio-search-pill-glass-filter/.test(chromaticOffsetFunctionText) &&
+    !/orangesea-search-box-glass-filter|orangesea-search-pill-glass-filter/.test(chromaticOffsetFunctionText) &&
     /function generateSearchBoxGlassDisplacementMap/.test(glassText) &&
     /generateControlGlassDisplacementMap\(width,\s*height,\s*radius\)/.test(glassText) &&
     /function generateSearchPillGlassDisplacementMap/.test(glassText) &&
@@ -2254,7 +2257,7 @@ function checkProviderEntitlementBoundaryGuard() {
   logStep('Provider entitlement boundary guard');
   const kugouText = fs.readFileSync(path.join(appRoot, 'kugou-api.js'), 'utf8');
   const qishuiText = fs.readFileSync(path.join(appRoot, 'qishui-api.js'), 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const mainText = fs.readFileSync(path.join(appRoot, 'desktop', 'main.js'), 'utf8');
   const loginText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '08-account', '02-login-status.js'), 'utf8');
   const userModalText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '08-account', '04-user-modal-logout.js'), 'utf8');
@@ -2306,7 +2309,7 @@ function checkProviderEntitlementBoundaryGuard() {
 
 function checkQQVipStatusSyncGuard() {
   logStep('QQ VIP status refresh guard');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const vipModuleText = fs.readFileSync(path.join(appRoot, 'qq-vip-api.js'), 'utf8');
   const mainText = fs.readFileSync(path.join(appRoot, 'desktop', 'main.js'), 'utf8');
   const preloadText = fs.readFileSync(path.join(appRoot, 'desktop', 'preload.js'), 'utf8');
@@ -2377,7 +2380,7 @@ function checkQQVipStatusSyncGuard() {
 
 async function checkProviderAuthCookiePathGuard() {
   logStep('Provider auth cookie path guard');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const mainText = fs.readFileSync(path.join(appRoot, 'desktop', 'main.js'), 'utf8');
   const qqLoginText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '08-account', '03-login-modal-flows.js'), 'utf8');
   const accountUtilsText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '08-account', '01-login-modal-utils.js'), 'utf8');
@@ -2522,21 +2525,26 @@ async function checkProviderAuthCookiePathGuard() {
   if (beyondEndPage.total !== 457 || beyondEndPage.nextOffset !== 480 || beyondEndPage.hasMore) {
     fail('QQ liked sync must preserve upstream total on an empty beyond-end page');
   }
-  const likedCardStart = serverText.indexOf('function buildQQLikedPlaylistCard');
-  const likedCardEnd = serverText.indexOf('\nasync function getQQLikedPlaylistCard', likedCardStart);
-  const likedCoverCacheStart = serverText.indexOf('const qqLikedPlaylistCoverByUser');
-  const likedCoverCacheEnd = serverText.indexOf('\nfunction isQQLikedPlaylistId', likedCoverCacheStart);
+  // 拆分后 cover 缓存函数与卡片构建均位于 server/handlers/qq-liked-playlist.js；
+  // 若从聚合文本切片，qqLikedPlaylistCoverByUser 会落在 context.js 而找不到
+  // 后续 isQQLikedPlaylistId 边界，因此这里改为按独立文件切片。
+  const qqLikedText = fs.readFileSync(path.join(appRoot, 'server', 'handlers', 'qq-liked-playlist.js'), 'utf8');
+  const likedCardStart = qqLikedText.indexOf('function buildQQLikedPlaylistCard');
+  const likedCardEnd = qqLikedText.indexOf('\nasync function getQQLikedPlaylistCard', likedCardStart);
+  const likedCoverCacheStart = qqLikedText.indexOf('function qqLikedPlaylistUserKey');
+  const likedCoverCacheEnd = qqLikedText.indexOf('async function fetchQQLikedPlaylistPage', likedCoverCacheStart);
   const likedCardSandbox = {
     QQ_LIKED_PLAYLIST_ID: 'qq-liked',
     QQ_LIKED_DIRID: 201,
     QQ_LIKED_PLAYLIST_NAME: 'Liked',
     QQ_LIKED_PLAYLIST_COVER: 'fallback-cover',
+    qqLikedPlaylistCoverByUser: new Map(),
     Map,
     String,
     Math,
     Number,
   };
-  vm.runInNewContext(serverText.slice(likedCoverCacheStart, likedCoverCacheEnd) + '\n' + serverText.slice(likedCardStart, likedCardEnd), likedCardSandbox, { filename: 'qq-liked-card.js' });
+  vm.runInNewContext(qqLikedText.slice(likedCoverCacheStart, likedCoverCacheEnd) + '\n' + qqLikedText.slice(likedCardStart, likedCardEnd), likedCardSandbox, { filename: 'qq-liked-card.js' });
   const likedInfo = { userId: 'listener-1', nickname: 'Listener' };
   const firstPageForCard = { tracks: [{ id: 'first', name: 'First', cover: 'album-cover' }], total: 457, offset: 0 };
   const likedCard = likedCardSandbox.buildQQLikedPlaylistCard(likedInfo, firstPageForCard, '');
@@ -2660,7 +2668,7 @@ function checkNonCurrentAudioPrefetchGuard() {
 
 function checkCuefieldAutoMixGuard() {
   logStep('Cuefield AutoMix integration guard');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const desktopText = fs.readFileSync(path.join(appRoot, 'desktop', 'main.js'), 'utf8');
   const loaderText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'index-loader.js'), 'utf8');
   const htmlText = fs.readFileSync(path.join(appRoot, 'public', 'index.html'), 'utf8');
@@ -2767,7 +2775,7 @@ function checkAlbumDetailGaplessGuard() {
   const playbackText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '13-playback-start-audio.js'), 'utf8');
   const controlsText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '14-player-controls.js'), 'utf8');
   const snapshotText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '05-playback', '09-queue-snapshot-autoplay.js'), 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const spotifyText = fs.readFileSync(path.join(appRoot, 'spotify-api.js'), 'utf8');
   if (!/thumb-cover[\s\S]{0,180}openTrackDetailModal\('album'\)/.test(htmlText) || !/control-cover[\s\S]{0,260}openTrackDetailModal\('album'\)/.test(htmlText)) {
     fail('album detail must be reachable from both current cover entry points');
@@ -2836,8 +2844,8 @@ function checkInternalBetaPackagingGuard() {
   const meta = beta.extraMetadata || {};
   const mineradio = meta.mineradio || {};
   const update = mineradio.update || {};
-  if (meta.version !== '1.1.2' || beta.productName !== 'Mineradio_Beat' || meta.productName !== 'Mineradio_Beat') {
-    fail('internal beta package metadata must identify v1.1.2 Mineradio_Beat');
+  if (meta.version !== '1.1.2' || beta.productName !== 'OrangeSea_Beat' || meta.productName !== 'OrangeSea_Beat') {
+    fail('internal beta package metadata must identify v1.1.2 OrangeSea_Beat');
   }
   if (!/dist-internal-beta/.test(beta.directories && beta.directories.output || '') || beta.publish !== null) {
     fail('internal beta output must stay in dist-internal-beta and not configure GitHub publishing');
@@ -2848,7 +2856,7 @@ function checkInternalBetaPackagingGuard() {
   if ((beta.appId || '') !== 'com.mineradio.beat.internal' || (mineradio.appUserModelId || '') !== 'com.mineradio.beat.internal') {
     fail('internal beta must use an isolated app id/AppUserModelID');
   }
-  if (mineradio.runtimeName !== 'Mineradio_Beat' || update.disabled !== true || update.provider !== 'none') {
+  if (mineradio.runtimeName !== 'OrangeSea_Beat' || update.disabled !== true || update.provider !== 'none') {
     fail('internal beta runtime name and update-disable metadata must stay isolated');
   }
   const requiredRuntimeFiles = ['qishui-audio-decryptor/**/*'];
@@ -2859,12 +2867,12 @@ function checkInternalBetaPackagingGuard() {
       fail(`electron-builder files must include runtime dependency ${entry}`);
     }
   });
-  if (!beta.nsis || beta.nsis.include !== 'build/installer-internal-beta.nsh' || !/Mineradio_Beat-v\$\{version\}-灰度内测版/.test(beta.nsis.artifactName || '')) {
+  if (!beta.nsis || beta.nsis.include !== 'build/installer-internal-beta.nsh' || !/OrangeSea_Beat-v\$\{version\}-灰度内测版/.test(beta.nsis.artifactName || '')) {
     fail('internal beta NSIS config must use the beta wrapper and beta artifact name');
   }
   const wrapperText = fs.readFileSync(path.join(appRoot, 'build', 'installer-internal-beta.nsh'), 'utf8');
-  if (!/MINERADIO_INSTALL_DIR_NAME "Mineradio_Beat"/.test(wrapperText) || !/禁止传播/.test(wrapperText) || !/installer\.nsh/.test(wrapperText)) {
-    fail('internal beta NSIS wrapper must define Mineradio_Beat and the no-redistribution notice');
+  if (!/MINERADIO_INSTALL_DIR_NAME "OrangeSea_Beat"/.test(wrapperText) || !/禁止传播/.test(wrapperText) || !/installer\.nsh/.test(wrapperText)) {
+    fail('internal beta NSIS wrapper must define OrangeSea_Beat and the no-redistribution notice');
   }
   const installerText = fs.readFileSync(path.join(appRoot, 'build', 'installer.nsh'), 'utf8');
   if (!/MINERADIO_INSTALL_DIR_NAME/.test(installerText) || !/MINERADIO_INSTALL_NOTICE/.test(installerText)) {
@@ -2874,7 +2882,7 @@ function checkInternalBetaPackagingGuard() {
   if (!/APP_PACKAGE_INFO/.test(mainText) || !/runtimeName/.test(mainText) || !/appUserModelId/.test(mainText)) {
     fail('desktop runtime must read beta name/AppUserModelID from package metadata');
   }
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   if (!/qishui-audio-decryptor\/track-decryptor/.test(serverText)) {
     fail('server qishui decryptor dependency must stay covered by package files');
   }
@@ -2900,6 +2908,7 @@ function checkSonicTopographyPresetGuard() {
   const beatCameraText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '01-scene', '02-beat-camera-runtime.js'), 'utf8');
   const archiveText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '00-preset-archive-data.js'), 'utf8');
   const presetGridText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '04-preset-grid-uniforms.js'), 'utf8');
+  const concertStageText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '10-concert-live-stage.js'), 'utf8');
   const presetCssText = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
   const fxBindText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '07-bindings-shelf-immersive.js'), 'utf8');
   const fxPanelText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '05-fx-panel-performance.js'), 'utf8');
@@ -2995,17 +3004,25 @@ function checkSonicTopographyPresetGuard() {
   if (!/function deriveGroundLayoutSettings/.test(sonicText) || !/sonicGroundRange/.test(sonicText) || !/state\.root\.rotation\.x\s*=\s*state\.boundRotX/.test(sonicText) || !/state\.root\.position\.set\(0,\s*layout\.y,\s*layout\.z\)/.test(sonicText) || !/state\.root\.scale\.setScalar\(layout\.scale\)/.test(sonicText)) {
     fail('Sonic Topography must expose a wide, lyric-safe horizontal platter layout inside Mineradio camera space');
   }
-  if (!/MAX_VISUAL_PRESET_INDEX = 7/.test(coreText)
+  if (!/MAX_VISUAL_PRESET_INDEX = 8/.test(coreText)
     || !/SONIC_PRESET_INDEX = 7/.test(coreText)
-    || !/LEGACY_REMOVED_VISUAL_PRESET_INDEX = 8/.test(coreText)
+    || !/CONCERT_PRESET_INDEX = 8/.test(coreText)
+    || !/LEGACY_REMOVED_VISUAL_PRESET_INDEX = 9/.test(coreText)
     || !/preset === LEGACY_REMOVED_VISUAL_PRESET_INDEX\) return SONIC_PRESET_INDEX/.test(coreText)
     || !/normalizeSavedVisualPresetIndex/.test(runtimeText + persistenceText + archiveText)) {
-    fail('Sonic preset 7 must remain selectable while legacy preset 8 archives migrate to it');
+    fail('Sonic preset 7 must remain selectable while legacy preset 9 archives migrate to it');
   }
   if (!/音域回响/.test(archiveText)
-    || !/presetDisplayOrder = \[0, 6, 7, 5/.test(archiveText)
+    || !/presetDisplayOrder = \[0, 6, 7, 8/.test(archiveText)
     || /音域回响[\s\S]{0,120}disabled:\s*true/.test(archiveText)) {
     fail('Sonic Topography must be exposed as the selectable 音域回响 preset');
+  }
+  if (!/演唱会现场/.test(archiveText)
+    || !/Concert Live/.test(archiveText)
+    || !/uPreset < 8\.5/.test(pointerText)
+    || !/hsv2rgb/.test(pointerText)
+    || !/updateConcertStage/.test(concertStageText + mainLoopText)) {
+    fail('Concert Live preset 8 must register meta, shader glowstick branch, and spotlight stage layer');
   }
   if (!archiveText.includes('音域回响 <span class="pc-name-en">Sonic-Topography</span>')
     || !archiveText.includes('作者 <span class="pc-author-ajin">Ajin</span>')
@@ -3023,7 +3040,7 @@ function checkSonicTopographyPresetGuard() {
     if (fs.existsSync(removedPath)) fail('Public release must not package the unlicensed Workshop derivative: ' + path.relative(appRoot, removedPath));
   });
   if (/sonic-workshop-preset\.js/.test(loaderText)
-    || /MineradioSonicWorkshop/.test(mainLoopText + presetGridText)
+    || /OrangeseaSonicWorkshop/.test(mainLoopText + presetGridText)
     || /SONIC_WORKSHOP_PRESET_INDEX/.test(coreText + pointerText)) {
     fail('Public release must not reference the removed Workshop derivative runtime');
   }
@@ -3065,7 +3082,7 @@ function checkSonicTopographyPresetGuard() {
   if (!/captureCameraArchiveState/.test(archiveText) || !/applyCameraArchiveState\(data\)/.test(archiveText) || !/applyVisualRotationArchiveState\(data\)/.test(archiveText) || !/isCameraArchiveKey\(key\)/.test(archiveText) || !/cameraViewSaved/.test(archiveText) || !/visualRotationSaved/.test(archiveText) || !/USER_FX_SHARE_KEYS[\s\S]*cameraFreeFov[\s\S]*visualRotationY/.test(archiveText)) {
     fail('user visual archives must save and restore camera plus shared visual rotation state without breaking old MR2 payloads');
   }
-  if (!/MineradioSonicTopography\.update/.test(mainLoopText) || !/visual\.sonic-topography/.test(mainLoopText) || !/MineradioSonicTopography\.onPresetChange/.test(presetGridText) || !/MineradioSonicTopography\.pointerRipple/.test(pointerText)) {
+  if (!/OrangeseaSonicTopography\.update/.test(mainLoopText) || !/visual\.sonic-topography/.test(mainLoopText) || !/OrangeseaSonicTopography\.onPresetChange/.test(presetGridText) || !/OrangeseaSonicTopography\.pointerRipple/.test(pointerText)) {
     fail('Sonic Topography must update from the main loop, release meshes on preset changes, and support pointer ripples');
   }
   console.log('[OK] 音域回响 preset is selectable, bounded, saved, and driven by existing rhythm envelopes.');
@@ -3151,7 +3168,7 @@ function checkPlaylistPanelTriggerGuard() {
   if (!/resetSecondaryPlaylistEdgeGuard\(\)/.test(panelShellText)) {
     fail('playlist panel soft close must clear pending secondary-edge dwell timers');
   }
-  if (!/--playlist-panel-open-ms:\s*var\(--mineradio-playlist-panel-open-ms,\s*280ms\)/.test(cssText) || !/--playlist-panel-close-ms:\s*var\(--mineradio-playlist-panel-close-ms,\s*180ms\)/.test(cssText) || !/setPlaylistPanelCssVar\('--mineradio-playlist-panel-open-ms'/.test(fxRuntimeText) || !/setPlaylistPanelCssVar\('--mineradio-playlist-panel-close-ms'/.test(fxRuntimeText)) {
+  if (!/--playlist-panel-open-ms:\s*var\(--orangesea-playlist-panel-open-ms,\s*280ms\)/.test(cssText) || !/--playlist-panel-close-ms:\s*var\(--orangesea-playlist-panel-close-ms,\s*180ms\)/.test(cssText) || !/setPlaylistPanelCssVar\('--orangesea-playlist-panel-open-ms'/.test(fxRuntimeText) || !/setPlaylistPanelCssVar\('--orangesea-playlist-panel-close-ms'/.test(fxRuntimeText)) {
     fail('playlist panel animation durations must be driven by runtime CSS variables, not only static panel defaults');
   }
   if (!/playlistPanelOpenDuration:\s*0\.72/.test(fxDefaultsText) || !/playlistPanelCloseDuration:\s*0\.48/.test(fxDefaultsText)) {
@@ -4475,8 +4492,8 @@ app.whenReady().then(async () => {
           const pillGlassStyle = pill ? getComputedStyle(pill, '::before') : null;
           const boxMap = document.getElementById('search-box-glass-map');
           const pillMap = document.getElementById('search-pill-glass-map');
-          const boxFilter = document.getElementById('mineradio-search-box-glass-filter');
-          const pillFilter = document.getElementById('mineradio-search-pill-glass-filter');
+          const boxFilter = document.getElementById('orangesea-search-box-glass-filter');
+          const pillFilter = document.getElementById('orangesea-search-pill-glass-filter');
           const readHref = img => {
             if (!img) return '';
             let href = img.getAttribute('href') || '';
@@ -4530,8 +4547,8 @@ app.whenReady().then(async () => {
             pillBlueDx: readOffsetDx(pillFilter, 'dispBlueShifted')
           };
         };
-        const searchBoxFilterLooksLikeSavedRgbGlass = value => String(value || '').includes('mineradio-search-box-glass-filter') && String(value || '').includes('saturate(1)');
-        const searchPillFilterLooksLikeSavedRgbGlass = value => String(value || '').includes('mineradio-search-pill-glass-filter') && String(value || '').includes('saturate(1)');
+        const searchBoxFilterLooksLikeSavedRgbGlass = value => String(value || '').includes('orangesea-search-box-glass-filter') && String(value || '').includes('saturate(1)');
+        const searchPillFilterLooksLikeSavedRgbGlass = value => String(value || '').includes('orangesea-search-pill-glass-filter') && String(value || '').includes('saturate(1)');
         const searchBoxDirectFilterLooksCleared = value => String(value || '') === 'none';
         const searchBoxMapLooksLikeSavedRgbGlass = value =>
           !!(value && value.boxMapIsRgb) &&
@@ -4940,7 +4957,7 @@ async function checkLargePlaylistVirtualizationGuard() {
   const shelfText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '04-shelf', '01-manager-core.js'), 'utf8');
   const shelfContentText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '04-shelf', '03-content-list-manager.js'), 'utf8');
   const qishuiText = fs.readFileSync(path.join(appRoot, 'qishui-api.js'), 'utf8');
-  const serverText = fs.readFileSync(path.join(appRoot, 'server.js'), 'utf8');
+  const serverText = serverSourceText();
   const cssText = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
 
   if (!/fetchNeteaseUserPlaylistsPage/.test(serverText) || !/nextOffset/.test(serverText) || !/hasMore/.test(serverText)) {
@@ -5220,12 +5237,11 @@ function checkFirstLaunchDefaultsAndSplashGuard() {
     || /elapsed\s*\*\s*3\.32/.test(splashText)
     || !/setTimeout\(markSplashReadyToEnter,\s*650\)/.test(splashText)
     || !/setTimeout\(markSplashReadyToEnter,\s*1500\)/.test(splashText)
-    || !/\.splash-word-mine\s*\{[\s\S]{0,160}animation:\s*splash-mine-in 5200ms/.test(css)
-    || !/\.splash-word-radio\s*\{[\s\S]{0,420}animation:\s*splash-radio-in 5200ms/.test(css)
-    || !/\.splash-word-i::after\s*\{[\s\S]{0,480}animation:\s*splash-i-dot-pop 4200ms/.test(css)
-    || !/\.splash-signal-line\s*\{[\s\S]{0,500}animation:\s*splash-signal-line 4200ms/.test(css)
-    || !/\.splash-signal-line::after\s*\{[\s\S]{0,420}animation:\s*splash-signal-blip 4200ms/.test(css)
-    || !/\.splash-sub\s*\{[\s\S]{0,260}animation:\s*splash-sub-in 4200ms/.test(css)) {
+    || !/\.splash-word-mine\s*\{[\s\S]{0,160}animation:\s*splash-word-base-in 1450ms/.test(css)
+    || !/\.splash-word-radio\s*\{[\s\S]{0,420}animation:\s*splash-word-sunrise-in 1800ms/.test(css)
+    || !/\.splash-signal-line\s*\{[\s\S]{0,500}animation:\s*splash-horizon-in 1800ms/.test(css)
+    || !/\.splash-signal-line::after\s*\{[\s\S]{0,420}animation:\s*splash-horizon-signal 3600ms/.test(css)
+    || !/\.splash-sub\s*\{[\s\S]{0,260}animation:\s*splash-tagline-in 1200ms/.test(css)) {
     fail('public-repo splash motion speed and the independent fast click-entry gate must stay decoupled');
   }
   if (!/\.user-archive-toolbar\s*\{[\s\S]{0,220}display:\s*grid;[\s\S]{0,160}grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css)
@@ -5242,7 +5258,6 @@ async function main() {
   runPlaybackAudioGraphRegressionCheck();
   runPlaybackSourceFallbackTransactionCheck();
   runQQVipEntitlementRegressionCheck();
-  runLoginEasterEggGateRegressionCheck();
   runQishuiProviderDistributionRegressionCheck();
   runSpotifyApiResilienceRegressionCheck();
   runPlatformAccountSyncGuardCheck();

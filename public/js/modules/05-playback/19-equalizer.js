@@ -67,27 +67,48 @@ function saveEqPreference() {
 
 /* ---------- EQ 节点链管理 ---------- */
 function ensureEqChain(ctx) {
-  if (eqNodes.length) return;  // 已创建，跨重建复用
   if (!ctx || !ctx.createBiquadFilter) return;
-  for (var i = 0; i < 10; i++) {
-    var f = ctx.createBiquadFilter();
-    f.type = (i === 0) ? 'lowshelf' : (i === 9) ? 'highshelf' : 'peaking';
-    f.frequency.value = EQ_FREQUENCIES[i];
-    f.Q.value = 1.2;
-    f.gain.value = 0;
-    eqNodes.push(f);
+
+  // AudioNode cannot be reused across AudioContext instances.
+  var contextChanged = !!(
+    eqNodes.length
+    && eqNodes[0]
+    && eqNodes[0].context
+    && eqNodes[0].context !== ctx
+  );
+  if (contextChanged) {
+    disconnectEqChain();
+    eqNodes = [];
+    eqChainInput = null;
+    eqChainOutput = null;
   }
-  // 串联：node[0] → node[1] → ... → node[9]
-  for (var j = 0; j < 9; j++) eqNodes[j].connect(eqNodes[j + 1]);
-  eqChainInput = eqNodes[0];
-  eqChainOutput = eqNodes[9];
+
+  if (!eqNodes.length) {
+    for (var i = 0; i < 10; i++) {
+      var f = ctx.createBiquadFilter();
+      f.type = (i === 0) ? 'lowshelf' : (i === 9) ? 'highshelf' : 'peaking';
+      f.frequency.value = EQ_FREQUENCIES[i];
+      f.Q.value = 1.2;
+      f.gain.value = 0;
+      eqNodes.push(f);
+    }
+  } else {
+    // Graph recovery disconnects every EQ node, including the internal chain.
+    disconnectEqChain();
+  }
+
+  // Always restore the internal chain before initAudio connects its endpoints.
+  for (var j = 0; j < eqNodes.length - 1; j++) eqNodes[j].connect(eqNodes[j + 1]);
+  eqChainInput = eqNodes[0] || null;
+  eqChainOutput = eqNodes[eqNodes.length - 1] || null;
+  applyEqGains();
 }
 
 function disconnectEqChain() {
   for (var i = 0; i < eqNodes.length; i++) {
     try { eqNodes[i] && eqNodes[i].disconnect(); } catch (e) { }
   }
-  // 不清空 eqNodes/eqChainInput/eqChainOutput —— 跨重建复用
+  // Keep nodes for the same context; ensureEqChain restores their connections.
 }
 
 function applyEqGains() {

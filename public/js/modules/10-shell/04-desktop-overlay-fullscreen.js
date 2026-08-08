@@ -1568,11 +1568,12 @@ function toggleFullscreen() {
     }
     syncCursorAutoHideMode();
     if (maxBtn) {
-      maxBtn.title = isFullScreen ? '退出全屏' : '全屏';
+      // 全屏时提示退出全屏；否则按最大化状态切换 最大化/还原
+      maxBtn.title = isFullScreen ? '退出全屏' : (isMaximized ? '还原' : '最大化');
       maxBtn.setAttribute('aria-label', maxBtn.title);
     }
-    if (maxIcon) maxIcon.style.display = isFullScreen ? 'none' : '';
-    if (restoreIcon) restoreIcon.style.display = isFullScreen ? '' : 'none';
+    if (maxIcon) maxIcon.style.display = (isFullScreen || isMaximized) ? 'none' : '';
+    if (restoreIcon) restoreIcon.style.display = (isFullScreen || isMaximized) ? '' : 'none';
   }
 
   document.querySelectorAll('[data-window-action]').forEach(function (btn) {
@@ -1581,7 +1582,16 @@ function toggleFullscreen() {
       e.stopPropagation();
       var action = btn.getAttribute('data-window-action');
       if (action === 'minimize') animateDesktopWindowMinimize(api);
-      if (action === 'maximize') toggleFullscreen();
+      if (action === 'maximize') {
+        // 最大化按钮：全屏中点击退出全屏；否则在 最大化/还原 之间切换（保留任务栏）
+        if (desktopFullscreenActive && api && typeof api.toggleFullscreen === 'function') {
+          api.toggleFullscreen();
+        } else if (api && typeof api.toggleMaximize === 'function') {
+          api.toggleMaximize();
+        } else {
+          toggleFullscreen();
+        }
+      }
       if (action === 'close') {
         saveLastPlaybackSnapshot(true, 'window-close');
         api.close(closeBehaviorPreference);

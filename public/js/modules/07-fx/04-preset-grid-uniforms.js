@@ -19,11 +19,26 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('');
+  }).join('') + buildFilmRadioPresetCard();
   refreshPresetGrid();
 }
+
+/* 胶片电台：独立于数值预设之外的特殊卡片，点击切换全屏黑胶播放器 */
+function buildFilmRadioPresetCard() {
+  return '<div class="preset-card film-radio-card" data-film-radio="1" onclick="toggleFilmRadioMode()" title="胶片电台">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.4"/><path d="M14.9 4.6a7.2 7.2 0 0 1 4.5 4.5"/></svg></div>' +
+    '<div class="pc-name">胶片电台</div>' +
+    '<div class="pc-desc">黑胶 · 居中歌词</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   document.querySelectorAll('.preset-card').forEach(function (el) {
+    var filmRadio = el.getAttribute('data-film-radio');
+    if (filmRadio) {
+      el.classList.toggle('active', !!(typeof filmRadioMode !== 'undefined' && filmRadioMode));
+      return;
+    }
     el.classList.toggle('active', Number(el.dataset.preset) === fx.preset);
   });
 }
@@ -69,6 +84,10 @@ function setPreset(p, opts) {
   p = Math.max(0, Math.min(presetMeta.length - 1, Number(p) || 0));
   var prev = fx.preset;
   var changed = prev !== p;
+  // 切换到其他预设时退出胶片电台（全屏黑胶播放器）
+  if (changed && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
+    applyFilmRadioMode(false, { save: true });
+  }
   fx.preset = p;
   if (changed && prev === SKULL_PRESET_INDEX && p !== SKULL_PRESET_INDEX) clearSkullPresetResidue();
   if (p === SKULL_PRESET_INDEX) loadSkullParticleAsset();
