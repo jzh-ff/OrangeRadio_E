@@ -98,9 +98,10 @@ var LYRIC_LAYOUT_STORE_KEY = 'orangesea-lyric-layout-v1';
 var CURRENT_FX_AUTOSAVE_STORE_KEY = 'orangesea-current-fx-autosave-v1';
 var CURRENT_FX_AUTOSAVE_SCHEMA = 'current-fx-autosave-v2';
 var VISUAL_PRESET_SCHEMA = 'skull-preset-v2';
-var MAX_VISUAL_PRESET_INDEX = 7;
+var MAX_VISUAL_PRESET_INDEX = 8;
 var SONIC_PRESET_INDEX = 7;
-var LEGACY_REMOVED_VISUAL_PRESET_INDEX = 8;
+var CONCERT_PRESET_INDEX = 8;
+var LEGACY_REMOVED_VISUAL_PRESET_INDEX = 9;
 function normalizeSavedVisualPresetIndex(value) {
   var preset = Number(value);
   if (!isFinite(preset)) preset = 0;

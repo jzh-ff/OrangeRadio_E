@@ -430,6 +430,11 @@ float hash11(float p) {
   return fract(sin(p * 127.1) * 43758.5453123);
 }
 
+vec3 hsv2rgb(vec3 c) {
+  vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+  return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
+
 vec2 safeCoverUv(vec2 uv) {
   return clamp(uv, vec2(0.0012), vec2(0.9988));
 }
@@ -643,6 +648,28 @@ if (coverMask > 0.02) {
   pos.z = groove * 0.010 * grooveGuard + border * 0.024 * depthGuard + bassDrive * vinylN * 0.016 * K * beatGuard + tick * highDrive * 0.010 * grooveGuard;
   maxRippleAmp = max(maxRippleAmp, border * 0.32 + outerRim * 0.12 + bassDrive * vinylN * 0.11 * beatGuard + tick * highDrive * 0.10 * grooveGuard + uBeat * vinylN * 0.08 * beatGuard);
 }
+  }
+
+  // ====================================================
+  //  Preset 8: CONCERT LIVE — 演唱会现场
+  //  观众席荧光棒灯海 (扇形布局, 中央舞台空出) + LED 色浪 + 鼓点闪光灯
+  // ====================================================
+  else if (uPreset < 8.5) {
+    float ang = aRand * 6.28318;
+    float rad = mix(1.9, 6.4, fract(aRand * 7.31));
+    float seatH = fract(aRand * 13.7);
+    float crowdJump = uBass * K * 0.42 * (0.5 + 0.5 * seatH);
+    pos = vec3(cos(ang) * rad * 1.25, 0.06 + seatH * 0.55 + crowdJump, sin(ang) * rad * 0.62);
+    // LED 腕带色浪: 色相沿角度滚动, 低音加成色相偏移
+    float hue = fract(ang / 6.28318 * 2.5 + uTime * 0.045 + uBass * 0.12);
+    vec3 led = hsv2rgb(vec3(hue * 0.85 + 0.02, 0.82, 1.0));
+    // 鼓点闪光灯: 每 0.25s 重抽约 1/3 粒子, 鼓点来时闪白
+    // (mod 限定时间范围, 避免 uTime 无限增长导致 float 精度退化)
+    float flashGate = step(0.62, fract(aRand * 3.7 + floor(mod(uTime, 128.0) * 4.0)));
+    float flash = pow(smoothstep(0.30, 0.92, uBeat), 2.2) * flashGate;
+    vColor = mix(led, vec3(1.0, 0.97, 0.90), flash);
+    vAlpha = 0.92;
+    maxRippleAmp = max(maxRippleAmp, flash * 0.16);
   }
 
   // ====================================================
@@ -1022,6 +1049,7 @@ function backgroundStarRiverTargetAlpha() {
   if (Number(fx.preset) === 5) return 0;
   if (typeof SONIC_PRESET_INDEX !== 'undefined' && Number(fx.preset) === SONIC_PRESET_INDEX) return 0;
   if (typeof SKULL_PRESET_INDEX !== 'undefined' && Number(fx.preset) === SKULL_PRESET_INDEX) return 0.38;
+  if (typeof CONCERT_PRESET_INDEX !== 'undefined' && Number(fx.preset) === CONCERT_PRESET_INDEX) return 0;
   return 0.34;
 }
 

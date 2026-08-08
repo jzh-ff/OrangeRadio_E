@@ -168,6 +168,7 @@ var mainFrameGates = {
   lyricsParticles: createFrameGate('main.lyricsParticles', 45),
   stageLyrics: createFrameGate('main.stageLyrics', 45),
   skullParticles: createFrameGate('main.skullParticles', 45),
+  concertStage: createFrameGate('main.concertStage', 45),
   homeAudio: createFrameGate('main.homeAudio', 15),
   desktopOverlay: createFrameGate('main.desktopOverlay', 12)
 };
@@ -276,6 +277,13 @@ function targetMainStageLyricsFps(now) {
 function targetMainSkullParticleFps(now) {
   if (isDeepBackgroundMode()) return 1;
   if (!fx || fx.preset !== SKULL_PRESET_INDEX) return 10;
+  if (visibleMotionFollowVsync(now)) return 0;
+  if (mainLoopInteractionActive(now)) return capMainLoopFpsForBudget(120, 72);
+  return (playing && audio && !audio.paused) ? capMainLoopFpsForBudget(60, 45) : 24;
+}
+function targetMainConcertStageFps(now) {
+  if (isDeepBackgroundMode()) return 1;
+  if (typeof CONCERT_PRESET_INDEX === 'undefined' || !fx || fx.preset !== CONCERT_PRESET_INDEX) return 6;
   if (visibleMotionFollowVsync(now)) return 0;
   if (mainLoopInteractionActive(now)) return capMainLoopFpsForBudget(120, 72);
   return (playing && audio && !audio.paused) ? capMainLoopFpsForBudget(60, 45) : 24;
@@ -621,6 +629,10 @@ function animate() {
   var skullStepDt = consumeFrameGate(mainFrameGates.skullParticles, now, dt, targetMainSkullParticleFps(now), false, 'skull-particles');
   if (skullStepDt > 0) updateSkullParticleLayer(skullStepDt);
   if (perfProbe && perfProbe.markSince) perfProbe.markSince('visual.skull-particles', skullPerfStart);
+  var concertPerfStart = performance.now();
+  var concertStepDt = consumeFrameGate(mainFrameGates.concertStage, now, dt, targetMainConcertStageFps(now), false, 'concert-stage');
+  if (concertStepDt > 0 && typeof updateConcertStage === 'function') updateConcertStage(concertStepDt);
+  if (perfProbe && perfProbe.markSince) perfProbe.markSince('visual.concert-stage', concertPerfStart);
   var sonicPerfStart = performance.now();
   if (window.OrangeseaSonicTopography) {
     OrangeseaSonicTopography.update(dt, {
