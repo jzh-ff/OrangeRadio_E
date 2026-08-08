@@ -246,7 +246,11 @@
             <section class="home-insight-card home-listen-card" aria-labelledby="home-listen-heading">
               <div class="home-insight-head">
                 <div id="home-listen-heading" class="home-insight-kicker">LISTENING TODAY · 今日聆听</div>
-                <button class="home-insight-link" type="button" onclick="openHomeInsight()">查看偏好</button>
+                <div style="display:flex;gap:10px">
+                  <button class="home-insight-link" type="button" onclick="openListenReport('month')">月度报告</button>
+                  <button class="home-insight-link" type="button" onclick="openListenReport('year')">年度报告</button>
+                  <button class="home-insight-link" type="button" onclick="openHomeInsight()">查看偏好</button>
+                </div>
               </div>
               <div class="home-listen-metrics">
                 <div class="home-listen-metric"><strong id="home-today-time" class="home-listen-value">0 分钟</strong><span
