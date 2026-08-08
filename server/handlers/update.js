@@ -609,6 +609,17 @@ function sha512Base64(buffer) {
 function sha512Hex(buffer) {
   return crypto.createHash('sha512').update(buffer).digest('hex');
 }
+// 单遍流式哈希：同时产出 hex 与 base64，避免安装包（数百 MB）整包读入内存阻塞事件循环
+function streamDigest(filePath, algo) {
+  return new Promise((resolve, reject) => {
+    const hashHex = crypto.createHash(algo);
+    const hashB64 = crypto.createHash(algo);
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => { hashHex.update(chunk); hashB64.update(chunk); });
+    stream.on('end', () => resolve({ hex: hashHex.digest('hex'), base64: hashB64.digest('base64') }));
+    stream.on('error', reject);
+  });
+}
 function verifyUpdateBuffer(buffer, job) {
   const expectedSize = Number(job.expectedSize || job.total || 0) || 0;
   if (expectedSize > 0 && buffer.length !== expectedSize) {
@@ -627,8 +638,29 @@ function verifyUpdateBuffer(buffer, job) {
     }
   }
 }
-function verifyUpdateFile(filePath, job) {
-  verifyUpdateBuffer(fs.readFileSync(filePath), job);
+async function verifyUpdateFile(filePath, job) {
+  // 流式校验：安装包可达数百 MB，整包同步读入会阻塞事件循环
+  const expectedSize = Number(job.expectedSize || job.total || 0) || 0;
+  if (expectedSize > 0) {
+    const actualSize = fs.statSync(filePath).size;
+    if (actualSize !== expectedSize) {
+      throw updateError('UPDATE_SIZE_MISMATCH', `Expected ${expectedSize} bytes, got ${actualSize}`);
+    }
+  }
+  const expectedSha256 = normalizeDigest(job.sha256 || '', 'sha256').toLowerCase();
+  if (expectedSha256) {
+    const actual = await streamDigest(filePath, 'sha256');
+    if (actual.hex !== expectedSha256) {
+      throw updateError('UPDATE_SHA256_MISMATCH', 'Downloaded sha256 mismatch');
+    }
+  }
+  const expectedSha512 = normalizeDigest(job.sha512 || '', 'sha512');
+  if (expectedSha512) {
+    const actual = await streamDigest(filePath, 'sha512');
+    if (actual.base64 !== expectedSha512 && actual.hex.toLowerCase() !== expectedSha512.toLowerCase()) {
+      throw updateError('UPDATE_SHA512_MISMATCH', 'Downloaded sha512 mismatch');
+    }
+  }
 }
 function moveInvalidUpdateFile(filePath, reason) {
   try {
@@ -643,7 +675,7 @@ function moveInvalidUpdateFile(filePath, reason) {
     console.warn('[UpdateDownload] failed to move invalid cached installer:', e.message);
   }
 }
-function reuseVerifiedInstallerJob(opts) {
+async function reuseVerifiedInstallerJob(opts) {
   if (!opts || !opts.filePath || !fs.existsSync(opts.filePath)) return null;
   if (!opts.expectedSize && !opts.sha256 && !opts.sha512) return null;
   const now = Date.now();
@@ -677,7 +709,7 @@ function reuseVerifiedInstallerJob(opts) {
     error: '',
   };
   try {
-    verifyUpdateFile(opts.filePath, job);
+    await verifyUpdateFile(opts.filePath, job);
     updateDownloadJobs.set(job.id, job);
     trimUpdateJobs();
     return job;
@@ -771,7 +803,7 @@ async function downloadUpdateAssetWithMirrors(job) {
         await once(writer, 'finish').catch(() => {});
       }
 
-      verifyUpdateFile(tmpPath, job);
+      await verifyUpdateFile(tmpPath, job);
       if (fs.existsSync(job.filePath)) fs.unlinkSync(job.filePath);
       fs.renameSync(tmpPath, job.filePath);
       job.status = 'ready';
@@ -791,7 +823,7 @@ async function downloadUpdateAssetWithMirrors(job) {
     }
   }
 }
-function startUpdateDownloadJob(info) {
+async function startUpdateDownloadJob(info) {
   const release = info && info.release ? info.release : {};
   const asset = release.asset || {};
   const downloadUrl = release.downloadUrl || asset.downloadUrl || '';
@@ -809,7 +841,7 @@ function startUpdateDownloadJob(info) {
   const expectedSize = asset.size || 0;
   const sha256 = normalizeDigest(asset.sha256 || '', 'sha256').toLowerCase();
   const sha512 = normalizeDigest(asset.sha512 || '', 'sha512');
-  const cached = reuseVerifiedInstallerJob({
+  const cached = await reuseVerifiedInstallerJob({
     fileName,
     filePath,
     version,

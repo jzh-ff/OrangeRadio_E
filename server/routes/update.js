@@ -33,7 +33,7 @@ async function handle(req, res, url) {
   if (pn === '/api/update/download') {
     try {
       const info = await fetchLatestUpdateInfo();
-      const job = startUpdateDownloadJob(info);
+      const job = await startUpdateDownloadJob(info);
       sendJSON(res, job, job.ok ? 200 : 400);
     } catch (err) {
       console.error('[UpdateDownload]', err);

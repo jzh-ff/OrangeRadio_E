@@ -255,6 +255,27 @@ function sendAudioBuffer(res, buffer, contentType, range) {
 }
 
 /* ---------- 汽水解密 ---------- */
+// 限流防护：单曲最大 200MB（无损歌整段解密进内存），并发最多 2 个解密任务，
+// 超出排队等待，防止多首歌曲同时触发时内存峰值失控
+const QISHUI_AUDIO_DECRYPT_MAX_BYTES = 200 * 1024 * 1024;
+const QISHUI_AUDIO_DECRYPT_MAX_CONCURRENCY = 2;
+let qishuiDecryptActive = 0;
+const qishuiDecryptQueue = [];
+
+async function runQishuiDecryptQueued(fn) {
+  if (qishuiDecryptActive >= QISHUI_AUDIO_DECRYPT_MAX_CONCURRENCY) {
+    await new Promise((resolve) => qishuiDecryptQueue.push(resolve));
+  }
+  qishuiDecryptActive++;
+  try {
+    return await fn();
+  } finally {
+    qishuiDecryptActive--;
+    const next = qishuiDecryptQueue.shift();
+    if (next) next();
+  }
+}
+
 function qishuiAudioAuthFromUrl(audioUrl) {
   const text = String(audioUrl || '');
   const idx = text.indexOf('#auth=');
@@ -287,17 +308,46 @@ async function getQishuiDecryptedAudio(audioUrl) {
     cached.at = Date.now();
     return cached;
   }
-  const up = await fetch(parsed.cleanUrl, { headers: audioProxyHeadersFor(parsed.cleanUrl, '') });
-  if (!up.ok) throw new Error('Qishui encrypted audio fetch failed: HTTP ' + up.status);
-  const encryptedBuffer = Buffer.from(await up.arrayBuffer());
-  const result = qishuiAudioDecryptor.decrypt({ encryptedBuffer, spadeA: parsed.auth });
-  const payload = {
-    buffer: result.buffer,
-    contentType: result.extension === '.flac' ? 'audio/flac' : 'audio/mp4',
-    extension: result.extension,
-  };
-  rememberQishuiDecryptedAudio(key, payload);
-  return payload;
+  // 下载 + 解密整体排队限流；缓存命中不排队
+  return runQishuiDecryptQueued(async () => {
+    const up = await fetch(parsed.cleanUrl, { headers: audioProxyHeadersFor(parsed.cleanUrl, '') });
+    if (!up.ok) throw new Error('Qishui encrypted audio fetch failed: HTTP ' + up.status);
+    // 单曲大小上限：Content-Length 预检 + 流式累积计数，超限中止
+    const contentLength = Number(up.headers && up.headers.get('content-length') || 0);
+    if (contentLength > QISHUI_AUDIO_DECRYPT_MAX_BYTES) {
+      throw new Error('Qishui encrypted audio exceeds size limit');
+    }
+    const chunks = [];
+    let received = 0;
+    if (up.body && typeof up.body.getReader === 'function') {
+      const reader = up.body.getReader();
+      while (true) {
+        const step = await reader.read();
+        if (step.done) break;
+        received += step.value.length;
+        if (received > QISHUI_AUDIO_DECRYPT_MAX_BYTES) {
+          await reader.cancel();
+          throw new Error('Qishui encrypted audio exceeds size limit');
+        }
+        chunks.push(Buffer.from(step.value));
+      }
+    } else {
+      const buffer = Buffer.from(await up.arrayBuffer());
+      if (buffer.length > QISHUI_AUDIO_DECRYPT_MAX_BYTES) {
+        throw new Error('Qishui encrypted audio exceeds size limit');
+      }
+      chunks.push(buffer);
+    }
+    const encryptedBuffer = Buffer.concat(chunks);
+    const result = qishuiAudioDecryptor.decrypt({ encryptedBuffer, spadeA: parsed.auth });
+    const payload = {
+      buffer: result.buffer,
+      contentType: result.extension === '.flac' ? 'audio/flac' : 'audio/mp4',
+      extension: result.extension,
+    };
+    rememberQishuiDecryptedAudio(key, payload);
+    return payload;
+  });
 }
 
 /* ---------- 杂项 ---------- */
@@ -347,6 +397,8 @@ module.exports = {
   sendAudioBuffer,
   qishuiAudioAuthFromUrl,
   qishuiAudioCacheKey,
+  QISHUI_AUDIO_DECRYPT_MAX_BYTES,
+  runQishuiDecryptQueued,
   rememberQishuiDecryptedAudio,
   getQishuiDecryptedAudio,
   parseJSONText,

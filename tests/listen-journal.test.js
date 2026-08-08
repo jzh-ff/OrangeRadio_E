@@ -24,6 +24,9 @@ function cleanup() {
   fs.rmSync(tmpRoot, { recursive: true, force: true });
 }
 
+// 日志写入是防抖批量落盘（200ms），读取文件前等待 flush
+const flushWait = () => new Promise((resolve) => setTimeout(resolve, 260));
+
 (async () => {
   try {
     const context = require('../server/context');
@@ -38,7 +41,7 @@ function cleanup() {
     const key2 = context.listenSyncJournalKey('netease', 'token-abc', 's2');
     assert.notEqual(key1, key2, 'session id must differ the key');
 
-    // ---- 写入与持久化 ----
+    // ---- 写入与持久化（防抖 200ms 后落盘）----
     assert.equal(context.listenSyncJournal.entries[key1], undefined);
     context.rememberListenSyncSubmission(key1, {
       provider: 'netease',
@@ -46,6 +49,7 @@ function cleanup() {
       accountDurationSync: 'ok',
       historySynced: true,
     });
+    await flushWait();
     const onDisk = JSON.parse(fs.readFileSync(journalFile, 'utf8'));
     assert.equal(onDisk.entries[key1].songId, 'song-1');
     assert.equal(onDisk.entries[key1].provider, 'netease');
@@ -59,6 +63,7 @@ function cleanup() {
       accountDurationSync: 'ok',
       historySynced: false,
     });
+    await flushWait();
     const onDisk2 = JSON.parse(fs.readFileSync(journalFile, 'utf8'));
     assert.equal(Object.keys(onDisk2.entries).length, 1, 'same key must overwrite, not append');
     assert.equal(onDisk2.entries[key1].songId, 'song-1-updated');
@@ -73,6 +78,7 @@ function cleanup() {
         historySynced: i % 2 === 0,
       });
     }
+    await flushWait();
     const onDisk3 = JSON.parse(fs.readFileSync(journalFile, 'utf8'));
     const keys = Object.keys(onDisk3.entries);
     assert.equal(keys.length, 600, 'journal must cap at 600 entries');

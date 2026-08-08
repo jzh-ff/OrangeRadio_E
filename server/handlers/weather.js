@@ -318,8 +318,27 @@ async function fetchWeatherPlaylistSongs(playlist, limit) {
   }
   return rawTracks.map(mapSongRecord).filter(song => song.id && song.name).slice(0, limit || 36);
 }
-async function filterLikelyPlayableWeatherSongs(songs) {
+// 探测结果缓存：同一首歌 10 分钟内不重复走 handleSongUrl 探测链，
+// 天气电台每次请求都要过滤 24 首候选，重复请求可省去数百毫秒 ~ 数秒
+const weatherPlayableProbeCache = new Map();
+const WEATHER_PROBE_CACHE_TTL_MS = 10 * 60 * 1000;
+
+async function probeWeatherSongPlayable(song) {
+  const key = String(song && song.id || '');
+  if (!key) return false;
+  const hit = weatherPlayableProbeCache.get(key);
+  if (hit) {
+    if (Date.now() - hit.at < WEATHER_PROBE_CACHE_TTL_MS) return hit.value;
+    weatherPlayableProbeCache.delete(key);
+  }
   const userCookie = getUserCookie();
+  const info = await handleSongUrl(key, { loggedIn: !!userCookie }, 'standard');
+  const value = !!(info && info.url);
+  weatherPlayableProbeCache.set(key, { at: Date.now(), value });
+  return value;
+}
+
+async function filterLikelyPlayableWeatherSongs(songs) {
   const source = uniqueSongsByKey(songs)
     .filter(song => song && song.name && song.id && !isLowSignalWeatherSong(song))
     .slice(0, 24);
@@ -328,8 +347,8 @@ async function filterLikelyPlayableWeatherSongs(songs) {
   for (let i = 0; i < source.length; i += 4) {
     const chunk = source.slice(i, i + 4);
     const settled = await Promise.allSettled(chunk.map(async song => {
-      const info = await handleSongUrl(song.id, { loggedIn: !!userCookie }, 'standard');
-      return info && info.url ? song : null;
+      const ok = await probeWeatherSongPlayable(song);
+      return ok ? song : null;
     }));
     settled.forEach((result, idx) => {
       if (result.status === 'fulfilled' && result.value) playable.push(result.value);

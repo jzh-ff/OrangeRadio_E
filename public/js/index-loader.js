@@ -2,8 +2,7 @@
 
 (function loadMineradioIndexModules() {
   const moduleCacheBust = String(Date.now());
-  const modulePaths = [
-    'js/modules/00-state/00-core-stores.js',
+  const modulePaths = [    'js/modules/00-state/00-core-stores.js',
     'js/modules/00-state/01-perf-render-state.js',
     'js/modules/00-state/02-preferences-ui-modes.js',
     'js/modules/00-state/03-beat-dj-state.js',
@@ -109,19 +108,24 @@
     'js/modules/11-main-loop.js',
   ];
 
+  // 异步回调执行时 document.currentScript 已失效，同步阶段先固定注入锚点
+  const anchor = document.currentScript;
+
   function readModule(path) {
-    const request = new XMLHttpRequest();
-    request.open('GET', path + (path.indexOf('?') >= 0 ? '&' : '?') + 'v=' + moduleCacheBust, false);
-    request.send(null);
-
-    if ((request.status < 200 || request.status >= 300) && request.status !== 0) {
-      throw new Error('Failed to load Mineradio module: ' + path + ' (' + request.status + ')');
-    }
-
-    return request.responseText;
+    return fetch(path + (path.indexOf('?') >= 0 ? '&' : '?') + 'v=' + moduleCacheBust).then(function (res) {
+      if (!res.ok) throw new Error('Failed to load Mineradio module: ' + path + ' (' + res.status + ')');
+      return res.text();
+    });
   }
 
-  const script = document.createElement('script');
-  script.text = modulePaths.map(readModule).join('') + '\n//# sourceURL=orangesea-index-modules.js\n';
-  document.currentScript.parentNode.insertBefore(script, document.currentScript.nextSibling);
+  // 全部模块文本并行拉取，完成后仍按依赖顺序一次性注入执行（语义与同步 XHR 版一致）
+  Promise.all(modulePaths.map(readModule)).then(function (texts) {
+    const script = document.createElement('script');
+    script.text = texts.join('') + '\n//# sourceURL=orangesea-index-modules.js\n';
+    anchor.parentNode.insertBefore(script, anchor.nextSibling);
+  }).catch(function (err) {
+    console.error('[IndexLoader] module load failed:', err);
+    document.documentElement.setAttribute('data-loader-failed', '1');
+    throw err;
+  });
 })();

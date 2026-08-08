@@ -12,7 +12,12 @@ const {
   song_url_v1,
 } = require('NeteaseCloudMusicApi');
 const { promiseWithTimeout } = require('../utils');
-const { getUserCookie } = require('../context');
+const {
+  getUserCookie,
+  neteasePlaybackUrlCacheKey,
+  readNeteasePlaybackUrlCache,
+  writeNeteasePlaybackUrlCache,
+} = require('../context');
 const {
   NETEASE_DIRECT_RESOLVE_BUDGET_MS,
   NETEASE_SOURCE_MATCH_TOTAL_BUDGET_MS,
@@ -230,6 +235,12 @@ async function resolveNeteaseSameTrackPlayback(id, loginInfo, qualityPreference,
 /* ---------- 播放地址入口 ---------- */
 async function handleSongUrl(id, loginInfo, qualityPreference, matchHints) {
   const hints = matchHints || {};
+  // 播放 URL 缓存：同歌 + 同音质 + 同凭证指纹在 TTL 内直接复用，
+  // 跳过「多品质探测 + 字节验证 + 同录音匹配」全链（单次可达数百 ms ~ 数秒）。
+  const credentialFingerprint = String(getUserCookie() || '').slice(0, 48);
+  const cacheKey = neteasePlaybackUrlCacheKey(id, qualityPreference || '', credentialFingerprint, hints);
+  const cached = readNeteasePlaybackUrlCache(cacheKey);
+  if (cached && cached.url && cached.playable !== false && !cached.trial) return cached;
   const requestDeadline = Date.now() + NETEASE_SONG_URL_TOTAL_BUDGET_MS;
   let direct = null;
   if (!hints.skipDirect) {
@@ -267,11 +278,14 @@ async function handleSongUrl(id, loginInfo, qualityPreference, matchHints) {
       error: 'NETEASE_DIRECT_SKIPPED_AFTER_MATCH_FAILURE',
     };
   }
-  if (direct && direct.url && !direct.trial) return direct;
+  if (direct && direct.url && !direct.trial) {
+    writeNeteasePlaybackUrlCache(cacheKey, Object.assign({}, direct));
+    return direct;
+  }
   const sourceMatchAttempted = !!(String(hints.name || hints.title || '').trim() && String(hints.artist || '').trim());
   const matched = await resolveNeteaseSameTrackPlayback(id, loginInfo, qualityPreference, hints, requestDeadline);
   if (!matched) return { ...direct, sourceMatchAttempted };
-  return {
+  const result = {
     ...matched.playback,
     provider: 'netease',
     source: 'netease-same-track',
@@ -289,6 +303,8 @@ async function handleSongUrl(id, loginInfo, qualityPreference, matchHints) {
     sourceMatchTriedIds: matched.triedIds || [String(matched.candidate.song.id || '')],
     originalRestriction: direct && direct.restriction || null,
   };
+  if (result.url && !result.trial) writeNeteasePlaybackUrlCache(cacheKey, Object.assign({}, result));
+  return result;
 }
 
 module.exports = {

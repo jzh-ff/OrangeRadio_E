@@ -162,8 +162,8 @@ function sampleRenderPerf(now, dt) {
   }
   maybeTrimRuntimeCaches(now);
 }
-var mainFrameGates = {
-  audio: createFrameGate('main.audio', 60),
+var thumbCoverCachedEl = null;   // 每帧缩略图脉动的 DOM 引用缓存
+var mainFrameGates = {  audio: createFrameGate('main.audio', 60),
   shelf: createFrameGate('main.shelf', 30),
   lyricsParticles: createFrameGate('main.lyricsParticles', 45),
   stageLyrics: createFrameGate('main.stageLyrics', 45),
@@ -656,11 +656,11 @@ function animate() {
   if (desktopOverlayStepDt > 0) syncDesktopOverlayState();
   if (perfProbe && perfProbe.markSince) perfProbe.markSince('desktop.overlay-sync', desktopOverlayPerfStart);
 
-  // 缩略图脉动
+  // 缩略图脉动（DOM 引用启动时缓存，避免每帧 getElementById）
   if (currentIdx >= 0) {
     var s = 1 + bass * 0.08;
-    var thumbCoverEl = document.getElementById('thumb-cover');
-    if (thumbCoverEl) thumbCoverEl.style.transform = 'scale(' + s + ')';
+    if (!thumbCoverCachedEl) thumbCoverCachedEl = document.getElementById('thumb-cover');
+    if (thumbCoverCachedEl) thumbCoverCachedEl.style.transform = 'scale(' + s + ')';
   }
 
   var rendererPerfStart = performance.now();

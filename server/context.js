@@ -175,6 +175,9 @@ function loadListenSyncJournal() {
   }
 }
 let listenSyncJournal = loadListenSyncJournal();
+// 防抖批量写：200ms 内多次上报只落盘一次，避免高频听歌上报时反复全量序列化
+let listenSyncJournalFlushTimer = 0;
+let listenSyncJournalDirty = false;
 
 function listenSyncAccountKey(provider, credential) {
   return String(provider || '') + ':' + crypto.createHash('sha256').update(String(credential || '')).digest('hex').slice(0, 16);
@@ -182,7 +185,7 @@ function listenSyncAccountKey(provider, credential) {
 function listenSyncJournalKey(provider, credential, sessionId) {
   return listenSyncAccountKey(provider, credential) + ':' + String(sessionId || '');
 }
-function persistListenSyncJournal() {
+function persistListenSyncJournalNow() {
   const entries = Object.entries(listenSyncJournal.entries || {})
     .sort((a, b) => Number(b[1] && b[1].submittedAt || 0) - Number(a[1] && a[1].submittedAt || 0))
     .slice(0, LISTEN_SYNC_JOURNAL_LIMIT);
@@ -193,6 +196,20 @@ function persistListenSyncJournal() {
   fs.writeFileSync(temp, JSON.stringify(listenSyncJournal, null, 2), 'utf8');
   fs.renameSync(temp, LISTEN_SYNC_JOURNAL_FILE);
 }
+function flushListenSyncJournalSoon() {
+  listenSyncJournalDirty = true;
+  if (listenSyncJournalFlushTimer) return;
+  listenSyncJournalFlushTimer = setTimeout(() => {
+    listenSyncJournalFlushTimer = 0;
+    if (!listenSyncJournalDirty) return;
+    listenSyncJournalDirty = false;
+    try {
+      persistListenSyncJournalNow();
+    } catch (err) {
+      console.warn('[ListenSyncJournal]', err.message);
+    }
+  }, 200);
+}
 function rememberListenSyncSubmission(key, result) {
   listenSyncJournal.entries[key] = {
     provider: result.provider,
@@ -201,11 +218,7 @@ function rememberListenSyncSubmission(key, result) {
     accountDurationSync: result.accountDurationSync || 'unsupported',
     historySynced: !!result.historySynced,
   };
-  try {
-    persistListenSyncJournal();
-  } catch (err) {
-    console.warn('[ListenSyncJournal]', err.message);
-  }
+  flushListenSyncJournalSoon();
 }
 
 /* ---------- Cookie 持久化 ---------- */
@@ -349,6 +362,31 @@ const neteaseVipInfoCache = new Map();
 // 因为该引用被直接导出，路由/处理器模块持有同一对象。
 const neteaseLoginInfoCache = { cookie: '', at: 0, value: null, promise: null };
 
+/* ---------- 播放 URL 缓存 ----------
+   网易云 handleSongUrl 的最终可播放地址（含同录音匹配结果）：
+   同歌 + 同音质 + 同凭证指纹在 TTL 内直接复用，跳过「多品质探测 + 字节验证」
+   全链（该链单次可能数百 ms ~ 数秒）。登录态变化时随 clearNeteaseLoginInfoCache 清空。 */
+const neteasePlaybackUrlCache = new Map();
+const NETEASE_PLAYBACK_URL_CACHE_TTL_MS = 30 * 60 * 1000;
+
+function neteasePlaybackUrlCacheKey(id, qualityPreference, credentialFingerprint, hints) {
+  const hintFingerprint = String(hints && (hints.name || hints.title) || '') + '|' + String(hints && hints.artist || '');
+  return String(id) + '|' + String(qualityPreference || '') + '|' + String(credentialFingerprint || '') + '|' + hintFingerprint;
+}
+function readNeteasePlaybackUrlCache(key) {
+  const hit = neteasePlaybackUrlCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > NETEASE_PLAYBACK_URL_CACHE_TTL_MS) {
+    neteasePlaybackUrlCache.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+function writeNeteasePlaybackUrlCache(key, value) {
+  if (!key || !value) return;
+  neteasePlaybackUrlCache.set(key, { at: Date.now(), value });
+}
+
 function clearQQLikedPlaylistCoverCache() {
   qqLikedPlaylistCoverByUser.clear();
 }
@@ -357,6 +395,7 @@ function clearNeteaseLoginInfoCache() {
   neteaseLoginInfoCache.at = 0;
   neteaseLoginInfoCache.value = null;
   neteaseLoginInfoCache.promise = null;
+  neteasePlaybackUrlCache.clear();
 }
 function invalidateNeteasePlaylistTrackIndex(playlistId) {
   neteasePlaylistTrackIndexCache.delete(playlistId);
@@ -450,6 +489,7 @@ module.exports = {
   listenSyncAccountKey,
   listenSyncJournalKey,
   rememberListenSyncSubmission,
+  flushListenSyncJournalSoon,
   // cookie 访问
   getUserCookie: () => userCookie,
   getQQCookie: () => qqCookie,
@@ -476,6 +516,12 @@ module.exports = {
   neteasePlaylistTrackIndexInflight,
   neteaseVipInfoCache,
   neteaseLoginInfoCache,
+  // 播放 URL 缓存
+  neteasePlaybackUrlCache,
+  NETEASE_PLAYBACK_URL_CACHE_TTL_MS,
+  neteasePlaybackUrlCacheKey,
+  readNeteasePlaybackUrlCache,
+  writeNeteasePlaybackUrlCache,
   clearQQLikedPlaylistCoverCache,
   clearNeteaseLoginInfoCache,
   invalidateNeteasePlaylistTrackIndex,

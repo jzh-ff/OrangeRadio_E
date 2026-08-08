@@ -1885,9 +1885,10 @@ async function checkProviderFallbackTerminalStateGuard() {
   const handleSongUrlEnd = serverText.indexOf('\n}', handleSongUrlStart);
   const handleSongUrlText = serverText.slice(handleSongUrlStart, handleSongUrlEnd);
   const directResolvePos = handleSongUrlText.indexOf('resolveNeteaseDirectSongUrl');
-  const directReturnPos = handleSongUrlText.indexOf('if (direct && direct.url && !direct.trial) return direct');
+  const directReturnPos = handleSongUrlText.indexOf('if (direct && direct.url && !direct.trial)');
+  const directCacheWritePos = handleSongUrlText.indexOf('writeNeteasePlaybackUrlCache(cacheKey');
   const sameTrackResolvePos = handleSongUrlText.indexOf('resolveNeteaseSameTrackPlayback');
-  if (directResolvePos < 0 || directReturnPos <= directResolvePos || sameTrackResolvePos <= directReturnPos) {
+  if (directResolvePos < 0 || directReturnPos <= directResolvePos || directCacheWritePos < directReturnPos || sameTrackResolvePos <= directReturnPos) {
     fail('Netease direct playback must return before same-track search, and same-track search must finish before cross-provider fallback');
   }
   const matcherStart = serverText.indexOf('function neteaseSourceMatchText');
