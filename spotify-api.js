@@ -4,6 +4,11 @@ const fs = require('fs');
 const https = require('https');
 const path = require('path');
 
+// 版本号统一从 package.json 读取，避免多处硬编码不一致。
+const APP_VERSION_SPOTIFY = (() => {
+  try { return require('./package.json').version || '0.0.0'; } catch (_) { return '0.0.0'; }
+})();
+
 const SPOTIFY_ACCOUNTS_BASE = (process.env.SPOTIFY_ACCOUNTS_BASE || 'https://accounts.spotify.com').replace(/\/+$/, '');
 const SPOTIFY_API_BASE = (process.env.SPOTIFY_API_BASE || 'https://api.spotify.com/v1').replace(/\/+$/, '');
 const DEFAULT_SPOTIFY_MARKET = String(process.env.MINERADIO_SPOTIFY_MARKET || process.env.SPOTIFY_MARKET || 'US').trim().toUpperCase();
@@ -20,7 +25,7 @@ const DEFAULT_SPOTIFY_SCOPES = [
   'playlist-modify-public',
 ];
 const SPOTIFY_LIKED_PLAYLIST_ID = 'spotify-liked';
-const SPOTIFY_UA = 'OrangeSea/0.1.0 (Spotify Web API bridge)';
+const SPOTIFY_UA = `OrangeSea/${APP_VERSION_SPOTIFY} (Spotify Web API bridge)`;
 const SPOTIFY_SEARCH_LIMIT_MAX = 10;
 const SPOTIFY_PLAYLIST_PAGE_LIMIT = 50;
 
