@@ -2,8 +2,9 @@
 /*
  * OrangeSea 测试运行器
  * ----------------------------------------------------------------------------
- * tests/ 下的 *.test.js 为脚本式测试（直接调用 + assert，成功打印 "OK xxx"，
- * 失败抛异常并设置 process.exitCode=1），未使用 node:test runner。
+ * tests/ 下的 *.test.js 有两种风格：脚本式（直接调用 + assert，成功打印
+ * "OK xxx"，失败抛异常）与 node:test（TAP 输出）。两者均可被 node 直接执行，
+ * 本脚本不区分风格，统一以子进程运行。
  *
  * 本脚本逐个以子进程执行 tests/*.test.js，聚合结果并在任一失败时以非零码退出，
  * 以便 `npm test` / CI 正确判定。跨平台（Windows / macOS / Linux）。

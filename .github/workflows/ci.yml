@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check (node --check on all JS)
+        shell: bash
+        run: |
+          set -e
+          files=$(git ls-files '*.js' '*.mjs' '*.cjs')
+          for f in $files; do
+            node --check "$f" || { echo "SYNTAX FAIL: $f"; exit 1; }
+          done
+          echo "All $(echo "$files" | wc -l) JS files passed node --check"
+
+      - name: Run tests (npm test)
+        run: npm test
+
+      - name: Run static quick-check guards
+        run: node scripts/quick-check.js
