@@ -31,6 +31,7 @@ const routeModules = [
   require('./server/routes/qishui'),
   require('./server/routes/kugou'),
   require('./server/routes/qq'),
+  require('./server/routes/download'),
   require('./server/routes/podcast'),
   require('./server/routes/netease'),
   require('./server/routes/proxy'),

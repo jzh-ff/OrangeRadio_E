@@ -50,6 +50,9 @@ const UPDATE_WORK_DIR = process.env.MINERADIO_UPDATE_DIR || path.join(APP_ROOT, 
 const UPDATE_DOWNLOAD_DIR = process.env.MINERADIO_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');
 const UPDATE_PATCH_BACKUP_DIR = process.env.MINERADIO_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');
 const BEATMAP_CACHE_DIR = process.env.MINERADIO_BEAT_CACHE_DIR || 'D:\\MineradioCache\\beatmaps';
+// 歌曲下载目录：默认 D:\OrangeSeaCache\downloads，D 盘不可用时回退仓库 downloads/
+const SONG_DOWNLOAD_DIR = process.env.MINERADIO_SONG_DOWNLOAD_DIR
+  || (fs.existsSync('D:\\') ? 'D:\\OrangeSeaCache\\downloads' : path.join(APP_ROOT, 'downloads'));
 const CUEFIELD_FEEDBACK_FILE = process.env.CUEFIELD_FEEDBACK_FILE || path.join(APP_ROOT, 'data', 'cuefield-feedback.jsonl');
 const LISTEN_SYNC_JOURNAL_FILE = process.env.MINERADIO_LISTEN_SYNC_FILE || path.join(APP_ROOT, 'data', 'listen-sync-journal.json');
 const LISTEN_SYNC_JOURNAL_LIMIT = 600;
@@ -472,6 +475,7 @@ module.exports = {
   UPDATE_DOWNLOAD_DIR,
   UPDATE_PATCH_BACKUP_DIR,
   BEATMAP_CACHE_DIR,
+  SONG_DOWNLOAD_DIR,
   CUEFIELD_FEEDBACK_FILE,
   LISTEN_SYNC_JOURNAL_FILE,
   LISTEN_SYNC_JOURNAL_LIMIT,
