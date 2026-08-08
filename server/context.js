@@ -25,6 +25,10 @@ const {
 const {
   clearSpotifyToken,
 } = require('../spotify-api');
+const {
+  encryptCookieText,
+  decryptCookieText,
+} = require('./cookie-cipher');
 
 /* ---------- 服务配置 ---------- */
 const PORT = process.env.PORT || 3000;
@@ -287,7 +291,12 @@ function getQishuiCookieFile() {
 }
 function readConfiguredCookieFile(file) {
   try {
-    if (file && fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
+    if (file && fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8').trim();
+      if (!raw) return '';
+      // 新格式密文解密；解密失败（历史明文文件/密钥不匹配）回退原文
+      return decryptCookieText(raw) || raw;
+    }
   } catch (_) {}
   return '';
 }
@@ -295,7 +304,8 @@ function writeConfiguredCookieFile(file, value) {
   try {
     if (!file) return;
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, String(value || ''), 'utf8');
+    // 落盘加密：防止明文凭据被随意读取（AES-256-GCM，机器特征密钥）
+    fs.writeFileSync(file, encryptCookieText(String(value || '')), 'utf8');
   } catch (_) {}
 }
 const configuredCookieStores = {

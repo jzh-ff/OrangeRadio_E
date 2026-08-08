@@ -12,7 +12,12 @@ const {
   audioProxyHeadersFor,
   audioContentTypeForUrl,
   getQishuiDecryptedAudio,
+  proxyTargetIsBlocked,
 } = require('../utils');
+
+// 封面代理安全上限：5s 超时 + 8MB 响应上限，防挂起连接与内存滥用
+const COVER_PROXY_TIMEOUT_MS = 5000;
+const COVER_PROXY_MAX_BYTES = 8 * 1024 * 1024;
 
 async function handle(req, res, url) {
   const pn = url.pathname;
@@ -26,7 +31,13 @@ async function handle(req, res, url) {
         res.end('Invalid cover url');
         return true;
       }
-      const resp = await fetch(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' } });
+      // SSRF 防护：拒绝私网/保留地址段（含 DNS 解析后的地址）
+      if (await proxyTargetIsBlocked(coverUrl)) {
+        res.writeHead(400, { 'Access-Control-Allow-Origin': '*' });
+        res.end('Cover url blocked');
+        return true;
+      }
+      const resp = await fetchWithTimeout(coverUrl, { headers: { 'User-Agent': UA, 'Referer': 'https://music.163.com/' } }, COVER_PROXY_TIMEOUT_MS);
       const ct  = resp.headers.get('content-type') || 'image/jpeg';
       const cl  = resp.headers.get('content-length');
       const hdr = {
@@ -35,10 +46,28 @@ async function handle(req, res, url) {
         'Cross-Origin-Resource-Policy': 'cross-origin',
         'Cache-Control': 'public, max-age=86400',
       };
+      // 预检 Content-Length 超限
+      if (cl && Number(cl) > COVER_PROXY_MAX_BYTES) {
+        res.writeHead(413, { 'Access-Control-Allow-Origin': '*' });
+        res.end('Cover too large');
+        return true;
+      }
       if (cl) hdr['Content-Length'] = cl;
       res.writeHead(resp.status, hdr);
       const reader = resp.body.getReader();
-      while (true) { const c = await reader.read(); if (c.done) break; res.write(c.value); }
+      let forwarded = 0;
+      while (true) {
+        const c = await reader.read();
+        if (c.done) break;
+        forwarded += c.value.length;
+        // 流式计数超限：中止转发，防超大响应拖垮内存
+        if (forwarded > COVER_PROXY_MAX_BYTES) {
+          try { await reader.cancel(); } catch (_) {}
+          res.destroy();
+          return true;
+        }
+        res.write(c.value);
+      }
       res.end();
     } catch (err) { console.error('[Cover]', err); res.writeHead(500); res.end(); }
     return true;
@@ -49,6 +78,11 @@ async function handle(req, res, url) {
     try {
       const audioUrl = url.searchParams.get('url');
       if (!audioUrl) { res.writeHead(400); res.end('Missing url'); return true; }
+      // SSRF 防护：音频代理同样拒绝私网/保留地址段
+      if (await proxyTargetIsBlocked(audioUrl)) {
+        res.writeHead(400); res.end('Audio url blocked');
+        return true;
+      }
       const range = req.headers.range || '';
       if (audioUrl.includes('#auth=')) {
         const decrypted = await getQishuiDecryptedAudio(audioUrl);

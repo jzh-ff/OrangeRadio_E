@@ -19,6 +19,7 @@ const {
   qishuiDiscoveryErrorCode,
 } = require('./qishui-local-session-discovery');
 const { extractKugouAuth } = require('../kugou-api');
+const { decryptCookieText } = require('../server/cookie-cipher');
 const {
   getQishuiOAuthConfig,
   buildQishuiOAuthAuthorizeUrl,
@@ -5218,7 +5219,9 @@ ipcMain.handle('mineradio-export-login-cookie', async (_event, provider) => {
       try { return fs.existsSync(file) && fs.statSync(file).isFile() && fs.readFileSync(file, 'utf8').trim(); } catch (_) { return false; }
     });
     if (!source) return { ok: false, error: 'COOKIE_NOT_FOUND', message: `${meta.label} 当前没有可导出的登录 cookie` };
-    const text = fs.readFileSync(source, 'utf8');
+    // cookie 文件已加密落盘（server/context 写入），导出前解密；非密文（如 qishui token）原样导出
+    const raw = fs.readFileSync(source, 'utf8');
+    const text = decryptCookieText(raw) || raw;
     const safeName = String(`${meta.label}_登录cookie.txt`).replace(/[\\/:*?"<>|]+/g, '-');
     const filePath = path.join(app.getPath('desktop'), safeName);
     fs.writeFileSync(filePath, text, 'utf8');

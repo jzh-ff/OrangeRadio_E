@@ -342,6 +342,60 @@ function firstArrayFrom(objects, keys) {
   return null;
 }
 
+/* ---------- 代理目标 SSRF 防护 ----------
+   /api/cover 与 /api/audio 是本地开放代理，本机其他进程可借用它们访问任意 URL。
+   解析 host 后拒绝私网/保留地址段（DNS rebinding 场景同样拦截）。 */
+const dns = require('dns');
+const net = require('net');
+
+function isPrivateIPv4(ip) {
+  const parts = String(ip || '').split('.').map(Number);
+  if (parts.length !== 4 || parts.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return true;
+  const a = parts[0];
+  const b = parts[1];
+  if (a === 0) return true;                    // 0.0.0.0/8
+  if (a === 10) return true;                   // 10.0.0.0/8
+  if (a === 127) return true;                  // 127.0.0.0/8 回环
+  if (a === 169 && b === 254) return true;     // 169.254.0.0/16 链路本地
+  if (a === 172 && b >= 16 && b <= 31) return true;  // 172.16.0.0/12
+  if (a === 192 && b === 168) return true;     // 192.168.0.0/16
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 CGNAT
+  if (a >= 224) return true;                   // 组播 224/4 + 保留 240/4
+  return false;
+}
+function isPrivateIPv6(ip) {
+  const lower = String(ip || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (lower === '::1' || lower === '::') return true;
+  if (lower.startsWith('::ffff:')) return isPrivateIPv4(lower.slice(7)); // IPv4 映射
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true;     // ULA fc00::/7
+  if (/^fe[89ab]/.test(lower)) return true;                              // 链路本地 fe80::/10
+  return false;
+}
+// host → 是否私网 的短 TTL 缓存，避免每个代理请求都做 DNS 查询
+const proxyBlockCache = new Map();
+const PROXY_BLOCK_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function proxyTargetIsBlocked(targetUrl) {
+  let u;
+  try { u = new URL(targetUrl); } catch (_) { return true; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return true;
+  const hostname = u.hostname.toLowerCase();
+  const direct = net.isIP(hostname);
+  if (direct === 4) return isPrivateIPv4(hostname);
+  if (direct === 6) return isPrivateIPv6(hostname);
+  const cached = proxyBlockCache.get(hostname);
+  if (cached && Date.now() - cached.at < PROXY_BLOCK_CACHE_TTL_MS) return cached.blocked;
+  let blocked;
+  try {
+    const addrs = await dns.promises.lookup(hostname, { all: true });
+    blocked = addrs.some(({ address }) => (net.isIP(address) === 4 ? isPrivateIPv4(address) : isPrivateIPv6(address)));
+  } catch (_) {
+    blocked = true; // 解析失败宁紧勿松
+  }
+  proxyBlockCache.set(hostname, { at: Date.now(), blocked });
+  return blocked;
+}
+
 module.exports = {
   MIME,
   serveStatic,
@@ -369,4 +423,7 @@ module.exports = {
   parseJSONText,
   decodeHtmlEntities,
   firstArrayFrom,
+  isPrivateIPv4,
+  isPrivateIPv6,
+  proxyTargetIsBlocked,
 };
