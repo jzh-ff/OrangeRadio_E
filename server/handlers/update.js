@@ -534,6 +534,149 @@ function trimUpdateJobs() {
   const jobs = Array.from(updateDownloadJobs.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   jobs.slice(8).forEach(job => updateDownloadJobs.delete(job.id));
 }
+function sha512Base64(buffer) {
+  return crypto.createHash('sha512').update(buffer).digest('base64');
+}
+function sha512Hex(buffer) {
+  return crypto.createHash('sha512').update(buffer).digest('hex');
+}
+// 单遍流式哈希：同时产出 hex 与 base64，避免安装包（数百 MB）整包读入内存阻塞事件循环
+function streamDigest(filePath, algo) {
+  return new Promise((resolve, reject) => {
+    const hashHex = crypto.createHash(algo);
+    const hashB64 = crypto.createHash(algo);
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => { hashHex.update(chunk); hashB64.update(chunk); });
+    stream.on('end', () => resolve({ hex: hashHex.digest('hex'), base64: hashB64.digest('base64') }));
+    stream.on('error', reject);
+  });
+}
+function verifyUpdateBuffer(buffer, job) {
+  const expectedSize = Number(job.expectedSize || job.total || 0) || 0;
+  if (expectedSize > 0 && buffer.length !== expectedSize) {
+    throw updateError('UPDATE_SIZE_MISMATCH', `Expected ${expectedSize} bytes, got ${buffer.length}`);
+  }
+  const expectedSha256 = normalizeDigest(job.sha256 || '', 'sha256').toLowerCase();
+  if (expectedSha256 && sha256Hex(buffer) !== expectedSha256) {
+    throw updateError('UPDATE_SHA256_MISMATCH', 'Downloaded sha256 mismatch');
+  }
+  const expectedSha512 = normalizeDigest(job.sha512 || '', 'sha512');
+  if (expectedSha512) {
+    const actualBase64 = sha512Base64(buffer);
+    const actualHex = sha512Hex(buffer).toLowerCase();
+    if (actualBase64 !== expectedSha512 && actualHex !== expectedSha512.toLowerCase()) {
+      throw updateError('UPDATE_SHA512_MISMATCH', 'Downloaded sha512 mismatch');
+    }
+  }
+}
+async function verifyUpdateFile(filePath, job) {
+  // 流式校验：安装包可达数百 MB，整包同步读入会阻塞事件循环
+  const expectedSize = Number(job.expectedSize || job.total || 0) || 0;
+  if (expectedSize > 0) {
+    const actualSize = fs.statSync(filePath).size;
+    if (actualSize !== expectedSize) {
+      throw updateError('UPDATE_SIZE_MISMATCH', `Expected ${expectedSize} bytes, got ${actualSize}`);
+    }
+  }
+  const expectedSha256 = normalizeDigest(job.sha256 || '', 'sha256').toLowerCase();
+  if (expectedSha256) {
+    const actual = await streamDigest(filePath, 'sha256');
+    if (actual.hex !== expectedSha256) {
+      throw updateError('UPDATE_SHA256_MISMATCH', 'Downloaded sha256 mismatch');
+    }
+  }
+  const expectedSha512 = normalizeDigest(job.sha512 || '', 'sha512');
+  if (expectedSha512) {
+    const actual = await streamDigest(filePath, 'sha512');
+    if (actual.base64 !== expectedSha512 && actual.hex.toLowerCase() !== expectedSha512.toLowerCase()) {
+      throw updateError('UPDATE_SHA512_MISMATCH', 'Downloaded sha512 mismatch');
+    }
+  }
+}
+function moveInvalidUpdateFile(filePath, reason) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return;
+    const dir = path.dirname(filePath);
+    const ext = path.extname(filePath);
+    const base = path.basename(filePath, ext);
+    const invalidPath = path.join(dir, `${base}.invalid-${Date.now()}${ext || '.bin'}`);
+    fs.renameSync(filePath, invalidPath);
+    console.warn('[UpdateDownload] cached installer moved aside:', reason || 'invalid', invalidPath);
+  } catch (e) {
+    console.warn('[UpdateDownload] failed to move invalid cached installer:', e.message);
+  }
+}
+async function reuseVerifiedInstallerJob(opts) {
+  if (!opts || !opts.filePath || !fs.existsSync(opts.filePath)) return null;
+  if (!opts.expectedSize && !opts.sha256 && !opts.sha512) return null;
+  const now = Date.now();
+  const stat = fs.statSync(opts.filePath);
+  const job = {
+    id: 'cached-' + now.toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    status: 'ready',
+    progress: 100,
+    received: stat.size || 0,
+    total: opts.expectedSize || stat.size || 0,
+    speedBps: 0,
+    etaSeconds: 0,
+    sourceLabel: '本地缓存',
+    attempt: 0,
+    attempts: opts.attempts || 0,
+    mode: 'installer',
+    message: '安装包已下载，可直接打开安装',
+    fileName: opts.fileName || path.basename(opts.filePath),
+    filePath: opts.filePath,
+    version: opts.version || '',
+    downloadUrl: opts.downloadUrl || '',
+    downloadCandidates: opts.downloadCandidates || [],
+    expectedSize: opts.expectedSize || 0,
+    sha256: opts.sha256 || '',
+    sha512: opts.sha512 || '',
+    releaseUrl: opts.releaseUrl || '',
+    failedAttempts: [],
+    cached: true,
+    createdAt: now,
+    updatedAt: now,
+    error: '',
+  };
+  try {
+    await verifyUpdateFile(opts.filePath, job);
+    updateDownloadJobs.set(job.id, job);
+    trimUpdateJobs();
+    return job;
+  } catch (err) {
+    moveInvalidUpdateFile(opts.filePath, (err && err.message) || 'cache verification failed');
+    return null;
+  }
+}
+function setUpdateJobError(job, err, fallbackMessage) {
+  const info = classifyUpdateError(err);
+  job.status = 'error';
+  job.error = info.code;
+  job.errorReason = info.reason;
+  job.errorDetail = info.detail;
+  job.message = fallbackMessage || info.reason;
+  job.updatedAt = Date.now();
+}
+function prepareUpdateJobAttempt(job, candidate, index, total) {
+  job.status = 'downloading';
+  job.sourceLabel = candidate.label || '下载线路';
+  job.attempt = index + 1;
+  job.attempts = total;
+  job.received = 0;
+  job.speedBps = 0;
+  job.etaSeconds = 0;
+  job.error = '';
+  job.errorReason = '';
+  job.errorDetail = '';
+  job.updatedAt = Date.now();
+}
+function ensureMirrorCanBeVerified(job, candidate) {
+  if (!candidate || !candidate.mirrored) return;
+  if (job.sha256 || job.sha512) return;
+  throw updateError('MIRROR_HASH_MISSING', 'Mirror download skipped because no digest is available');
+}
+
 async function downloadUpdateAssetWithMirrors(job) {
   const tmpPath = job.filePath + '.download';
   const candidates = Array.isArray(job.downloadCandidates) && job.downloadCandidates.length
@@ -738,6 +881,50 @@ function normalizePatchPayload(payload) {
   if (files.length > 40) throw new Error('PATCH_TOO_MANY_FILES');
   return { from, to, files, restartRequired: payload.restartRequired !== false };
 }
+async function downloadPatchBufferFromCandidate(job, candidate, index, total) {
+  ensureMirrorCanBeVerified(job, candidate);
+  prepareUpdateJobAttempt(job, candidate, index, total);
+  job.mode = 'patch';
+  job.message = '正在下载快速补丁';
+  job.progress = 0;
+  job.updatedAt = Date.now();
+
+  const resp = await fetchWithTimeout(candidate.url, {
+    headers: { 'User-Agent': `OrangeSea/${APP_VERSION}` },
+  }, 12000);
+  if (!resp.ok) throw updateError('HTTP_' + resp.status, 'HTTP ' + resp.status);
+
+  job.total = parseInt(resp.headers.get('content-length') || '0', 10) || job.expectedSize || job.total || 0;
+  job.received = 0;
+  const chunks = [];
+  const reader = resp.body.getReader();
+  let speedWindowAt = Date.now();
+  let speedWindowBytes = 0;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    const buf = Buffer.from(chunk.value);
+    job.received += buf.length;
+    speedWindowBytes += buf.length;
+    if (job.received > PATCH_MAX_BYTES) throw updateError('PATCH_TOO_LARGE', 'Patch package is too large');
+    chunks.push(buf);
+    const now = Date.now();
+    if (now - speedWindowAt >= 700) {
+      job.speedBps = Math.round(speedWindowBytes / Math.max(0.001, (now - speedWindowAt) / 1000));
+      speedWindowAt = now;
+      speedWindowBytes = 0;
+    }
+    job.progress = job.total > 0
+      ? Math.max(1, Math.min(84, Math.round((job.received / job.total) * 84)))
+      : Math.max(1, Math.min(76, Math.round(Math.log10(job.received / 1024 + 1) * 24)));
+    job.etaSeconds = job.total > 0 && job.speedBps > 0 ? Math.max(0, Math.round((job.total - job.received) / job.speedBps)) : 0;
+    job.updatedAt = Date.now();
+  }
+  const raw = Buffer.concat(chunks);
+  verifyUpdateBuffer(raw, job);
+  return raw;
+}
+
 async function downloadAndApplyPatchWithMirrors(job) {
   const candidates = Array.isArray(job.downloadCandidates) && job.downloadCandidates.length
     ? job.downloadCandidates
