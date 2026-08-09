@@ -709,7 +709,7 @@ function markSplashReadyToEnter() {
   s.setAttribute('aria-label', '点击进入 OrangeSea');
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+function bindSplashEnterFlow() {
   var s = document.getElementById('splash');
   if (!s) return;
   markAppPerf('dom-content-loaded');
@@ -738,4 +738,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   playMineradioIntroSound();
   splashTimer = setTimeout(markSplashReadyToEnter, 1500);
-});
+}
+
+// index-loader 异步注入时 DOM 可能已就绪：事件监听会错过，需按 readyState 直接执行
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindSplashEnterFlow);
+} else {
+  bindSplashEnterFlow();
+}

@@ -732,5 +732,10 @@ if (typeof window !== 'undefined') {
   window.getSonicAudioMonitorSnapshot = getSonicAudioMonitorSnapshot;
   window.toggleSonicAudioMonitorPanel = toggleSonicAudioMonitorPanel;
   window.refreshSonicAudioMonitorUi = refreshSonicAudioMonitorUi;
-  document.addEventListener('DOMContentLoaded', bindSonicAudioMonitorControls);
+  // index-loader 异步注入时 DOM 可能已就绪，事件监听会错过，按 readyState 直接执行
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindSonicAudioMonitorControls);
+  } else {
+    bindSonicAudioMonitorControls();
+  }
 }

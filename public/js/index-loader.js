@@ -127,6 +127,13 @@
     const script = document.createElement('script');
     script.text = texts.join('') + '\n//# sourceURL=orangesea-index-modules.js\n';
     anchor.parentNode.insertBefore(script, anchor.nextSibling);
+    // 异步 fetch 可能晚于 DOMContentLoaded：若 DOM 已解析完成，模块里
+    // document 上的 DOMContentLoaded 监听器（如 splash 完成逻辑）将错过事件，
+    // 这里补发一次——仅触发显式注册的监听器，不影响浏览器原生流程。
+    // 带 readyState 守卫的模块（检查通过后直接执行）不会重复触发。
+    if (document.readyState !== 'loading') {
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+    }
   }).catch(function (err) {
     console.error('[IndexLoader] module load failed:', err);
     document.documentElement.setAttribute('data-loader-failed', '1');
