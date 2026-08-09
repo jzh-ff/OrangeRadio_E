@@ -55,7 +55,6 @@ function loginWorkflowProviderOrder() {
   try { return accountProviderOrder(); } catch (e) { return LOGIN_WORKFLOW_PROVIDERS.slice(); }
 }
 function syncLoginWorkflowConnectionsFromStatus() {
-  saveLoginWorkflowConnections([]);
   return loginWorkflowConnectedProviders();
 }
 function hasLoginWorkflowConnection(provider) {
