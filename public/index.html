@@ -1277,7 +1277,7 @@
               </div>
             </div>
           </div>
-          <button id="song-download-btn" class="ctrl-btn" onclick="downloadCurrentSong()" title="下载当前歌曲（离线缓存）"><svg width="18"
+          <button id="song-download-btn" class="ctrl-btn" onclick="downloadCurrentSong()" title="下载当前歌曲到本地（含歌词）"><svg width="18"
               height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path d="M12 3v12" />
               <path d="M7 10l5 5 5-5" />
@@ -1471,22 +1471,26 @@
       </div>
     </div>
 
-    <!-- 胶片电台（Vinyl Radio）：视觉预设模式，主区域皮肤，无独立关闭按钮 -->
+    <!-- 胶片电台（Film Radio · 暗房放映）：视觉预设模式，主区域皮肤，无独立关闭按钮 -->
     <div id="film-radio-overlay" aria-hidden="true">
+      <!-- 左上角放映光束（纯装饰） -->
+      <div class="fr-beam" aria-hidden="true"></div>
       <div class="fr-main">
-        <!-- 左侧：封面 + 黑胶 CD -->
+        <!-- 左侧：拍立得封面 + 装饰齿孔条 -->
         <div class="fr-cover-stage">
-          <div class="fr-vinyl" id="fr-vinyl">
-            <div class="fr-vinyl-label" id="fr-vinyl-label"></div>
+          <div class="fr-polaroid" id="fr-cover">
+            <div class="fr-cover-img cover-empty"></div>
+            <div class="fr-stamp" id="fr-stamp" aria-hidden="true">FILM · 27</div>
           </div>
-          <div class="fr-cover cover-empty" id="fr-cover"></div>
+          <div class="fr-perforations" aria-hidden="true"></div>
         </div>
-        <!-- 右侧：信息 + 歌词 + 控制 -->
+        <!-- 右侧：片头信息 + 歌词 + 控制 -->
         <div class="fr-info-stage">
           <div class="fr-meta">
-            <div class="fr-kicker">ORANGESEA · VINYL RADIO</div>
+            <div class="fr-kicker">ORANGESEA · FILM RADIO</div>
             <div class="fr-title" id="fr-title">未在播放</div>
             <div class="fr-artist" id="fr-artist"></div>
+            <div class="fr-data" id="fr-data" aria-hidden="true">ISO 400 · f/2.8 · 1/60s</div>
           </div>
           <div class="fr-lyrics" id="fr-lyrics">
             <div class="fr-lyrics-empty">暂无歌词</div>

@@ -66,3 +66,13 @@ tmp/
 verification/
 screenshots/
 .zcode/
+
+# Local concert-stage / visual diagnostic scripts (transient debugging)
+scripts/diagnose*.py
+scripts/diag-*.py
+scripts/diag-*.png
+scripts/boost-sticks.py
+scripts/check-errors.py
+scripts/test-sticks-visible.py
+scripts/screenshot-concert.py
+scripts/concert-screenshot.png

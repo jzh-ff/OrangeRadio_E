@@ -1,6 +1,7 @@
 /* =========================================================================
-   OrangeSea · 胶片电台（Vinyl Radio）播放器样式
-   切换逻辑 + 状态同步（MutationObserver 零侵入）+ 歌词渲染 + 频谱驱动。
+   OrangeSea · 胶片电台（Film Radio · 暗房放映 Darkroom Cinema）
+   切换逻辑 + 状态同步（MutationObserver 零侵入）+ 歌词渲染 + 频谱驱动
+   + 拍立得封面同步 + 装饰性胶片参数（日期戳/ISO/光圈/帧编号）。
    照抄 diy-mode 范式：body.film-radio + localStorage + html.film-radio-preload。
    ========================================================================= */
 
@@ -69,6 +70,7 @@ function startFilmRadio() {
   syncFilmRadioMeta();
   syncFilmRadioProgress();
   syncFilmRadioPlayState();
+  updateFilmRadioStamp();
   renderFilmRadioLyrics();
   startFilmRadioObserver();
   startFilmRadioLoop();
@@ -106,32 +108,32 @@ function stopFilmRadioObserver() {
   }
 }
 
-/* 封面：从 #control-cover 的 background-image 同步 */
+/* 封面：从 #control-cover 的 background-image 同步到拍立得影像内层 */
 function syncFilmRadioCover() {
   var src = document.getElementById('control-cover');
-  var cover = document.getElementById('fr-cover');
-  var label = document.getElementById('fr-vinyl-label');
+  var cover = document.querySelector('#fr-cover .fr-cover-img');
   if (!src || !cover) return;
   var bg = src.style.backgroundImage || '';
   if (bg) {
     cover.style.backgroundImage = bg;
     cover.classList.remove('cover-empty');
-    if (label) label.style.backgroundImage = bg;
   } else {
     cover.style.backgroundImage = '';
     cover.classList.add('cover-empty');
-    if (label) label.style.backgroundImage = '';
   }
 }
 
-/* 标题/歌手 */
+/* 标题/歌手（标题变化时同步刷新装饰性胶片戳记） */
 function syncFilmRadioMeta() {
   var titleEl = document.getElementById('control-title-text');
   var artistEl = document.getElementById('control-artist');
   var frTitle = document.getElementById('fr-title');
   var frArtist = document.getElementById('fr-artist');
+  var prevTitle = frTitle ? frTitle.textContent : '';
   if (frTitle && titleEl) frTitle.textContent = titleEl.textContent || '未在播放';
   if (frArtist && artistEl) frArtist.textContent = artistEl.textContent || '';
+  /* 切歌：标题变了就重生成戳记 */
+  if (frTitle && frTitle.textContent !== prevTitle) updateFilmRadioStamp();
 }
 
 /* 进度 + 时间 */
@@ -147,10 +149,10 @@ function syncFilmRadioProgress() {
   if (frTime && time) frTime.textContent = time.textContent || '0:00 / 0:00';
 }
 
-/* 播放状态：图标 + CD/封面 旋转/停转 + 喜欢态 */
+/* 播放状态：播放/暂停图标 + 封面停顿态 + 喜欢态
+   （旧版驱动黑胶唱片旋转，现黑胶已移除，仅保留图标与封面停顿态钩子） */
 function syncFilmRadioPlayState() {
   var frPlay = document.getElementById('fr-play');
-  var vinyl = document.getElementById('fr-vinyl');
   if (frPlay) {
     // Read the media element directly; SVG markup is presentation, not playback state.
     var isPlaying = !!(audio && audio.src && !audio.paused && !audio.ended);
@@ -158,13 +160,54 @@ function syncFilmRadioPlayState() {
       ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
     frPlay.classList.toggle('is-playing', isPlaying);
-    if (vinyl) vinyl.classList.toggle('is-paused', !isPlaying);
     var cover = document.getElementById('fr-cover');
     if (cover) cover.classList.toggle('is-paused', !isPlaying);
   }
   var heart = document.getElementById('heart-btn');
   var frHeart = document.getElementById('fr-heart');
   if (frHeart && heart) frHeart.classList.toggle('liked', heart.classList.contains('liked'));
+}
+
+/* ---------- 装饰性胶片参数（日期戳 / ISO / 光圈 / 帧编号） ----------
+   纯装饰：用当前曲目信息生成稳定的"胶片机身印记"，让拍立得有真实冲洗感。
+   失败静默 —— 任何元素缺失都不影响播放。 */
+var FILM_RADIO_ISO_TABLE = ['100', '200', '400', '800', '1600'];
+var FILM_RADIO_APERTURE_TABLE = ['f/1.8', 'f/2.0', 'f/2.8', 'f/4', 'f/5.6'];
+var FILM_RADIO_SHUTTER_TABLE = ['1/30s', '1/60s', '1/125s', '1/250s', '1/500s'];
+
+/* 简易字符串 hash → 稳定整数（同一首歌每次生成相同参数） */
+function frHashStr(s) {
+  var h = 5381;
+  s = String(s == null ? '' : s);
+  for (var i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function updateFilmRadioStamp() {
+  try {
+    /* 拍立得底部戳记：日期 · 帧编号（基于歌名 hash 稳定） */
+    var stamp = document.getElementById('fr-stamp');
+    if (stamp) {
+      var titleEl = document.getElementById('control-title-text');
+      var title = (titleEl && titleEl.textContent) || '';
+      var d = new Date();
+      var ymd = d.getFullYear() + '·' + String(d.getMonth() + 1).padStart(2, '0') + '·' + String(d.getDate()).padStart(2, '0');
+      var frameNo = (frHashStr(title) % 36) + 1;  /* 1-36，胶卷帧数 */
+      stamp.textContent = ymd + '  FRAME ' + String(frameNo).padStart(2, '0');
+    }
+    /* 右侧数据戳：ISO · 光圈 · 快门（同一首歌稳定） */
+    var data = document.getElementById('fr-data');
+    if (data) {
+      var t = (document.getElementById('control-title-text') && document.getElementById('control-title-text').textContent) || '';
+      var h = frHashStr(t || 'orangesea');
+      var iso = FILM_RADIO_ISO_TABLE[h % FILM_RADIO_ISO_TABLE.length];
+      var apt = FILM_RADIO_APERTURE_TABLE[(h >> 3) % FILM_RADIO_APERTURE_TABLE.length];
+      var sh = FILM_RADIO_SHUTTER_TABLE[(h >> 6) % FILM_RADIO_SHUTTER_TABLE.length];
+      data.textContent = 'ISO ' + iso + '  ·  ' + apt + '  ·  ' + sh;
+    }
+  } catch (e) { /* 装饰失败不影响播放 */ }
 }
 
 /* ---------- 歌词渲染 ---------- */
