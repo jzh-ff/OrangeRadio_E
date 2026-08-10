@@ -23,6 +23,11 @@ const neteasePlayback = require('../handlers/netease-playback');
 const qqPlayback = require('../handlers/qq-playback');
 const kugouApi = require('../../kugou-api');
 const qishuiApi = require('../../qishui-api');
+// NeteaseCloudMusicApi 的 lyric/lyric_new（网易云音乐歌词没有独立 handler，复刻路由里的取词逻辑）
+const { lyric: neteaseLyric, lyric_new: neteaseLyricNew } = require('NeteaseCloudMusicApi');
+// mp3 标签写入（USLT 歌词帧）。仅用于 mp3；flac/m4a/ogg 不嵌入标签，依赖 .lrc 文件。
+let nodeId3 = null;
+try { nodeId3 = require('node-id3'); } catch (_) { nodeId3 = null; }
 
 const DOWNLOAD_ALLOWED_PLATFORMS = ['netease', 'qq', 'kugou', 'qishui'];
 const DOWNLOAD_MAX_CONCURRENCY = 2;
@@ -97,6 +102,82 @@ async function resolvePlatformDownloadUrl(song, quality) {
     fee: String(song.fee || ''),
   }, getQishuiCookie());
   return { url: info && info.url, playable: info && info.playable !== false, trial: !!(info && info.trial), meta: info };
+}
+
+/* ---------- 歌词获取（白名单，返回 { lyric, tlyric } LRC 字符串） ----------
+   与 resolvePlatformDownloadUrl 对称：各平台独立取词。
+   网易云没有独立 handler，复刻 netease 路由里的 lyric_new → lyric 回退合并逻辑。
+   任意平台失败都返回空串（不阻断下载），仅 .lrc 会有内容或为空。            */
+function lyricNodeText(body, key) {
+  return body && body[key] && typeof body[key].lyric === 'string' ? body[key].lyric : '';
+}
+function mergeNeteaseLyricBodies(primary, fallback) {
+  const merged = Object.assign({}, fallback || {}, primary || {});
+  ['lrc', 'tlyric', 'yrc', 'ytlrc', 'romalrc', 'yromalrc'].forEach((key) => {
+    if (!lyricNodeText(merged, key) && fallback && fallback[key]) merged[key] = fallback[key];
+  });
+  return merged;
+}
+async function resolvePlatformLyric(song) {
+  const platform = String(song && (song.platform || song.provider || song.source) || '').toLowerCase();
+  try {
+    if (platform === 'netease') {
+      const id = String(song.id || '');
+      if (!id) return { lyric: '', tlyric: '' };
+      const cookie = getUserCookie();
+      let body = {};
+      try {
+        if (typeof neteaseLyricNew === 'function') body = (await neteaseLyricNew({ id, cookie, timestamp: Date.now() })).body || {};
+      } catch (_) {}
+      const hasPrimary = !!(lyricNodeText(body, 'lrc') || lyricNodeText(body, 'yrc'));
+      const hasTrans = !!lyricNodeText(body, 'tlyric');
+      if (!hasPrimary || !hasTrans) {
+        const r = await neteaseLyric({ id, cookie, timestamp: Date.now() });
+        body = mergeNeteaseLyricBodies(body, r.body || {});
+      }
+      return { lyric: lyricNodeText(body, 'lrc') || lyricNodeText(body, 'yrc'), tlyric: lyricNodeText(body, 'tlyric') || lyricNodeText(body, 'ytlrc') };
+    }
+    if (platform === 'qq') {
+      const data = await qqPlayback.handleQQLyric(String(song.mid || ''), String(song.id || ''));
+      return { lyric: (data && data.lyric) || '', tlyric: (data && data.tlyric) || '' };
+    }
+    if (platform === 'kugou') {
+      const data = await kugouApi.handleKugouLyric(String(song.hash || song.id || ''), String(song.albumAudioId || ''), 0);
+      return { lyric: (data && data.lyric) || '', tlyric: (data && data.trans) || '' };
+    }
+    if (platform === 'qishui') {
+      const data = await qishuiApi.handleQishuiLyric(String(song.id || song.trackId || ''), getQishuiCookie());
+      return { lyric: (data && data.lyric) || '', tlyric: (data && data.tlyric) || '' };
+    }
+  } catch (e) {
+    // 取词失败不阻断下载
+  }
+  return { lyric: '', tlyric: '' };
+}
+
+// 合成 .lrc 内容：主歌词 + 译文按时间戳交错（译文行紧跟同时间戳的原文行）。
+// 大多数播放器会把相邻同时间戳的两行渲染为「原文 / 译文」双行。
+function buildLrcContent(lyric, tlyric) {
+  lyric = String(lyric || '');
+  tlyric = String(tlyric || '');
+  if (!tlyric.trim()) return lyric;
+  const tsRe = /\[(\d+):(\d{2})(?:\.(\d{1,3}))?\]/;
+  const transMap = {};
+  tlyric.split(/\r?\n/).forEach((line) => {
+    const m = line.match(tsRe);
+    if (!m) return;
+    const key = m[1] + ':' + m[2] + '.' + (m[3] || '0');
+    transMap[key] = line.replace(/\[\d+:\d{2}(?:\.\d{1,3})?\]/g, '');
+  });
+  const out = [];
+  lyric.split(/\r?\n/).forEach((line) => {
+    out.push(line);
+    const m = line.match(tsRe);
+    if (!m) return;
+    const key = m[1] + ':' + m[2] + '.' + (m[3] || '0');
+    if (transMap[key]) out.push('[' + key + ']' + transMap[key]);
+  });
+  return out.join('\n');
 }
 
 async function runDownloadQueued(fn) {
@@ -176,11 +257,45 @@ async function performSongDownload(job) {
     fileName: path.basename(filePath),
     filePath: filePath,
   };
+
+  // 歌词：写同名 .lrc 文件（全格式）；mp3 额外嵌入 USLT 歌词帧。
+  // 取词失败或无歌词都不阻断下载，仅跳过 .lrc。先于 meta 落盘，以便
+  // meta 能记录 hasLyric/lyricFile/lyricEmbedded。
+  // 经 module.exports 间接调用以便测试打桩。
+  try {
+    const { lyric, tlyric } = await module.exports.resolvePlatformLyric(song);
+    if (lyric && lyric.trim()) {
+      const lrcContent = buildLrcContent(lyric, tlyric);
+      const lrcPath = filePath.replace(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i, '') + '.lrc';
+      fs.writeFileSync(lrcPath, lrcContent, 'utf8');
+      meta.lyricFile = path.basename(lrcPath);
+      meta.hasLyric = true;
+      // mp3 嵌入 USLT（未同步歌词，plain LRC 文本，兼容性最好）。仅 mp3，且 node-id3 可用时。
+      if (/\.mp3$/i.test(filePath) && nodeId3) {
+        try {
+          const tags = {
+            title: meta.title,
+            artist: meta.artist,
+            album: meta.album,
+            unsynchronisedLyrics: { language: 'chi', text: lrcContent },
+          };
+          nodeId3.write(tags, filePath);
+          meta.lyricEmbedded = true;
+        } catch (_) {
+          // 标签写入失败不影响已写好的音频和 .lrc
+        }
+      }
+    }
+  } catch (_) {
+    // 歌词整体失败不影响下载完成
+  }
+
   try {
     fs.writeFileSync(filePath + '.osdownload.json', JSON.stringify(meta, null, 2), 'utf8');
   } catch (e) {
     // 元数据写入失败不阻断下载本身
   }
+
   job.filePath = filePath;
   job.status = 'ready';
   job.updatedAt = Date.now();
@@ -284,6 +399,8 @@ module.exports = {
   createSongDownloadJob,
   publicDownloadJob,
   resolvePlatformDownloadUrl,
+  resolvePlatformLyric,
+  buildLrcContent,
   safeDownloadFileName,
   audioExtensionFromUrl,
 };

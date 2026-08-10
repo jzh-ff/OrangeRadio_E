@@ -94,6 +94,33 @@ function listenReportDurationText(ms) {
   return minutes + ' 分钟';
 }
 
+// 日历热力图：把 dayHeatmap（'YYYY-MM-DD' → plays）铺成连续日期方格网格。
+// month 显示最近 5 周（35 天），year/all 显示最近 12 周（84 天），
+// 按 plays 占比分 4 档（0/1/2/3）映射到 CSS data-level。
+function listenReportHeatmapHtml(dayHeatmap, period) {
+  var days = period === 'month' ? 35 : 84;
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  dayHeatmap = dayHeatmap || {};
+  var maxPlays = 1;
+  Object.keys(dayHeatmap).forEach(function (k) {
+    var v = Number(dayHeatmap[k]) || 0;
+    if (v > maxPlays) maxPlays = v;
+  });
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var cells = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(today.getTime() - i * 86400000);
+    var dk = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    var plays = Number(dayHeatmap[dk]) || 0;
+    var ratio = plays / maxPlays;
+    var level = plays === 0 ? 0 : (ratio <= 0.34 ? 1 : (ratio <= 0.67 ? 2 : 3));
+    cells.push('<div class="lr-heat-cell" data-level="' + level + '" title="' + dk + '：' + plays + ' 次"></div>');
+  }
+  return '<div class="lr-section-title">播放日历（近 ' + days + ' 天）</div>' +
+    '<div class="lr-heatmap">' + cells.join('') + '</div>';
+}
+
 function listenReportModalHtml(report) {
   var title = report.period === 'month' ? '月度听歌报告' : (report.period === 'year' ? '年度听歌报告' : '听歌总报告');
   var songsHtml = report.topSongs.length
@@ -133,7 +160,8 @@ function listenReportModalHtml(report) {
     '<div class="lr-list">' + songsHtml + '</div>' +
     '<div class="lr-section-title">常听歌手 TOP ' + Math.min(10, report.topArtists.length) + '</div>' +
     '<div class="lr-list">' + artistsHtml + '</div>' +
-    '<div class="lr-section-title">近 30 天播放时段分布</div>' +
+    listenReportHeatmapHtml(report.dayHeatmap, report.period) +
+    '<div class="lr-section-title">播放时段分布（24 小时）</div>' +
     '<div class="lr-hours">' + hourBars + '</div>' +
     (platformHtml ? '<div class="lr-platforms">' + platformHtml + '</div>' : '') +
     '</div>';

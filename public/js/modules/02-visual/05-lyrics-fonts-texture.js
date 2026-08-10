@@ -1,5 +1,5 @@
 function builtinLyricFontKeyPattern() {
-  return /^(sans|hei|song|bold-song|stone-song|kai-song|serif-en|gothic|editorial|humanist|round|mono|display)$/;
+  return /^(sans|hei|song|bold-song|stone-song|kai-song|serif-en|gothic|editorial|humanist|round|mono|display|mashan|longcang|liucao|xiaowei)$/;
 }
 function customLyricFontKey(id) {
   id = String(id || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 32);
@@ -98,6 +98,10 @@ function lyricFontStackForKey(key) {
   if (key === 'bold-song') return '"Source Han Serif SC Heavy","Source Han Serif SC","Noto Serif SC Black","Noto Serif SC","STZhongsong","SimSun",serif';
   if (key === 'stone-song') return '"FZYaSongS-B-GB","FZCuSong-B09S","Source Han Serif SC Heavy","Noto Serif SC Black","STZhongsong","SimSun",serif';
   if (key === 'kai-song') return '"Kaiti SC","STKaiti","KaiTi","Source Han Serif SC","Noto Serif SC",serif';
+  if (key === 'mashan') return '"Ma Shan Zheng","Kaiti SC","STKaiti","KaiTi",cursive';
+  if (key === 'longcang') return '"Long Cang","Kaiti SC","STKaiti","KaiTi",cursive';
+  if (key === 'liucao') return '"Liu Jian Mao Cao","STCaoshu","STKaiti","KaiTi",cursive';
+  if (key === 'xiaowei') return '"ZCOOL XiaoWei","Source Han Serif SC","SimSun","Songti SC",serif';
   if (key === 'serif-en') return 'Georgia,"Times New Roman","Noto Serif SC","Source Han Serif SC",serif';
   if (key === 'gothic') return '"UnifrakturCook","UnifrakturMaguntia","Old English Text MT","Blackletter","Cinzel Decorative","Noto Serif SC",serif';
   if (key === 'editorial') return '"Didot","Bodoni 72","Libre Baskerville",Georgia,"Noto Serif SC",serif';
@@ -108,7 +112,10 @@ function lyricFontStackForKey(key) {
   return 'Inter,"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif';
 }
 function lyricFontWeightValue() {
-  if (normalizeLyricFontKey(fx && fx.lyricFont) === 'stone-song') return 900;
+  var key = normalizeLyricFontKey(fx && fx.lyricFont);
+  if (key === 'stone-song') return 900;
+  // 书法/毛笔字体仅提供单一字重（400），强制使用 400 以保留原始笔锋，避免高字重压糊字形
+  if (key === 'mashan' || key === 'longcang' || key === 'liucao' || key === 'xiaowei') return 400;
   return Math.round(clampRange(Number(fx && fx.lyricWeight) || 900, 500, 900) / 50) * 50;
 }
 function lyricFontCss(fontSize, weight) {

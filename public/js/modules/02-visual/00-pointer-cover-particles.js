@@ -651,25 +651,21 @@ if (coverMask > 0.02) {
   }
 
   // ====================================================
-  //  Preset 8: CONCERT LIVE — 演唱会现场
-  //  观众席荧光棒灯海 (扇形布局, 中央舞台空出) + LED 色浪 + 鼓点闪光灯
+  //  Preset 8: CONCERT LIVE — 演唱会现场 (暖金人海灯海)
+  //  ------------------------------------------------------------
+  //  观众视角: 我在人群里, 周围和下方是挥舞荧光棒的灯海。
+  //  - 每个粒子 = 一根荧光棒的发光顶端 (垂直拉长, 见片元 shader)
+  //  - 暖金单色 (不用彩虹色), 细微亮度/色相变化
+  //  - 集体海浪起伏 (人浪绕场传播), bass 加幅, beat 整体举起
+  //  - 上方留空给舞台聚光微光, 下半部到中部是灯海
   // ====================================================
-  else if (uPreset < 8.5) {
-    float ang = aRand * 6.28318;
-    float rad = mix(1.9, 6.4, fract(aRand * 7.31));
-    float seatH = fract(aRand * 13.7);
-    float crowdJump = uBass * K * 0.42 * (0.5 + 0.5 * seatH);
-    pos = vec3(cos(ang) * rad * 1.25, 0.06 + seatH * 0.55 + crowdJump, sin(ang) * rad * 0.62);
-    // LED 腕带色浪: 色相沿角度滚动, 低音加成色相偏移
-    float hue = fract(ang / 6.28318 * 2.5 + uTime * 0.045 + uBass * 0.12);
-    vec3 led = hsv2rgb(vec3(hue * 0.85 + 0.02, 0.82, 1.0));
-    // 鼓点闪光灯: 每 0.25s 重抽约 1/3 粒子, 鼓点来时闪白
-    // (mod 限定时间范围, 避免 uTime 无限增长导致 float 精度退化)
-    float flashGate = step(0.62, fract(aRand * 3.7 + floor(mod(uTime, 128.0) * 4.0)));
-    float flash = pow(smoothstep(0.30, 0.92, uBeat), 2.2) * flashGate;
-    vColor = mix(led, vec3(1.0, 0.97, 0.90), flash);
-    vAlpha = 0.92;
-    maxRippleAmp = max(maxRippleAmp, flash * 0.16);
+  // ====================================================
+  //  Preset 8: CONCERT LIVE — 演唱会现场
+  //  主粒子层隐藏 (vAlpha=0)。荧光棒灯海由 10-concert-live-stage.js
+  //  的独立 Points 层负责 (每根分明), 不占用主粒子 (避免糊成光雾)。
+  // ====================================================
+  else if (uPreset > 7.5 && uPreset < 8.5) {
+    vAlpha = 0.0;
   }
 
   // ====================================================

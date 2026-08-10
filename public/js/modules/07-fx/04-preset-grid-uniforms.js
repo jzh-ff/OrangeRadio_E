@@ -93,6 +93,10 @@ function setPreset(p, opts) {
   if (p === SKULL_PRESET_INDEX) loadSkullParticleAsset();
   if (changed && window.OrangeseaSonicTopography) OrangeseaSonicTopography.onPresetChange(prev, p, { scene: scene, fx: fx });
   uniforms.uPreset.value = p;
+  // 演唱会预设: 立即创建荧光棒灯海 (主循环可能被 vsync 跟随节流跳过, 导致灯海不出现)
+  if (p === CONCERT_PRESET_INDEX && typeof updateConcertStage === 'function') {
+    try { updateConcertStage(0.016); } catch (e) { if (typeof console !== 'undefined') console.warn('[concert] immediate build failed', e); }
+  }
   refreshPresetGrid();
   if (typeof updateSonicSeriesControlVisibility === 'function') updateSonicSeriesControlVisibility();
   if (typeof updateSonicWorkshopColorControls === 'function') updateSonicWorkshopColorControls();

@@ -12859,6 +12859,26 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode {
   font-weight: 800
 }
 
+.fx-font-grid button[data-font="mashan"] {
+  font-family: "Ma Shan Zheng", "Kaiti SC", "STKaiti", "KaiTi", cursive;
+  font-size: 13px
+}
+
+.fx-font-grid button[data-font="longcang"] {
+  font-family: "Long Cang", "Kaiti SC", "STKaiti", "KaiTi", cursive;
+  font-size: 13px
+}
+
+.fx-font-grid button[data-font="liucao"] {
+  font-family: "Liu Jian Mao Cao", "STCaoshu", "STKaiti", "KaiTi", cursive;
+  font-size: 13px
+}
+
+.fx-font-grid button[data-font="xiaowei"] {
+  font-family: "ZCOOL XiaoWei", "Source Han Serif SC", "SimSun", "Songti SC", serif;
+  font-size: 13px
+}
+
 .fx-font-grid button[data-font^="custom:"] {
   position: relative;
   padding-right: 22px;
@@ -17870,6 +17890,11 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
 .lr-hour span { font-size: 9px; color: rgba(255, 255, 255, .4); }
 .lr-platforms { display: flex; flex-wrap: wrap; gap: 6px; }
 .lr-platform-chip { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: rgba(255, 255, 255, .06); color: rgba(255, 255, 255, .7); }
+.lr-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.lr-heat-cell { aspect-ratio: 1; border-radius: 3px; background: rgba(255, 255, 255, .05); }
+.lr-heat-cell[data-level="1"] { background: rgba(255, 122, 61, .28); }
+.lr-heat-cell[data-level="2"] { background: rgba(255, 122, 61, .58); }
+.lr-heat-cell[data-level="3"] { background: rgba(255, 122, 61, .95); }
 #eq-btn {
   position: relative;
 }

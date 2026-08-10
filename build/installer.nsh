@@ -69,8 +69,22 @@
   Var MineradioDirectoryInput
 !endif
 
+!ifndef BUILD_UNINSTALLER
+; DPI 感知: 尽早声明, 避免 NSIS 窗口被 Windows 位图拉伸导致字体模糊
+Function MineradioEnableDpiAwareness
+  System::Call 'user32::SetProcessDpiAwarenessContext(p -4) i .r0'
+  ${If} $0 == 0
+    System::Call 'shcore::SetProcessDpiAwareness(i 2) i .r0'
+  ${EndIf}
+  ${If} $0 == 0
+    System::Call 'user32::SetProcessDPIAware() i .r0'
+  ${EndIf}
+FunctionEnd
+!endif
+
 !macro customInit
   !ifndef BUILD_UNINSTALLER
+    Call MineradioEnableDpiAwareness
     Call MineradioUsePreferredInstallDir
     Call MineradioDisableUnsafeOldUninstallers
     ${If} ${Silent}
@@ -124,6 +138,8 @@
 
 !ifndef BUILD_UNINSTALLER
 Function MineradioGuiInit
+  Call MineradioEnableDpiAwareness
+  ; 暗色标题栏 (DWMWA_USE_IMMERSIVE_DARKMODE=20, DWMWA_CAPTION_COLOR=35 on newer builds)
   System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 20, *i 1, i 4) i .r0'
   System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 19, *i 1, i 4) i .r0'
   Call MineradioTintCommonControls
@@ -820,37 +836,42 @@ Function MineradioWelcomeShow
   ${EndIf}
 
   SetCtlColors $MineradioWelcomePage "F5F0E6" "14100A"
-  CreateFont $MineradioHeroFont "Microsoft YaHei UI" 26 700
-  CreateFont $MineradioTitleFont "Microsoft YaHei UI" 11 700
+  CreateFont $MineradioHeroFont "Microsoft YaHei UI" 24 700
+  CreateFont $MineradioTitleFont "Microsoft YaHei UI" 10 700
   CreateFont $MineradioBodyFont "Microsoft YaHei UI" 9 400
   CreateFont $MineradioSmallFont "Microsoft YaHei UI" 8 400
 
-  ${NSD_CreateLabel} 22u 18u 120u 10u "${MINERADIO_INSTALL_BRAND}"
+  ; 品牌标记 (顶部小字, 橙色)
+  ${NSD_CreateLabel} 20u 10u 200u 10u "${MINERADIO_INSTALL_BRAND}"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
   SetCtlColors $0 "FF7A3D" "14100A"
 
-  ${NSD_CreateLabel} 22u 40u 240u 34u "${MINERADIO_INSTALL_TITLE}"
+  ; Hero 标题 (大字, 米白)
+  ${NSD_CreateLabel} 20u 26u 270u 30u "${MINERADIO_INSTALL_TITLE}"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioHeroFont 1
   SetCtlColors $0 "F5F0E6" "14100A"
 
-  ${NSD_CreateLabel} 22u 78u 40u 2u ""
+  ; 橙色分隔线
+  ${NSD_CreateLabel} 20u 60u 44u 2u ""
   Pop $0
   SetCtlColors $0 "" "FF7A3D"
 
-  ${NSD_CreateLabel} 22u 96u 240u 28u "日落时分，海面橙红。OrangeSea 把音乐变成一场私人日落——粒子舞台、3D 歌词、胶片电台，让每一首歌都有画面。"
+  ; 介绍文案 (正文, 暖金)
+  ${NSD_CreateLabel} 20u 70u 270u 28u "日落时分，海面橙红。OrangeSea 把音乐变成一场私人日落——粒子舞台、3D 歌词、胶片电台，让每一首歌都有画面。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioBodyFont 1
   SetCtlColors $0 "C9A87A" "14100A"
 
-  ${NSD_CreateLabel} 22u 132u 240u 12u "默认安装到 $INSTDIR"
+  ; 默认安装路径 (橙色强调)
+  ${NSD_CreateLabel} 20u 108u 270u 14u "默认安装到 $INSTDIR"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioTitleFont 1
   SetCtlColors $0 "FF7A3D" "14100A"
 
   !ifdef MINERADIO_INTERNAL_BETA
-    ${NSD_CreateLabel} 22u 150u 238u 28u "${MINERADIO_INSTALL_NOTICE}"
+    ${NSD_CreateLabel} 20u 126u 268u 24u "${MINERADIO_INSTALL_NOTICE}"
     Pop $0
     SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
     SetCtlColors $0 "FF5E62" "14100A"
@@ -882,36 +903,42 @@ Function MineradioDirectoryShow
   ${EndIf}
 
   SetCtlColors $MineradioDirectoryPage "F5F0E6" "14100A"
-  CreateFont $MineradioTitleFont "Microsoft YaHei UI" 15 700
+  CreateFont $MineradioTitleFont "Microsoft YaHei UI" 14 700
   CreateFont $MineradioBodyFont "Microsoft YaHei UI" 9 400
   CreateFont $MineradioSmallFont "Microsoft YaHei UI" 8 500
 
-  ${NSD_CreateLabel} 22u 12u 238u 20u "选择安装位置"
+  ; 页面标题
+  ${NSD_CreateLabel} 20u 8u 260u 16u "选择安装位置"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioTitleFont 1
   SetCtlColors $0 "F5F0E6" "14100A"
 
-  ${NSD_CreateLabel} 22u 40u 238u 24u "选一个你喜欢的地方安放 OrangeSea。默认推荐 D 盘，也可以浏览其它位置，安装器会自动创建文件夹。"
+  ; 说明文案 (紧凑, 控制在 2 行内)
+  ${NSD_CreateLabel} 20u 30u 260u 26u "选一个你喜欢的地方安放 OrangeSea，默认推荐 D 盘，也可以浏览其它位置。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioBodyFont 1
   SetCtlColors $0 "C9A87A" "14100A"
 
-  ${NSD_CreateLabel} 22u 76u 238u 10u "安装目录"
+  ; 安装目录标签
+  ${NSD_CreateLabel} 20u 62u 260u 10u "安装目录"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
   SetCtlColors $0 "FF7A3D" "14100A"
 
-  ${NSD_CreateText} 22u 94u 178u 15u "$INSTDIR"
+  ; 路径输入框
+  ${NSD_CreateText} 20u 76u 190u 14u "$INSTDIR"
   Pop $MineradioDirectoryInput
   SendMessage $MineradioDirectoryInput ${WM_SETFONT} $MineradioBodyFont 1
   SetCtlColors $MineradioDirectoryInput "14100A" "F5F0E6"
 
-  ${NSD_CreateBrowseButton} 210u 93u 50u 17u "浏览..."
+  ; 浏览按钮
+  ${NSD_CreateBrowseButton} 220u 75u 54u 16u "浏览..."
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
   ${NSD_OnClick} $0 MineradioDirectoryBrowse
 
-  ${NSD_CreateLabel} 22u 122u 238u 12u "推荐 D:\${MINERADIO_INSTALL_DIR_NAME}，选盘符会自动建文件夹。"
+  ; 底部提示
+  ${NSD_CreateLabel} 20u 100u 260u 20u "推荐 D:\${MINERADIO_INSTALL_DIR_NAME}，选盘符会自动建文件夹。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
   SetCtlColors $0 "8A7A5C" "14100A"

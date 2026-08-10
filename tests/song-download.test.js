@@ -68,6 +68,12 @@ function cleanup() {
 
     playbackModule.handleSongUrl = async () => ({ url: 'http://example.com/audio.flac', playable: true, trial: false });
 
+    // 打桩歌词：避免真实联网；返回带译文的假 LRC，验证 .lrc 写入
+    const fakeLrc = '[00:01.00]测试歌词行\n[00:03.50]第二行';
+    const fakeTlrc = '[00:01.00]translated line\n[00:03.50]second translated';
+    const originalLyricResolver = route.resolvePlatformLyric;
+    route.resolvePlatformLyric = async () => ({ lyric: fakeLrc, tlyric: fakeTlrc });
+
     const job = route.createSongDownloadJob(
       { platform: 'netease', id: 'song-1', name: '测试歌曲', artist: '歌手A', cover: 'c' },
       'lossless'
@@ -95,6 +101,48 @@ function cleanup() {
     assert.equal(meta.title, '测试歌曲');
     assert.equal(meta.quality, 'lossless');
 
+    // ---- 歌词 .lrc 文件（flac 不嵌入标签，仅 .lrc）----
+    const lrcPath = job.filePath.replace(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i, '') + '.lrc';
+    assert.ok(fs.existsSync(lrcPath), '.lrc file must exist when lyric available');
+    const lrcText = fs.readFileSync(lrcPath, 'utf8');
+    assert.ok(lrcText.indexOf('测试歌词行') >= 0, '.lrc must contain original lyric');
+    assert.ok(lrcText.indexOf('translated line') >= 0, '.lrc must contain interleaved translation');
+    assert.ok(meta.hasLyric === true, 'meta.hasLyric must be true');
+    assert.ok(meta.lyricFile && /\.lrc$/.test(meta.lyricFile), 'meta.lyricFile must end with .lrc');
+
+    // ---- buildLrcContent 纯函数：译文按时间戳交错 ----
+    const merged = route.buildLrcContent('[00:01.00]原文\n[00:02.00]第二', '[00:01.00]译文');
+    const lines = merged.split('\n');
+    assert.equal(lines[0], '[00:01.00]原文');
+    assert.equal(lines[1], '[00:01.00]译文', 'translation must follow original at same timestamp');
+    assert.equal(lines[2], '[00:02.00]第二', 'line without translation stays alone');
+
+    // ---- mp3 嵌入 USLT 歌词帧（node-id3 可用时）----
+    if (require('node-id3')) {
+      playbackModule.handleSongUrl = async () => ({ url: 'http://example.com/audio2.mp3', playable: true, trial: false });
+      const mp3Job = route.createSongDownloadJob(
+        { platform: 'netease', id: 'song-mp3', name: 'MP3歌曲', artist: '歌手B' },
+        'standard'
+      );
+      let mp3Attempts = 0;
+      while (mp3Job.status !== 'ready' && mp3Job.status !== 'error' && mp3Attempts < 100) {
+        await new Promise((r) => setTimeout(r, 20));
+        mp3Attempts++;
+      }
+      assert.equal(mp3Job.status, 'ready', 'mp3 download must complete, got: ' + mp3Job.error);
+      assert.ok(/\.mp3$/i.test(mp3Job.filePath), 'mp3 job must produce .mp3 file');
+      // .lrc 也应存在
+      const mp3Lrc = mp3Job.filePath.replace(/\.mp3$/i, '') + '.lrc';
+      assert.ok(fs.existsSync(mp3Lrc), 'mp3 song must also have .lrc');
+      // 嵌入标签验证：读回 USLT
+      const readTags = require('node-id3').read(mp3Job.filePath);
+      const uslt = readTags && (readTags.unsynchronisedLyrics || (readTags.unsynchronisedLyrics === undefined && readTags.USLT));
+      assert.ok(uslt && typeof uslt.text === 'string' && uslt.text.indexOf('translated line') >= 0,
+        'mp3 USLT frame must contain embedded lyric');
+      const mp3Meta = JSON.parse(fs.readFileSync(mp3Job.filePath + '.osdownload.json', 'utf8'));
+      assert.equal(mp3Meta.lyricEmbedded, true, 'mp3 meta must mark lyricEmbedded');
+    }
+
     // ---- publicDownloadJob ----
     const pub = route.publicDownloadJob(job);
     assert.equal(pub.ok, true);
@@ -110,6 +158,7 @@ function cleanup() {
     // 还原
     playbackModule.handleSongUrl = originalNetease;
     utils.fetchWithTimeout = originalFetch;
+    route.resolvePlatformLyric = originalLyricResolver;
 
     console.log('OK song-download');
   } catch (err) {

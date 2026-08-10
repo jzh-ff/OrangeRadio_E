@@ -7,8 +7,18 @@
   <title>OrangeSea 橘子海</title>
   <meta name="referrer" content="no-referrer">
   <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&family=UnifrakturCook:wght@700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=Noto+Sans+SC:wght@400;500;700;900&family=UnifrakturCook:wght@700&family=ZCOOL+XiaoWei&display=swap"
     rel="stylesheet">
+  <!-- 本地打包的毛笔行楷字体（Ma Shan Zheng, SIL OFL），离线可用；woff2 约 3.1MB -->
+  <style>
+    @font-face {
+      font-family: "Ma Shan Zheng";
+      src: url("fonts/MaShanZheng.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
   <script src="vendor/three.r128.min.js"></script>
   <script src="vendor/music-tempo.min.js"></script>
   <script src="vendor/gsap.min.js"></script>
@@ -713,6 +723,10 @@
             <button type="button" data-font="bold-song" onclick="setLyricFont('bold-song')">粗宋</button>
             <button type="button" data-font="stone-song" onclick="setLyricFont('stone-song')">石印宋</button>
             <button type="button" data-font="kai-song" onclick="setLyricFont('kai-song')">楷宋</button>
+            <button type="button" data-font="mashan" onclick="setLyricFont('mashan')">毛笔行楷</button>
+            <button type="button" data-font="longcang" onclick="setLyricFont('longcang')">龙藏行书</button>
+            <button type="button" data-font="liucao" onclick="setLyricFont('liucao')">狂放草书</button>
+            <button type="button" data-font="xiaowei" onclick="setLyricFont('xiaowei')">清秀小楷</button>
             <button type="button" data-font="serif-en" onclick="setLyricFont('serif-en')">Serif</button>
             <button type="button" data-font="gothic" onclick="setLyricFont('gothic')">Gothic</button>
             <button type="button" data-font="editorial" onclick="setLyricFont('editorial')">Editorial</button>

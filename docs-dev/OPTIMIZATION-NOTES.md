@@ -56,11 +56,11 @@
 | 演唱会现场视觉预设 | 已完成（commit a35090e）：9 号预设、灯海 shader、聚光灯层 | concert-preset-registration |
 | 睡眠定时器 | `05-playback/20-sleep-timer.js` + 底部控制条时钟按钮：15/30/60/90min / 曲末暂停，倒计时弹层，到点 toast | sleep-timer |
 | 歌单导入导出 | `06-lyrics/07-playlist-share.js`：OSPL1: gzip+base64url+FNV 校验分享码 + .osplaylist.json 文件，平台白名单归一化追加队列 | playlist-share |
-| 歌曲下载/离线缓存 | `server/routes/download.js`：POST /api/download（仅网易/QQ/酷狗/汽水）+ status 轮询，流式写盘到 D:\OrangeSeaCache\downloads，.osdownload.json 元数据，汽水走解密通道，并发 2 限流；前端底部下载按钮 + 轮询 toast | song-download |
-| 听歌月度/年度报告 | `05-playback/22-listen-report.js`：首页 dock 入口，周期聚合（总时长/次数/Top 歌曲歌手/时段分布/平台分布），纯函数可测 | listen-report |
+| 歌曲下载/离线缓存 | `server/routes/download.js`：POST /api/download（仅网易/QQ/酷狗/汽水）+ status 轮询，流式写盘到 D:\OrangeSeaCache\downloads，.osdownload.json 元数据，汽水走解密通道，并发 2 限流；下载时自动取词写同名 `.lrc`（译文按时间戳交错），mp3 额外嵌入 USLT 歌词帧（node-id3）；前端底部下载按钮 + 轮询 toast | song-download |
+| 听歌月度/年度报告 | `05-playback/22-listen-report.js`：首页 dock 入口，周期聚合（总时长/次数/Top 歌曲歌手/播放日历热力图/时段分布/平台分布），纯函数可测 | listen-report |
 
 ## 验证基线
 
-- `npm test`：35/35 通过（原 24 + 新增 11：local-library、listen-journal、kugou-api、netease-playback-url-cache、proxy-ssrf-guard、cookie-cipher、sleep-timer、playlist-share、song-download、listen-report、concert-preset-registration）
+- `npm test`：36/36 通过（原 24 + 新增 12：local-library、listen-journal、kugou-api、netease-playback-url-cache、proxy-ssrf-guard、cookie-cipher、sleep-timer、playlist-share、song-download、listen-report、concert-preset-registration、song-download-lyric）
 - `node scripts/quick-check.js`：全部守卫通过
 - CI：`.github/workflows/ci.yml`（语法检查 + npm test + quick-check）

@@ -59,7 +59,8 @@ function pollSongDownloadStatus(jobId, song) {
       }
       if (job.status === 'ready') {
         clearInterval(timer);
-        showToast('下载完成：' + (song.name || '') + '（已保存到下载目录，可在本地音乐库中添加该目录）');
+        var hasLyric = job.meta && job.meta.hasLyric;
+        showToast('下载完成：' + (song.name || '') + (hasLyric ? '（含歌词，已保存到下载目录）' : '（已保存到下载目录）'));
       } else if (job.status === 'error') {
         clearInterval(timer);
         showToast('下载失败：' + (job.error || '未知错误'));
