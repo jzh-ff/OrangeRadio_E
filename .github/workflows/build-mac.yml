@@ -1,0 +1,40 @@
+name: Build macOS
+
+# 触发条件：手动触发（Actions 页面点 Run workflow）或推送 v* 标签
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build macOS app (zip · x64)
+        run: npx electron-builder --mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List dist
+        run: ls -lh dist/ || true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeSea-macOS-x64
+          path: |
+            dist/*-mac*.zip
+            dist/mac/*.zip
+          if-no-files-found: warn

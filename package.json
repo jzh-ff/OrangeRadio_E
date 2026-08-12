@@ -46,6 +46,13 @@
       "public/index.html"
     ],
     "asar": false,
+    "mac": {
+      "icon": "build/icon.png",
+      "target": [
+        { "target": "zip", "arch": ["x64"] }
+      ],
+      "category": "public.app-category.music"
+    },
     "win": {
       "executableName": "OrangeSea",
       "icon": "build/icon.ico",
