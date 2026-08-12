@@ -738,6 +738,7 @@ function cyclePlayMode() {
   var idx = modes.indexOf(playMode);
   var prevMode = playMode;
   playMode = modes[(idx + 1) % modes.length];
+  savePlayModePreference(playMode);
   if (playMode === 'shuffle' && prevMode !== 'shuffle') {
     reorderQueueForShufflePlaybackOrder(currentIdx, { reason: 'play-mode-shuffle' });
   }

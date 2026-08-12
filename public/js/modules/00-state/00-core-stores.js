@@ -158,6 +158,7 @@ var LAST_PLAYBACK_STORE_KEY = 'orangesea-last-playback-v1';
 var STARTUP_AUTOPLAY_STORE_KEY = 'orangesea-startup-autoplay-v1';
 var STARTUP_FAST_SKIP_STORE_KEY = 'orangesea-startup-fast-skip-v1';
 var STARTUP_RESUME_MODE_STORE_KEY = 'orangesea-startup-resume-mode-v1';
+var PLAY_MODE_STORE_KEY = 'orangesea-play-mode-v1';
 var LOCAL_BEATMAP_STORE_KEY = 'orangesea-local-beatmaps-v1';
 var LOCAL_BEAT_PREF_STORE_KEY = 'orangesea-local-beatmap-prefs-v1';
 var LOCAL_BEAT_COMBOS = ['', 'downbeat', 'push', 'drop', 'rebound', 'accent'];

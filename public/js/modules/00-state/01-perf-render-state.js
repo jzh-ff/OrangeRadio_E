@@ -21,7 +21,7 @@ function installStartupLongTaskObserver() {
   } catch (e) { }
 }
 installStartupLongTaskObserver();
-var queueViewTab = readPlaylistPanelTabPreference(), playMode = 'loop', miniQueueOpen = false;
+var queueViewTab = readPlaylistPanelTabPreference(), playMode = readPlayModePreference(), miniQueueOpen = false;
 var miniQueueRenderSeq = 0, queueRenderSeq = 0, playlistRenderSeq = 0;
 var queuePanelDirty = false;
 var PLAYLIST_LAZY_BATCH_SIZE = 48;

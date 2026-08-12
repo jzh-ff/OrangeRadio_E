@@ -49,6 +49,15 @@ function readBooleanPreference(key, fallback) {
 function saveBooleanPreference(key, on) {
   try { localStorage.setItem(key, on ? '1' : '0'); } catch (e) { }
 }
+function normalizePlayMode(mode) {
+  return mode === 'shuffle' ? 'shuffle' : (mode === 'single' ? 'single' : 'loop');
+}
+function readPlayModePreference() {
+  try { return normalizePlayMode(localStorage.getItem(PLAY_MODE_STORE_KEY) || 'loop'); } catch (e) { return 'loop'; }
+}
+function savePlayModePreference(mode) {
+  try { localStorage.setItem(PLAY_MODE_STORE_KEY, normalizePlayMode(mode)); } catch (e) { }
+}
 function normalizePlaylistPanelTab(tab) {
   tab = String(tab || '').trim();
   return tab === 'podcasts' ? 'podcasts' : (tab === 'playlists' ? 'playlists' : 'queue');
