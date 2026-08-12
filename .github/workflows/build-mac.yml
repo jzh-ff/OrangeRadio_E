@@ -35,6 +35,8 @@ jobs:
         with:
           name: OrangeSea-macOS-x64
           path: |
+            dist/*.dmg
+            dist/mac/*.dmg
             dist/*-mac*.zip
             dist/mac/*.zip
           if-no-files-found: warn

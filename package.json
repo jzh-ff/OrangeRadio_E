@@ -49,7 +49,7 @@
     "mac": {
       "icon": "build/icon-mac.png",
       "target": [
-        { "target": "zip", "arch": ["x64"] }
+        { "target": "dmg", "arch": ["x64"] }
       ],
       "category": "public.app-category.music",
       "identity": null,
