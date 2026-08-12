@@ -25,7 +25,8 @@ async function main() {
   // Windows 上 os.tmpdir() 可能返回 8.3 短路径（如 CI runner 的 RUNNER~1）。
   // 同步版 fs.realpathSync 在 Windows 上不还原 8.3，但应用代码用的
   // fs.promises.realpath 会还原——统一用异步 realpath 规范化，确保两边一致
-  const temp = await fs.promises.realpath(fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-we-')));
+  const tmpBase = await fs.promises.realpath(os.tmpdir());
+  const temp = await fs.promises.realpath(fs.mkdtempSync(path.join(tmpBase, 'mineradio-we-')));
   const libraryRoot = path.join(temp, 'library');
   const userData = path.join(temp, 'user-data');
   fs.mkdirSync(libraryRoot, { recursive: true });
