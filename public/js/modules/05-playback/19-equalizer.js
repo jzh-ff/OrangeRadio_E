@@ -202,6 +202,15 @@ function syncEqDegradedState() {
 
 /* ---------- UI 绑定 ---------- */
 function bindEqualizerControls() {
+  // 点击外部关闭 EQ 弹层（与音量/音质弹层行为一致）
+  if (!document.__eqOutsideBound) {
+    document.__eqOutsideBound = true;
+    document.addEventListener('click', function (e) {
+      var control = document.getElementById('eq-control');
+      if (!control || !control.classList.contains('open')) return;
+      if (!control.contains(e.target)) closeEqPanel();
+    });
+  }
   // 10 个滑块
   for (var i = 0; i < 10; i++) {
     var slider = document.getElementById('eq-slider-' + i);
@@ -255,4 +264,9 @@ function toggleEqPanel(e) {
     syncEqToggle();
     syncEqDegradedState();
   }
+}
+
+function closeEqPanel() {
+  var control = document.getElementById('eq-control');
+  if (control) control.classList.remove('open');
 }

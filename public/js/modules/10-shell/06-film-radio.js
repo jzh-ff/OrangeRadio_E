@@ -76,6 +76,7 @@ function startFilmRadio() {
   syncFilmRadioPlayState();
   updateFilmRadioStamp();
   renderFilmRadioLyrics();
+  loadFilmRadioComments(typeof currentCoverSong === 'function' ? currentCoverSong() : null);
   startFilmRadioObserver();
   startFilmRadioLoop();
 }
@@ -136,8 +137,11 @@ function syncFilmRadioMeta() {
   var prevTitle = frTitle ? frTitle.textContent : '';
   if (frTitle && titleEl) frTitle.textContent = titleEl.textContent || '未在播放';
   if (frArtist && artistEl) frArtist.textContent = artistEl.textContent || '';
-  /* 切歌：标题变了就重生成戳记 */
-  if (frTitle && frTitle.textContent !== prevTitle) updateFilmRadioStamp();
+  /* 切歌：标题变了就重生成戳记 + 重载评论 */
+  if (frTitle && frTitle.textContent !== prevTitle) {
+    updateFilmRadioStamp();
+    loadFilmRadioComments(typeof currentCoverSong === 'function' ? currentCoverSong() : null);
+  }
 }
 
 /* 进度 + 时间 */
@@ -153,23 +157,11 @@ function syncFilmRadioProgress() {
   if (frTime && time) frTime.textContent = time.textContent || '0:00 / 0:00';
 }
 
-/* 播放状态：播放/暂停图标 + 封面停顿态 + 喜欢态
-   （旧版驱动黑胶唱片旋转，现黑胶已移除，仅保留图标与封面停顿态钩子） */
+/* 播放状态：仅维护封面停顿态（播放控制按钮已移除，交由底部控制栏） */
 function syncFilmRadioPlayState() {
-  var frPlay = document.getElementById('fr-play');
-  if (frPlay) {
-    // Read the media element directly; SVG markup is presentation, not playback state.
-    var isPlaying = !!(audio && audio.src && !audio.paused && !audio.ended);
-    frPlay.innerHTML = isPlaying
-      ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-    frPlay.classList.toggle('is-playing', isPlaying);
-    var cover = document.getElementById('fr-cover');
-    if (cover) cover.classList.toggle('is-paused', !isPlaying);
-  }
-  var heart = document.getElementById('heart-btn');
-  var frHeart = document.getElementById('fr-heart');
-  if (frHeart && heart) frHeart.classList.toggle('liked', heart.classList.contains('liked'));
+  var isPlaying = !!(audio && audio.src && !audio.paused && !audio.ended);
+  var cover = document.getElementById('fr-cover');
+  if (cover) cover.classList.toggle('is-paused', !isPlaying);
 }
 
 /* ---------- 装饰性胶片参数（日期戳 / ISO / 光圈 / 帧编号） ----------
@@ -214,29 +206,19 @@ function updateFilmRadioStamp() {
   } catch (e) { /* 装饰失败不影响播放 */ }
 }
 
-/* ---------- 歌词渲染 ---------- */
+/* ---------- 歌词渲染（单行模式：只维护标题下的当前行，tick 更新） ---------- */
 function renderFilmRadioLyrics() {
-  var container = document.getElementById('fr-lyrics');
-  if (!container) return;
-  if (!lyricsLines || !lyricsLines.length) {
-    container.innerHTML = '<div class="fr-lyrics-empty">暂无歌词</div>';
-    filmRadioLastLyricIdx = -99;
-    return;
-  }
+  var nowLine = document.getElementById('fr-now-line');
+  if (!nowLine) return;
   // 过滤纯占位 fallback
-  var hasReal = lyricsLines.some(function (l) { return !l.fallback; });
+  var hasReal = lyricsLines && lyricsLines.length && lyricsLines.some(function (l) { return !l.fallback; });
   if (!hasReal) {
-    container.innerHTML = '<div class="fr-lyrics-empty">暂无歌词</div>';
-    filmRadioLastLyricIdx = -99;
-    return;
+    nowLine.textContent = '暂无歌词';
+    nowLine.classList.add('empty');
+  } else {
+    nowLine.textContent = '—';
+    nowLine.classList.add('empty');
   }
-  var html = lyricsLines.map(function (line, i) {
-    var cls = 'fr-lyric-row' + (line.fallback ? ' fallback' : '');
-    var text = line.text || '';
-    if (line.translation) text += '<span class="fr-lyric-trans">' + escapeFrHtml(line.translation) + '</span>';
-    return '<div class="' + cls + '" data-idx="' + i + '">' + escapeFrHtml(line.text || '') + (line.translation ? '<br><span style="font-size:.82em;opacity:.7">' + escapeFrHtml(line.translation) + '</span>' : '') + '</div>';
-  }).join('');
-  container.innerHTML = html;
   filmRadioLastLyricIdx = -99;
 }
 
@@ -249,8 +231,8 @@ function escapeFrHtml(s) {
 function tickFilmRadioLyrics() {
   if (!filmRadioMode) return;
   if (!lyricsLines || !lyricsLines.length) return;
-  var container = document.getElementById('fr-lyrics');
-  if (!container) return;
+  var nowLine = document.getElementById('fr-now-line');
+  if (!nowLine) return;
   var idx;
   try {
     idx = findStageLyricIndexAtTime(getAdjustedLyricPlaybackTime(audio.currentTime));
@@ -260,17 +242,14 @@ function tickFilmRadioLyrics() {
   if (idx < 0) idx = -1;
   if (idx === filmRadioLastLyricIdx) return;
   filmRadioLastLyricIdx = idx;
-  var rows = container.querySelectorAll('.fr-lyric-row');
-  for (var i = 0; i < rows.length; i++) {
-    rows[i].classList.toggle('active', i === idx);
-  }
-  // 滚动当前行居中：小步（≤2 行高）瞬时定位，避免 smooth 滚动动画
-  // 与行的缩放/颜色过渡同时进行造成切换卡顿；大步（切歌等）才用平滑跟随。
-  if (idx >= 0 && idx < rows.length) {
-    var active = rows[idx];
-    var target = active.offsetTop - container.clientHeight / 2 + active.clientHeight / 2;
-    var step = Math.abs(target - container.scrollTop);
-    container.scrollTo({ top: target, behavior: step < 96 ? 'auto' : 'smooth' });
+  if (idx >= 0 && lyricsLines[idx] && lyricsLines[idx].text) {
+    nowLine.textContent = lyricsLines[idx].text;
+    nowLine.classList.remove('empty');
+    nowLine.title = lyricsLines[idx].text;
+  } else {
+    nowLine.textContent = '—';
+    nowLine.classList.add('empty');
+    nowLine.title = '';
   }
 }
 
@@ -299,7 +278,7 @@ function ensureFilmRadioSpectrum() {
   var container = document.getElementById('fr-spectrum');
   if (!container) return;
   container.innerHTML = '';
-  for (var i = 0; i < 24; i++) {
+  for (var i = 0; i < 48; i++) {
     var bar = document.createElement('div');
     bar.className = 'fr-spectrum-bar';
     container.appendChild(bar);
@@ -321,6 +300,124 @@ function tickFilmRadioSpectrum() {
     var scale = 0.1 + v * 0.9;
     bars[i].style.transform = 'scaleY(' + scale.toFixed(3) + ')';
   }
+}
+
+/* ---------- 评论卡片（复用 detailCommentsConfig + apiJson，无限滚动分页） ----------
+   qq/网易按 offset 分页，汽水按 cursor 分页；三平台都返回 total。
+   滚动到评论区底部自动加载下一页并追加。 */
+var filmRadioCommentsSeq = 0;
+var filmRadioCommentsSong = null;
+var filmRadioCommentsState = { offset: 0, cursor: '', loading: false, done: false, total: 0 };
+
+function filmRadioCommentLimit() { return 18; }
+
+/* 按平台拼接分页参数 */
+function filmRadioCommentsUrl(config) {
+  var url = config.readUrl || '';
+  var st = filmRadioCommentsState;
+  if (config.provider === 'qishui') {
+    if (st.cursor) url += '&cursor=' + encodeURIComponent(st.cursor);
+  } else if (st.offset > 0) {
+    url += '&offset=' + st.offset;
+  }
+  return url;
+}
+
+function filmRadioCommentCard(c) {
+  var user = c.user || {};
+  var avatar = user.avatar ? (typeof coverUrlWithSize === 'function' ? coverUrlWithSize(user.avatar, 64) : user.avatar) : '';
+  var avatarHtml = avatar
+    ? '<div class="fr-comment-avatar" style="background-image:url(\'' + avatar.replace(/'/g, '%27') + '\')"></div>'
+    : '<div class="fr-comment-avatar"></div>';
+  var likes = c.likedCount ? '<span class="fr-comment-likes">♡ ' + c.likedCount + '</span>' : '';
+  return '<div class="fr-comment-item">' + avatarHtml +
+    '<div class="fr-comment-body">' +
+    '<div class="fr-comment-meta"><span class="fr-comment-name">' + escapeFrHtml(user.nickname || '音乐用户') + '</span>' + likes + '</div>' +
+    '<div class="fr-comment-text">' + escapeFrHtml(c.content || '') + '</div>' +
+    '</div></div>';
+}
+
+function renderFilmRadioComments(comments, append) {
+  var container = document.getElementById('fr-comments');
+  if (!container) return;
+  var html = (comments || []).map(filmRadioCommentCard).join('');
+  if (append) {
+    var loading = container.querySelector('[data-fr-loading]');
+    if (loading) loading.remove();
+    if (html) container.insertAdjacentHTML('beforeend', html);
+  } else {
+    container.innerHTML = html || '<div class="fr-comments-empty">暂无评论</div>';
+  }
+}
+
+function loadFilmRadioComments(song, append) {
+  var container = document.getElementById('fr-comments');
+  if (append) {
+    /* 追加模式：沿用当前歌曲与分页状态 */
+    if (filmRadioCommentsState.loading || filmRadioCommentsState.done) return;
+    song = filmRadioCommentsSong;
+  } else {
+    filmRadioCommentsSeq++; /* 使过期响应作废 */
+    filmRadioCommentsSong = song;
+    filmRadioCommentsState = { offset: 0, cursor: '', loading: false, done: false, total: 0 };
+  }
+  var seq = filmRadioCommentsSeq;
+  var config = (typeof detailCommentsConfig === 'function') ? detailCommentsConfig(song) : null;
+  if (!config || !config.readUrl) {
+    if (!append && container) container.innerHTML = '<div class="fr-comments-empty">当前平台暂无评论</div>';
+    return;
+  }
+  filmRadioCommentsState.loading = true;
+  if (append) {
+    if (container) container.insertAdjacentHTML('beforeend', '<div class="fr-comments-empty" data-fr-loading="1">加载中...</div>');
+  } else {
+    if (container) container.innerHTML = '<div class="fr-comments-empty">正在载入评论...</div>';
+  }
+  if (typeof apiJson !== 'function') {
+    filmRadioCommentsState.loading = false;
+    if (!append && container) container.innerHTML = '<div class="fr-comments-empty">暂无评论</div>';
+    return;
+  }
+  apiJson(filmRadioCommentsUrl(config)).then(function (result) {
+    if (seq !== filmRadioCommentsSeq) return; /* 已切歌/已重置，丢弃 */
+    filmRadioCommentsState.loading = false;
+    if (!result || result.error) {
+      renderFilmRadioComments([], append);
+      if (!append && container) container.innerHTML = '<div class="fr-comments-empty">评论加载失败</div>';
+      return;
+    }
+    var newComments = result.comments || [];
+    var total = Number(result.total) || 0;
+    if (total > 0) filmRadioCommentsState.total = total;
+    if (result.cursor) filmRadioCommentsState.cursor = result.cursor;
+    var limit = filmRadioCommentLimit();
+    filmRadioCommentsState.offset += newComments.length;
+    var loadedAll = total > 0 ? (filmRadioCommentsState.offset >= total) : (newComments.length < limit);
+    filmRadioCommentsState.done = loadedAll || result.hasMore === false;
+    renderFilmRadioComments(newComments, append);
+    if (filmRadioCommentsState.done && container) {
+      var loading = container.querySelector('[data-fr-loading]');
+      if (loading) loading.remove();
+    }
+  }).catch(function () {
+    filmRadioCommentsState.loading = false;
+    if (seq === filmRadioCommentsSeq && !append && container) {
+      container.innerHTML = '<div class="fr-comments-empty">评论加载失败</div>';
+    }
+  });
+}
+
+/* 无限滚动：滚到底部（剩 140px 内）触发追加 */
+function bindFilmRadioCommentsScroll() {
+  var container = document.getElementById('fr-comments');
+  if (!container || container.dataset.frCommentsBound) return;
+  container.dataset.frCommentsBound = '1';
+  container.addEventListener('scroll', function () {
+    if (filmRadioCommentsState.loading || filmRadioCommentsState.done) return;
+    if (container.scrollHeight - container.scrollTop - container.clientHeight < 140) {
+      loadFilmRadioComments(null, true);
+    }
+  });
 }
 
 /* ---------- 主循环（rAF，节流到约 30fps） ---------- */
@@ -394,6 +491,8 @@ function initFilmRadioProgressSeek() {
 function initFilmRadio() {
   // 进度条拖动
   initFilmRadioProgressSeek();
+  // 评论无限滚动（评论区在静态 DOM 中，启动时绑定一次）
+  bindFilmRadioCommentsScroll();
   // 模式变量在本模块执行时才从存储读取。统一在这里提交完整 DOM 状态，
   // 避免仅残留 html.film-radio-preload，导致标准底栏与胶片播放器同时不可见。
   applyFilmRadioMode(filmRadioMode, { save: false });

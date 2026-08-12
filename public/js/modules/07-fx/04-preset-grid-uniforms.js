@@ -42,6 +42,8 @@ function buildGraffitiPresetCard() {
 }
 
 function refreshPresetGrid() {
+  // 胶片电台/涂鸦墙激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
+  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode) || (typeof graffitiMode !== 'undefined' && graffitiMode);
   document.querySelectorAll('.preset-card').forEach(function (el) {
     var filmRadio = el.getAttribute('data-film-radio');
     if (filmRadio) {
@@ -53,7 +55,7 @@ function refreshPresetGrid() {
       el.classList.toggle('active', !!(typeof graffitiMode !== 'undefined' && graffitiMode));
       return;
     }
-    el.classList.toggle('active', Number(el.dataset.preset) === fx.preset);
+    el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
   });
 }
 function triggerPresetParticleTransition(fromPreset, toPreset) {
@@ -98,12 +100,14 @@ function setPreset(p, opts) {
   p = Math.max(0, Math.min(presetMeta.length - 1, Number(p) || 0));
   var prev = fx.preset;
   var changed = prev !== p;
-  // 切换到其他预设时退出胶片电台（全屏黑胶播放器）
-  if (changed && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
+  // 用户主动选择常规预设时退出胶片电台（全屏黑胶播放器）。
+  // 用 !opts.silent 而非 changed：即便预设号没变（如「星河 → 涂鸦墙 → 再点星河」），
+  // 只要是用户点击（非 silent 恢复）且特殊模式在激活，就应退出，否则回不到原预设。
+  if (!opts.silent && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
     applyFilmRadioMode(false, { save: true });
   }
-  // 切换到其他预设时退出涂鸦墙（满屏涂鸦歌词）
-  if (changed && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
+  // 同上：退出涂鸦墙（满屏涂鸦歌词）
+  if (!opts.silent && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
     applyGraffitiMode(false, { save: true });
   }
   fx.preset = p;

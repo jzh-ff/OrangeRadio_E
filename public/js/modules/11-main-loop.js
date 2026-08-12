@@ -23,6 +23,7 @@ if (window.__mineradioPerf && typeof window.__mineradioPerf.registerRenderState 
   window.__mineradioPerf = renderPerfState;
 }
 var splashWarmRenderLast = 0;
+var overlayCoverRenderLast = 0;
 var fixedRenderCadenceState = {
   key: '',
   lastCheckAt: 0,
@@ -65,6 +66,12 @@ function shouldSkipFixedRenderCadenceFrame(state, now, fps, displayHz, key) {
 }
 function isMainSceneCoveredBySplash() {
   return document.body.classList.contains('splash-active') && !document.body.classList.contains('splash-revealing');
+}
+/* 胶片电台/涂鸦墙等全屏覆盖层盖住 3D 场景：3D 不可见，应大幅降频渲染省 GPU。
+   不彻底停掉是为了保持场景温热，退出时不冷启动卡顿（参照 splash 覆盖策略）。 */
+function isMainSceneCoveredByOverlay() {
+  return (typeof filmRadioMode !== 'undefined' && filmRadioMode)
+    || (typeof graffitiMode !== 'undefined' && graffitiMode);
 }
 function currentRenderAdaptiveContext(now) {
   var tier = (typeof getRenderLoadTier === 'function') ? getRenderLoadTier() : 0;
@@ -334,6 +341,30 @@ function animate() {
       }
     }
     if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', splashFrameCostMs);
+    return;
+  }
+  // 胶片电台/涂鸦墙覆盖 3D：降频渲染（约 0.5fps 保持温热），跳过节拍/粒子模拟省 GPU
+  if (isMainSceneCoveredByOverlay()) {
+    // 频谱原始数据必须继续采集（胶片电台底部频谱依赖 frequencyData），仅这一步廉价 CPU 读取
+    if (typeof analyser !== 'undefined' && analyser && typeof frequencyData !== 'undefined' && frequencyData) {
+      try { analyser.getByteFrequencyData(frequencyData); } catch (e) { }
+      if (typeof timeDomainData !== 'undefined' && timeDomainData) { try { analyser.getByteTimeDomainData(timeDomainData); } catch (e) { } }
+    }
+    if (now - overlayCoverRenderLast > 2000) {
+      overlayCoverRenderLast = now;
+      var overlayRenderPerfStart = performance.now();
+      renderer.render(scene, camera);
+      if (perfProbe && perfProbe.markSince) perfProbe.markSince('renderer.render.overlay-cover', overlayRenderPerfStart);
+    }
+    var overlayFrameCostMs = performance.now() - framePerfStart;
+    if (typeof sampleAdaptiveFrameCost === 'function') {
+      var overlayFrameLoad = sampleAdaptiveFrameCost(overlayFrameCostMs, renderPerfState.targetFps || renderPerfState.displayHz || 60);
+      if (overlayFrameLoad) {
+        renderPerfState.adaptiveFrameCostMs = overlayFrameLoad.avgMs;
+        renderPerfState.adaptivePressure = overlayFrameLoad.level;
+      }
+    }
+    if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', overlayFrameCostMs);
     return;
   }
   pointerParallax.x += (pointerTarget.x - pointerParallax.x) * 0.040;

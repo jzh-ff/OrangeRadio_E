@@ -29,7 +29,8 @@
   left: 0;
   right: 0;
   top: 0;
-  bottom: 124px;             /* 控制栏区域让出（bottom-bar 悬浮在底部） */
+  bottom: 0;                 /* 铺满全屏，彻底盖住 3D 场景（修底部透出预设）；#bottom-bar(z-index:6)悬浮其上 */
+  padding-bottom: 104px;     /* 给底部悬浮胶囊控制栏让位，内容/频谱抬到胶囊上方 */
   z-index: 5;                /* 高于 3D 场景，低于 #bottom-bar(6)/#fx-fab(19) */
   display: none;
   flex-direction: column;
@@ -46,6 +47,15 @@
 body.film-radio #film-radio-overlay {
   display: flex;
   pointer-events: auto;
+}
+
+/* 壁纸引擎启用时：胶片电台让出背景，壁纸作底（半透明暖色蒙版保证文字可读，保留放映光束） */
+body.film-radio.wallpaper-engine-active #film-radio-overlay {
+  background: linear-gradient(165deg, rgba(21, 16, 10, 0.6) 0%, rgba(13, 10, 7, 0.66) 60%, rgba(8, 6, 4, 0.72) 100%);
+}
+/* 壁纸层提到 3D 画布(z-1)之上，避免 emily 等 3D 预设粒子从半透明覆盖层透出 */
+body.film-radio.wallpaper-engine-active #wallpaper-engine-layer {
+  z-index: 2;
 }
 
 /* ---------- 极淡胶片颗粒层（静态不闪，克制档） ---------- */
@@ -263,63 +273,116 @@ body.film-radio #film-radio-overlay {
   text-transform: uppercase;
 }
 
-/* ---------- 字幕歌词：占满中部，当前行永远居中 ---------- */
-.fr-lyrics {
-  /* position: relative —— 让歌词行的 offsetTop 以本容器为基准 */
+/* ---------- 当前歌词单行（标题下，暖金高亮，超长省略） ---------- */
+.fr-now-line {
+  margin-top: 8px;
+  font-size: clamp(14px, 1.5vw, 18px);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--fr-amber-hi);
+  text-shadow: 0 0 18px rgba(244, 210, 138, 0.28);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.96;
+  transition: color 0.3s, opacity 0.3s;
+}
+.fr-now-line.empty {
+  color: var(--fr-faint);
+  font-style: italic;
+  font-weight: 400;
+  text-shadow: none;
+}
+
+/* ---------- 评论区：主区，纵向滚动卡片列表 ---------- */
+.fr-comments {
   position: relative;
   flex: 1;
   min-height: 0;
-  max-height: none;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 40px;
-  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
-  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
-  scrollbar-width: none;
-  scroll-behavior: smooth;
+  padding: 6px 36px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  mask-image: linear-gradient(transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 8%, #000 92%, transparent);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 160, 74, 0.3) transparent;
 }
-.fr-lyrics::-webkit-scrollbar { display: none; }
-.fr-lyric-row {
-  padding: 8px 0;
-  font-size: clamp(16px, 1.7vw, 20px);
-  line-height: 1.5;
+.fr-comments::-webkit-scrollbar { width: 5px; }
+.fr-comments::-webkit-scrollbar-thumb { background: rgba(212, 160, 74, 0.25); border-radius: 3px; }
+.fr-comments::-webkit-scrollbar-track { background: transparent; }
+
+/* 单条评论：胶片相纸卡片质感 */
+.fr-comment-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, rgba(240, 230, 210, 0.045), rgba(212, 160, 74, 0.025));
+  border: 1px solid rgba(232, 222, 200, 0.09);
+  flex-shrink: 0;
+}
+.fr-comment-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(145deg, rgba(212, 160, 74, 0.3), rgba(194, 90, 42, 0.2));
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(232, 222, 200, 0.18);
+}
+.fr-comment-body { flex: 1; min-width: 0; }
+.fr-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
   color: var(--fr-muted);
-  /* 不加 text-shadow 过渡：发光逐帧模糊重绘是行切换卡顿的元凶 */
-  transition: color 0.3s, transform 0.3s, opacity 0.3s;
-  transform-origin: left center;
-  text-align: left;
+  letter-spacing: 0.02em;
 }
-/* 当前行：暖金高亮 + 微放大，稳稳站在正中间 */
-.fr-lyric-row.active {
-  color: var(--fr-amber-hi);
-  font-weight: 700;
-  transform: scale(1.05);
-  text-shadow: 0 0 24px rgba(244, 210, 138, 0.38);
-  will-change: transform;
+.fr-comment-name {
+  color: var(--fr-amber);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40%;
 }
-.fr-lyric-row.fallback {
-  color: rgba(232, 222, 200, 0.26);
-  font-style: italic;
-  text-align: center;
+.fr-comment-likes {
+  flex-shrink: 0;
+  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
+  font-size: 11px;
+  color: var(--fr-faint);
 }
-.fr-lyrics-empty {
+.fr-comment-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fr-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.fr-comments-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
+  min-height: 120px;
   color: var(--fr-faint);
-  font-size: 15px;
+  font-size: 14px;
   font-style: italic;
 }
 
-/* ---------- 播放控制（之前 HTML+JS 已接线但无样式，此处补全） ---------- */
-.fr-controls {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+/* ---------- 进度条（播放控制已交由底部控制栏，此处仅保留进度上下文） ---------- */
 .fr-progress-row {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -380,87 +443,22 @@ body.film-radio #film-radio-overlay {
   text-align: right;
   white-space: nowrap;
 }
-.fr-buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-.fr-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid rgba(232, 222, 200, 0.2);
-  background: rgba(232, 222, 200, 0.03);
-  color: var(--fr-ink);
-  cursor: pointer;
-  transition: all 0.25s ease;
-  -webkit-appearance: none;
-  padding: 0;
-}
-.fr-btn svg {
-  width: 19px;
-  height: 19px;
-  pointer-events: none;
-}
-.fr-btn:hover {
-  border-color: rgba(244, 210, 138, 0.5);
-  background: rgba(244, 210, 138, 0.08);
-  color: var(--fr-amber-hi);
-  box-shadow: 0 0 14px rgba(244, 210, 138, 0.2);
-}
-.fr-btn:active {
-  transform: scale(0.92);
-}
-.fr-btn:focus-visible {
-  outline: 2px solid var(--fr-amber-hi);
-  outline-offset: 2px;
-}
-/* 主播放键：更大、暖金实心 */
-.fr-btn.fr-play {
-  width: 50px;
-  height: 50px;
-  border-color: var(--fr-amber);
-  background: linear-gradient(145deg, rgba(244, 210, 138, 0.18), rgba(212, 160, 74, 0.08));
-  color: var(--fr-amber-hi);
-  box-shadow: 0 0 18px rgba(212, 160, 74, 0.25);
-}
-.fr-btn.fr-play svg {
-  width: 22px;
-  height: 22px;
-}
-.fr-btn.fr-play:hover {
-  background: linear-gradient(145deg, rgba(244, 210, 138, 0.28), rgba(212, 160, 74, 0.16));
-  box-shadow: 0 0 26px rgba(244, 210, 138, 0.4);
-}
-/* 喜欢按钮激活态 */
-.fr-btn#fr-heart.liked {
-  color: #e0506a;
-  border-color: rgba(224, 80, 106, 0.5);
-}
-.fr-btn#fr-heart.liked:hover {
-  box-shadow: 0 0 14px rgba(224, 80, 106, 0.3);
-}
 
-/* ---------- 底部频谱条 ---------- */
+/* ---------- 底部频谱条（铺满整宽） ---------- */
 .fr-spectrum {
   position: relative;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  gap: 4px;
+  justify-content: stretch;
+  gap: 3px;
   height: 56px;
-  padding: 0 clamp(36px, 5vw, 76px) 14px;
+  padding: 0 0 14px;
   flex-shrink: 0;
   z-index: 2;
 }
 .fr-spectrum-bar {
   flex: 1;
-  max-width: 14px;
-  min-width: 4px;
+  min-width: 0;
   height: 100%;
   border-radius: 3px 3px 0 0;
   background: linear-gradient(to top,
@@ -489,17 +487,17 @@ body.film-radio #film-radio-overlay {
   }
   .fr-cover-stage { width: min(200px, 44vw); }
   .fr-perforations { display: none; }   /* 窄屏省去齿孔 */
-  .fr-lyrics { max-height: 26vh; }
-  .fr-spectrum { height: 40px; padding: 0 24px 12px; }
+  .fr-comments { max-height: 34vh; }    /* 窄屏限制评论区高度，避免挤压单行歌词/进度 */
+  .fr-spectrum { height: 40px; padding: 0 0 12px; }
   .fr-beam { opacity: 0.7; }
 }
 @media (max-width: 620px) {
   .fr-cover-stage { width: 150px; }
   .fr-polaroid { transform: rotate(0deg); }   /* 极小屏拉正，避免拥挤 */
   .fr-beam { display: none; }
-  .fr-lyrics { display: none; }   /* 极小屏隐藏歌词，避免拥挤 */
   .fr-title { font-size: 20px; }
   .fr-data { display: none; }
+  .fr-comments { max-height: 30vh; }
 }
 
 /* ---------- 减弱动效（无障碍） ---------- */

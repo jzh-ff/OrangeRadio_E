@@ -33,6 +33,8 @@
       border-radius: 16px;
       border: 1px solid rgba(255, 122, 61, .22);
       box-shadow: 0 12px 36px rgba(0, 0, 0, .5);
+      /* 不使用 CSS -webkit-app-region 拖拽区：body 上的 backdrop-filter 在部分
+         Electron 版本会破坏 no-drag 穿透，导致按钮点不动。改用 JS 拖拽（见脚本）。 */
     }
 
     /* 封面 */
@@ -146,8 +148,8 @@
       position: absolute;
       top: 6px;
       right: 6px;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       border: none;
       background: rgba(245, 240, 230, .1);
@@ -156,26 +158,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 13px;
       opacity: 0;
+      z-index: 10;
       transition: opacity .2s, color .2s;
     }
     body:hover .mp-close { opacity: 1; }
     .mp-close:hover { color: var(--accent); }
 
-    .mp-drag {
-      -webkit-app-region: drag;
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-    }
-    .mp-btn, .mp-progress, .mp-close { -webkit-app-region: no-drag; }
+    /* 拖拽手柄：封面/标题等非交互区域可拖动窗口（JS 实现，不用 CSS drag 区） */
+    .mp-drag-handle { cursor: move; }
   </style>
 </head>
 
 <body>
-  <div class="mp-drag"></div>
-  <button class="mp-close" title="关闭迷你播放器" aria-label="关闭">×</button>
+  <button id="mp-close" class="mp-close" title="关闭迷你播放器" aria-label="关闭">×</button>
   <div class="mp-cover empty" id="mp-cover"></div>
   <div class="mp-center">
     <div class="mp-title" id="mp-title">OrangeSea</div>
@@ -268,7 +265,41 @@
         if (window.desktopOverlay && typeof window.desktopOverlay.closeMiniPlayer === 'function') {
           window.desktopOverlay.closeMiniPlayer();
         }
+        // 兜底：若 IPC 通道未就绪，直接关闭窗口
+        setTimeout(function () { try { window.close(); } catch (e) { } }, 120);
       });
+
+      // JS 拖拽（替代 CSS drag 区，避免 backdrop-filter 破坏按钮点击）
+      var dragging = false, lastSX = 0, lastSY = 0;
+      function isInteractive(target) {
+        return !!(target && target.closest && target.closest('.mp-btn, .mp-progress, .mp-close, input, button'));
+      }
+      document.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        if (isInteractive(e.target)) return;
+        dragging = true;
+        lastSX = e.screenX;
+        lastSY = e.screenY;
+        document.body.classList.add('mp-drag-handle');
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        var dx = e.screenX - lastSX;
+        var dy = e.screenY - lastSY;
+        lastSX = e.screenX;
+        lastSY = e.screenY;
+        if ((dx || dy) && window.desktopOverlay && typeof window.desktopOverlay.moveMiniPlayerBy === 'function') {
+          window.desktopOverlay.moveMiniPlayerBy(dx, dy);
+        }
+      });
+      function endDrag() {
+        if (!dragging) return;
+        dragging = false;
+        document.body.classList.remove('mp-drag-handle');
+      }
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('mouseleave', endDrag);
+      window.addEventListener('blur', endDrag);
     })();
   </script>
 </body>

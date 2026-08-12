@@ -147,4 +147,11 @@ function cancelSleepTimer() {
   });
   const cancelBtn = document.getElementById('sleep-timer-cancel');
   if (cancelBtn) cancelBtn.addEventListener('click', cancelSleepTimer);
+  // 点击外部关闭弹层（与音量/音质/EQ 弹层行为一致）
+  document.addEventListener('click', function (e) {
+    const control = document.getElementById('sleep-timer-control');
+    if (!control) return;
+    if (panel.style.display === 'none') return;
+    if (!control.contains(e.target)) closeSleepTimerPanel();
+  });
 })();

@@ -36,13 +36,13 @@ async function playHomeRecent(record) {
   await playQueueAt(0);
 }
 function openHomeInsight() {
-  var summary = homeListenSummary();
-  if (summary.topArtist && summary.topArtist.name) {
-    runHomeSearch(summary.topArtist.name);
+  // 查看偏好 → 打开「音乐画像」独立弹窗（画像标签/本命歌手/常听曲目/聆听总量/常听时段/足迹）
+  if (typeof openMusicPortrait === 'function') {
+    openMusicPortrait();
     return;
   }
-  if (summary.topSong && summary.topSong.name) {
-    runHomeSearch(summary.topSong.name);
+  if (typeof openListenReport === 'function') {
+    openListenReport('all');
     return;
   }
   showToast('播放几首歌后会生成听歌画像');

@@ -24,10 +24,7 @@ function makeClassList(initial = []) {
 }
 
 const elements = {
-  'fr-play': { innerHTML: '', classList: makeClassList(['fr-btn', 'fr-play']) },
   'fr-cover': { classList: makeClassList(['fr-polaroid']) },
-  'heart-btn': { classList: makeClassList() },
-  'fr-heart': { classList: makeClassList() },
 };
 
 const sandbox = {
@@ -45,15 +42,11 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(modulePath, 'utf8'), sandbox, { filename: modulePath });
 
 sandbox.syncFilmRadioPlayState();
-assert.equal(elements['fr-play'].classList.contains('is-playing'), true);
 assert.equal(elements['fr-cover'].classList.contains('is-paused'), false);
-assert.match(elements['fr-play'].innerHTML, /M6 5h4v14H6/);
 
 sandbox.audio.paused = true;
 sandbox.syncFilmRadioPlayState();
-assert.equal(elements['fr-play'].classList.contains('is-playing'), false);
 assert.equal(elements['fr-cover'].classList.contains('is-paused'), true);
-assert.match(elements['fr-play'].innerHTML, /M8 5v14l11-7z/);
 
 let startupWarmTask = null;
 let startupRadioStarted = 0;

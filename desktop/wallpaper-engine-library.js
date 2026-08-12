@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { Readable } = require('stream');
 
-const WALLPAPER_ENGINE_SCHEME = 'mineradio-wallpaper';
+const WALLPAPER_ENGINE_SCHEME = 'orangesea-wallpaper';
 const WALLPAPER_ENGINE_APP_ID = '431960';
 const CONFIG_FILE = 'wallpaper-engine-library.json';
 const MAX_PROJECT_JSON_BYTES = 1024 * 1024;
@@ -839,16 +839,27 @@ class WallpaperEngineLibrary {
     }
     const kind = url.hostname === 'media' ? 'media' : (url.hostname === 'preview' ? 'preview' : '');
     if (url.searchParams.get('token') !== this.mediaToken) {
+      console.warn('[WE mediaResponse] 404 token mismatch', url.pathname);
       return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
     }
-    if (!/^[a-f0-9]{24}$/i.test(id)) return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    if (!/^[a-f0-9]{24}$/i.test(id)) {
+      console.warn('[WE mediaResponse] 404 bad id', id);
+      return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    }
     id = id.toLowerCase();
     const record = kind && this.index.get(id);
-    if (!record) return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    if (!record) {
+      console.warn('[WE mediaResponse] 404 no record in index', id, 'kind=', kind, 'indexSize=', this.index.size);
+      return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    }
     const target = await this.validatedRecordFile(record, kind);
-    if (!target) return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    if (!target) {
+      console.warn('[WE mediaResponse] 404 validatedRecordFile null', id, 'kind=', kind, 'projectType=', record.projectType, 'playable=', record.playable, 'mediaType=', record.mediaType);
+      return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
+    }
     let stat;
-    try { stat = await fs.promises.stat(target); } catch (_) {
+    try { stat = await fs.promises.stat(target); } catch (statErr) {
+      console.warn('[WE mediaResponse] 404 stat failed', target, statErr && statErr.code);
       return new Response('Not found', { status: 404, headers: { 'X-Content-Type-Options': 'nosniff' } });
     }
     const size = Number(stat.size) || 0;

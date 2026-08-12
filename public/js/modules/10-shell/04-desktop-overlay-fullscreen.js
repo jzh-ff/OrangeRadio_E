@@ -1381,7 +1381,10 @@ function pushDesktopLyricsState(force) {
 }
 function applyDesktopLyricsState(force) {
   var api = getDesktopWindowApi();
-  if (!api) return;
+  if (!api) {
+    syncDesktopLyricsBarButton();
+    return;
+  }
   normalizeDevelopmentLockedFxState();
   var payload = desktopLyricsPayload(true, true);
   var payloadCustomFontId = payload.customFont ? payload.customFont.id : '';
@@ -1392,6 +1395,21 @@ function applyDesktopLyricsState(force) {
     desktopOverlayPushState.lastLyricsCustomFontId = '';
   }
   pushDesktopLyricsState(!!force);
+  syncDesktopLyricsBarButton();
+}
+
+/* 底部控制条「桌面歌词」按钮：开关 + 状态同步（覆盖按钮点击 / Alt+L 快捷键 / FX 面板 / 初始化恢复） */
+function toggleDesktopLyricsBar() {
+  if (typeof toggleFx === 'function') toggleFx('desktopLyrics');
+  syncDesktopLyricsBarButton();
+}
+function syncDesktopLyricsBarButton() {
+  var btn = document.getElementById('desktop-lyrics-bar-btn');
+  if (!btn) return;
+  var on = !!(typeof fx !== 'undefined' && fx && fx.desktopLyrics);
+  btn.classList.toggle('on', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = on ? '关闭桌面歌词 (Alt+L)' : '桌面歌词 (Alt+L)';
 }
 function pushWallpaperState(force) {
   var api = getDesktopWindowApi();

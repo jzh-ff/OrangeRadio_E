@@ -1465,6 +1465,13 @@
               <line x1="12" y1="11" x2="18" y2="11" />
               <line x1="12" y1="14" x2="16" y2="14" />
             </svg></button>
+          <button id="desktop-lyrics-bar-btn" class="ctrl-btn" onclick="toggleDesktopLyricsBar()"
+            title="桌面歌词 (Alt+L)" aria-label="桌面歌词" aria-pressed="false"><svg width="19" height="19" fill="none"
+              stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <rect x="2.5" y="4" width="19" height="13" rx="2" />
+              <path d="M9 21h6M12 17v4" />
+              <path d="M6.5 8h7M6.5 11h5M15.5 8h2M15.5 11h2" />
+            </svg></button>
           <button id="immersive-btn" class="ctrl-btn" onclick="toggleImmersiveMode()" title="全沉浸式" aria-label="全沉浸式"
             aria-pressed="false"><svg width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9"
               viewBox="0 0 24 24">
@@ -1499,41 +1506,23 @@
           </div>
           <div class="fr-perforations" aria-hidden="true"></div>
         </div>
-        <!-- 右侧：片头信息 + 歌词 + 控制 -->
+        <!-- 右侧：片头信息 + 当前歌词单行 + 评论卡片（评论为主，播放控制在底部控制栏） -->
         <div class="fr-info-stage">
           <div class="fr-meta">
             <div class="fr-kicker">ORANGESEA · FILM RADIO</div>
             <div class="fr-title" id="fr-title">未在播放</div>
             <div class="fr-artist" id="fr-artist"></div>
+            <div class="fr-now-line" id="fr-now-line">—</div>
             <div class="fr-data" id="fr-data" aria-hidden="true">ISO 400 · f/2.8 · 1/60s</div>
           </div>
-          <div class="fr-lyrics" id="fr-lyrics">
-            <div class="fr-lyrics-empty">暂无歌词</div>
+          <div class="fr-comments" id="fr-comments">
+            <div class="fr-comments-empty">正在载入评论...</div>
           </div>
-          <div class="fr-controls">
-            <div class="fr-progress-row">
-              <div class="fr-progress" id="fr-progress">
-                <div class="fr-progress-fill" id="fr-progress-fill"></div>
-              </div>
-              <div class="fr-time" id="fr-time">0:00 / 0:00</div>
+          <div class="fr-progress-row">
+            <div class="fr-progress" id="fr-progress">
+              <div class="fr-progress-fill" id="fr-progress-fill"></div>
             </div>
-            <div class="fr-buttons">
-              <button class="fr-btn" type="button" onclick="toggleLikeCurrent()" id="fr-heart" title="喜欢">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.45c-.32 0-.62-.12-.86-.34l-1.23-1.12C5.54 16.03 2.25 13.05 2.25 8.9 2.25 5.48 4.88 2.9 8.28 2.9c1.7 0 3.35.72 4.52 1.96C13.97 3.62 15.62 2.9 17.32 2.9c3.4 0 6.03 2.58 6.03 6 0 4.15-3.29 7.13-7.66 11.09l-1.23 1.12c-.24.22-.54.34-.86.34z" /></svg>
-              </button>
-              <button class="fr-btn" type="button" onclick="prevTrack(true)" title="上一首">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></svg>
-              </button>
-              <button class="fr-btn fr-play" type="button" onclick="togglePlay()" id="fr-play" title="播放/暂停">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-              </button>
-              <button class="fr-btn" type="button" onclick="nextTrack(true)" title="下一首">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg>
-              </button>
-              <button class="fr-btn" type="button" onclick="cyclePlayMode()" id="fr-mode" title="播放顺序">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>
-              </button>
-            </div>
+            <div class="fr-time" id="fr-time">0:00 / 0:00</div>
           </div>
         </div>
       </div>

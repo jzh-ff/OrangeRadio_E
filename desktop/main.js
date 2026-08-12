@@ -13,6 +13,9 @@ const {
 const { WallpaperEngineRuntime } = require('./wallpaper-engine-runtime');
 const { FullDesktopModeRuntime } = require('./full-desktop-mode-runtime');
 const miniPlayer = require('./mini-player-runtime');
+// mini-player-runtime 是独立模块，读不到本文件的模块级 mainWindow；
+// 注入 getter 闭包，使其转发动作 / 广播状态时能拿到当前主窗口
+miniPlayer.setMainWindowGetter(() => mainWindow);
 const {
   discoverQishuiClientDataRoots,
   discoverQishuiCookieStores,
@@ -4540,6 +4543,9 @@ async function closeWallpaperWindow(reason = 'disabled') {
 
 function closeOverlayWindows(reason = 'overlay-close') {
   closeDesktopLyricsWindow();
+  // 迷你播放器同样是置顶悬浮窗，主窗口退出时必须一并关闭；
+  // 否则它会作为存活窗口阻止 window-all-closed，导致应用无法退出、悬浮窗残留。
+  try { miniPlayer.closeMiniPlayerWindow(); } catch (e) { console.warn('[MiniPlayer] close on main-window-closed failed:', e && e.message); }
   return closeWallpaperWindow(reason).catch((error) => {
     console.warn('[FullDesktopMode] close failed:', error && error.message || error);
   });

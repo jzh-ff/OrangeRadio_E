@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld('desktopOverlay', {
   moveLyricsBy: (dx, dy) => ipcRenderer.invoke('mineradio-desktop-lyrics-move-by', Number(dx) || 0, Number(dy) || 0),
   closeLyrics: () => ipcRenderer.invoke('mineradio-desktop-lyrics-set-enabled', false, {}),
   sendMiniPlayerAction: (action) => ipcRenderer.send('mineradio-mini-player-action', String(action || '').slice(0, 48)),
+  moveMiniPlayerBy: (dx, dy) => ipcRenderer.invoke('mineradio-mini-player-move-by', Number(dx) || 0, Number(dy) || 0),
   closeMiniPlayer: () => ipcRenderer.invoke('mineradio-mini-player-set-enabled', false),
 });

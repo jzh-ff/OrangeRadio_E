@@ -35,6 +35,19 @@ body.graffiti #graffiti-overlay {
   display: block;
 }
 
+/* 壁纸引擎启用时：涂鸦墙用壁纸作底，隐藏自身封面底图，叠半透明暗化保证歌词可读 */
+body.graffiti.wallpaper-engine-active #graffiti-overlay {
+  background: rgba(6, 6, 12, 0.58);
+}
+body.graffiti.wallpaper-engine-active .graffiti-bg-cover,
+body.graffiti.wallpaper-engine-active .graffiti-bg-shade {
+  display: none;
+}
+/* 壁纸层提到 3D 画布(z-1)之上，避免 emily 等 3D 预设粒子从半透明覆盖层透出 */
+body.graffiti.wallpaper-engine-active #wallpaper-engine-layer {
+  z-index: 2;
+}
+
 /* ---------- L0 · 模糊封面底（取色沉浸） ---------- */
 .graffiti-bg-cover {
   position: absolute;

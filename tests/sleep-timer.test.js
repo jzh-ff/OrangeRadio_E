@@ -70,6 +70,7 @@ const sandbox = {
   clearTimeout() {},
   document: {
     getElementById(id) { return elements[id] || null; },
+    addEventListener() { /* 测试环境无需真实事件分发（点击外部关闭弹层） */ },
   },
 };
 vm.createContext(sandbox);

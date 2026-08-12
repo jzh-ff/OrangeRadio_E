@@ -2710,6 +2710,14 @@ body.empty-home-active #empty-home {
   transform: translateX(-50%) translateY(0) scale(1)
 }
 
+/* 胶片电台/涂鸦墙等全屏覆盖层（z-index:5）激活时，
+   主页要浮在覆盖层之上显示（不退出模式，关掉主页后模式仍在）。
+   6 高于覆盖层 5，低于 fx-fab(19)；与 bottom-bar(6) 同层时 DOM 顺序保证控制栏在上。 */
+body.film-radio #empty-home,
+body.graffiti #empty-home {
+  z-index: 6;
+}
+
 body.splash-active #empty-home,
 body.immersive-mode #empty-home {
   opacity: 0 !important;
@@ -17867,34 +17875,150 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
   transition: background .15s;
 }
 .sleep-timer-cancel:hover { background: rgba(255, 90, 90, .12); }
-/* ---------- 听歌月度/年度报告 ---------- */
-.listen-report-mask .modal { max-width: 460px; max-height: 78vh; overflow-y: auto; }
-.listen-report-modal { padding: 22px 24px 20px; border-radius: 20px; }
-.lr-head { display: flex; flex-direction: column; gap: 14px; }
-.lr-title { font-size: 17px; font-weight: 700; color: rgba(255, 255, 255, .95); }
-.lr-metrics { display: flex; gap: 18px; }
-.lr-metric { display: flex; flex-direction: column; gap: 2px; }
-.lr-metric strong { font-size: 18px; color: var(--home-accent, #ff7a3d); }
-.lr-metric span { font-size: 11px; color: rgba(255, 255, 255, .5); }
-.lr-section-title { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, .78); margin-top: 6px; }
-.lr-list { display: flex; flex-direction: column; gap: 4px; }
-.lr-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, .04); }
-.lr-rank { width: 18px; font-size: 11px; color: var(--home-accent, #ff7a3d); font-weight: 700; }
-.lr-name { flex: 1; font-size: 12.5px; color: rgba(255, 255, 255, .9); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lr-artist { font-size: 11px; color: rgba(255, 255, 255, .45); max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lr-count { font-size: 11px; color: rgba(255, 255, 255, .55); }
-.lr-empty { font-size: 12px; color: rgba(255, 255, 255, .4); padding: 10px 0; }
-.lr-hours { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
-.lr-hour { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.lr-hour-bar { width: 100%; min-height: 3px; border-radius: 3px; background: linear-gradient(180deg, var(--home-accent, #ff7a3d), rgba(255, 122, 61, .25)); }
-.lr-hour span { font-size: 9px; color: rgba(255, 255, 255, .4); }
-.lr-platforms { display: flex; flex-wrap: wrap; gap: 6px; }
-.lr-platform-chip { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: rgba(255, 255, 255, .06); color: rgba(255, 255, 255, .7); }
-.lr-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.lr-heat-cell { aspect-ratio: 1; border-radius: 3px; background: rgba(255, 255, 255, .05); }
-.lr-heat-cell[data-level="1"] { background: rgba(255, 122, 61, .28); }
-.lr-heat-cell[data-level="2"] { background: rgba(255, 122, 61, .58); }
-.lr-heat-cell[data-level="3"] { background: rgba(255, 122, 61, .95); }
+/* ---------- 听歌报告 & 音乐画像（重设计：日落暖夜 · 小薇衬线标题 · Mono 数据） ---------- */
+.listen-report-mask .modal {
+  max-width: 560px;
+  max-height: 82vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--home-accent-rgb, 255, 122, 61), .28) transparent;
+}
+.listen-report-mask .modal::-webkit-scrollbar { width: 5px; }
+.listen-report-mask .modal::-webkit-scrollbar-thumb { background: rgba(var(--home-accent-rgb, 255, 122, 61), .26); border-radius: 3px; }
+.listen-report-mask .modal::-webkit-scrollbar-track { background: transparent; }
+.listen-report-modal {
+  padding: 30px 32px 26px;
+  border-radius: 24px;
+  background:
+    radial-gradient(120% 90% at 85% -10%, rgba(255, 122, 61, .14), transparent 55%),
+    radial-gradient(90% 70% at 8% 108%, rgba(212, 160, 74, .10), transparent 60%),
+    linear-gradient(175deg, #1a1512 0%, #12100d 55%, #0d0b09 100%);
+  border: 1px solid rgba(255, 122, 61, .18);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.listen-report-modal .modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(245, 240, 230, .06);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(245, 240, 230, .6);
+  transition: background .2s, color .2s;
+}
+.listen-report-modal .modal-close:hover {
+  background: rgba(255, 122, 61, .14);
+  color: #f4d28a;
+}
+.lr-head { display: flex; flex-direction: column; gap: 6px; }
+.lr-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: .3em; text-transform: uppercase;
+  color: rgba(255, 122, 61, .75);
+}
+.lr-title {
+  font-family: "ZCOOL XiaoWei", "Noto Sans SC", serif;
+  font-size: 30px; font-weight: 400; letter-spacing: .02em;
+  color: #f5f0e6;
+}
+.lr-period { font-family: var(--font-mono); font-size: 11px; color: rgba(245, 240, 230, .45); }
+.lr-summary {
+  font-family: "ZCOOL XiaoWei", "Noto Sans SC", serif;
+  font-size: 19px; line-height: 1.65; color: #f4d28a;
+  margin: 14px 0 4px; padding-left: 14px;
+  border-left: 2px solid rgba(255, 122, 61, .55);
+  text-shadow: 0 0 22px rgba(244, 210, 138, .22);
+}
+.lr-hero { margin: 10px 0 2px; }
+.lr-hero-num {
+  font-family: var(--font-mono);
+  font-size: 34px; font-weight: 700; letter-spacing: .01em;
+  color: var(--home-accent, #ff7a3d);
+}
+.lr-hero-sub { font-size: 11.5px; color: rgba(245, 240, 230, .5); margin-top: 2px; }
+.lr-section { margin-top: 20px; }
+.lr-section-title {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; color: rgba(245, 240, 230, .82);
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(245, 240, 230, .08);
+}
+.lr-section-title em { font-style: normal; font-weight: 400; font-size: 10.5px; color: rgba(245, 240, 230, .38); letter-spacing: .04em; }
+.lr-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.lr-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 10px;
+  background: rgba(245, 240, 230, .035);
+  border: 1px solid rgba(245, 240, 230, .05);
+  transition: background .2s, transform .2s;
+}
+.lr-row:hover { background: rgba(255, 122, 61, .08); transform: translateX(2px); }
+.lr-rank { width: 20px; font-family: var(--font-mono); font-size: 11px; color: var(--home-accent, #ff7a3d); font-weight: 700; }
+.lr-row:first-child .lr-rank { color: #f4d28a; }
+.lr-name { flex: 1; font-size: 13px; color: rgba(245, 240, 230, .92); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr-artist { font-size: 11px; color: rgba(245, 240, 230, .42); max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr-count { font-family: var(--font-mono); font-size: 11px; color: rgba(245, 240, 230, .55); }
+.lr-empty { font-size: 12px; color: rgba(245, 240, 230, .4); padding: 12px 0; }
+
+/* 播放日历 */
+.lr-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
+.lr-heat-cell { aspect-ratio: 1; border-radius: 4px; background: rgba(245, 240, 230, .045); transition: transform .15s, box-shadow .15s; }
+.lr-heat-cell:hover { transform: scale(1.12); box-shadow: 0 0 0 1px rgba(244, 210, 138, .55), 0 0 12px rgba(244, 210, 138, .25); }
+.lr-heat-cell[data-level="1"] { background: rgba(255, 122, 61, .3); }
+.lr-heat-cell[data-level="2"] { background: rgba(255, 122, 61, .6); }
+.lr-heat-cell[data-level="3"] { background: linear-gradient(145deg, #f4d28a, #ff7a3d); }
+.lr-heat-tip {
+  position: absolute; z-index: 10; pointer-events: none;
+  font-family: var(--font-mono); font-size: 11px; white-space: nowrap;
+  padding: 5px 10px; border-radius: 8px;
+  background: rgba(24, 18, 12, .96); border: 1px solid rgba(255, 122, 61, .35);
+  color: #f4d28a; box-shadow: 0 6px 20px rgba(0, 0, 0, .5);
+}
+
+/* 时段分布（bar 高度用像素，嵌套 flex 里 % 不可靠） */
+.lr-hours { display: flex; align-items: flex-end; gap: 4px; margin-top: 10px; }
+.lr-hour { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.lr-hour-track { height: 72px; width: 100%; display: flex; align-items: flex-end; }
+.lr-hour-bar { width: 100%; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #f4d28a, rgba(255, 122, 61, .35)); }
+.lr-hour span { font-family: var(--font-mono); font-size: 9px; color: rgba(245, 240, 230, .42); height: 10px; }
+
+/* 平台足迹 */
+.lr-platforms { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.lr-platform-chip {
+  font-family: var(--font-mono); font-size: 10.5px; padding: 4px 10px; border-radius: 20px;
+  background: rgba(255, 122, 61, .08); border: 1px solid rgba(255, 122, 61, .2);
+  color: rgba(245, 240, 230, .75);
+}
+
+/* ---------- 音乐画像（查看偏好 · 独立设计） ---------- */
+.music-portrait-mask .modal { max-width: 460px; }
+.mp-persona {
+  font-family: "ZCOOL XiaoWei", "Noto Sans SC", serif;
+  font-size: 32px; line-height: 1.2; color: #f4d28a;
+  margin: 12px 0 2px;
+  text-shadow: 0 0 26px rgba(244, 210, 138, .3);
+}
+.mp-rows { display: flex; flex-direction: column; margin-top: 14px; }
+.mp-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 11px 2px;
+  border-bottom: 1px solid rgba(245, 240, 230, .07);
+}
+.mp-row:last-child { border-bottom: none; }
+.mp-key { font-size: 11.5px; letter-spacing: .1em; color: rgba(245, 240, 230, .45); }
+.mp-val { font-size: 14px; color: rgba(245, 240, 230, .92); text-align: right; }
+.mp-val em { font-style: normal; font-family: var(--font-mono); font-size: 11px; color: rgba(245, 240, 230, .5); margin-left: 8px; }
+.mp-platforms { margin-top: 14px; }
 #eq-btn {
   position: relative;
 }

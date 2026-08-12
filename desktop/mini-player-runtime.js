@@ -13,6 +13,11 @@ let miniPlayerWindow = null;
 let miniPlayerEnabled = false;
 let miniPlayerBounds = null;  // 记忆上次位置
 
+// 主窗口引用通过 getter 闭包注入（main.js 的 mainWindow 是模块级变量，
+// 本模块无法直接读到，必须由 main.js 提供 getter，否则转发动作/广播状态会静默失效）
+let _getMainWindow = function () { return null; };
+function setMainWindowGetter(fn) { _getMainWindow = fn || (function () { return null; }); }
+
 const MINI_PLAYER_WIDTH = 320;
 const MINI_PLAYER_HEIGHT = 96;
 
@@ -112,7 +117,7 @@ function setMiniPlayerEnabled(enabled) {
 
 function broadcastMiniPlayerEnabledState(enabled) {
   // 通知主窗口迷你播放器开关状态
-  const win = (typeof mainWindow !== 'undefined') ? mainWindow : null;
+  const win = _getMainWindow();
   if (win && !win.isDestroyed()) {
     win.webContents.send('mineradio-mini-player-enabled-state', { enabled });
   }
@@ -125,7 +130,7 @@ function sendMiniPlayerState(payload) {
 
 function forwardMiniPlayerAction(action) {
   // 转发到主窗口，复用全局快捷键系统的 action 机制
-  const win = (typeof mainWindow !== 'undefined') ? mainWindow : null;
+  const win = _getMainWindow();
   if (win && !win.isDestroyed()) {
     win.webContents.send('mineradio-global-hotkey', { action });
   }
@@ -160,6 +165,25 @@ function registerMiniPlayerIpc() {
     if (act) forwardMiniPlayerAction(act);
   });
 
+  // 迷你播放器 JS 拖拽：按屏幕坐标增量移动窗口（与桌面歌词 move-by 同款）
+  ipcMain.handle('mineradio-mini-player-move-by', async (_event, dx, dy) => {
+    try {
+      if (!miniPlayerWindow || miniPlayerWindow.isDestroyed()) return { ok: false, error: 'NO_MINI_PLAYER_WINDOW' };
+      const ndx = Math.max(-200, Math.min(200, Number(dx) || 0));
+      const ndy = Math.max(-200, Math.min(200, Number(dy) || 0));
+      const bounds = miniPlayerWindow.getBounds();
+      miniPlayerWindow.setBounds({
+        ...bounds,
+        x: Math.round(bounds.x + ndx),
+        y: Math.round(bounds.y + ndy),
+      }, false);
+      miniPlayerBounds = miniPlayerWindow.getBounds();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message || 'MINI_PLAYER_MOVE_FAILED' };
+    }
+  });
+
   // 主窗口 → 主进程 → 迷你播放器（状态推送）
   ipcMain.on('mineradio-mini-player-update', (_event, payload) => {
     sendMiniPlayerState(payload || {});
@@ -174,4 +198,5 @@ module.exports = {
   isMiniPlayerEnabled,
   isMiniPlayerAlive,
   registerMiniPlayerIpc,
+  setMainWindowGetter,
 };
