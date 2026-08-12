@@ -22,7 +22,10 @@ function writeProject(root, name, manifest, files) {
 }
 
 async function main() {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-we-'));
+  // Windows 上 os.tmpdir() 可能返回 8.3 短路径（如 CI runner 的 RUNNER~1），
+  // 用 realpath 规范化为长路径，避免与应用代码返回的长路径比较时不一致
+  const tmpBase = fs.realpathSync(os.tmpdir());
+  const temp = fs.mkdtempSync(path.join(tmpBase, 'mineradio-we-'));
   const libraryRoot = path.join(temp, 'library');
   const userData = path.join(temp, 'user-data');
   fs.mkdirSync(libraryRoot, { recursive: true });
@@ -191,8 +194,8 @@ async function main() {
     console.log(JSON.stringify({ ok: true, count: snapshot.count, dynamic: snapshot.dynamicCount, previewOnly: snapshot.previewOnlyCount }));
   } finally {
     instance.dispose();
-    const resolved = path.resolve(temp);
-    if (resolved.startsWith(path.resolve(os.tmpdir()) + path.sep)) fs.rmSync(resolved, { recursive: true, force: true });
+  const resolved = path.resolve(temp);
+  if (resolved.startsWith(tmpBase + path.sep)) fs.rmSync(resolved, { recursive: true, force: true });
   }
 }
 

@@ -277,16 +277,17 @@ function signatureScript() {
 function engineProcessProbeScript() {
   const source = String.raw`
 $ErrorActionPreference = 'SilentlyContinue'
+function Get-WE-LongPath($p) { if (-not $p) { return '' }; try { $f = [IO.Path]::GetFullPath($p) } catch { return [string]$p }; try { return (Get-Item -LiteralPath $f).FullName } catch { return $f } }
 $target = [Environment]::GetEnvironmentVariable('MINERADIO_WE_ENGINE_TARGET', 'Process')
 $expected = ''
-try { if (-not [string]::IsNullOrWhiteSpace($target)) { $expected = [IO.Path]::GetFullPath($target) } } catch { $expected = '' }
+try { if (-not [string]::IsNullOrWhiteSpace($target)) { $expected = Get-WE-LongPath $target } } catch { $expected = '' }
 $expectedRoot = ''
 try { if ($expected) { $expectedRoot = [IO.Path]::GetDirectoryName($expected) } } catch { $expectedRoot = '' }
 $processes = @(Get-Process -Name 'wallpaper32','wallpaper64' -ErrorAction SilentlyContinue)
 $matching = @()
 foreach ($process in $processes) {
   $candidate = ''
-  try { $candidate = [IO.Path]::GetFullPath([string]$process.Path) } catch { $candidate = '' }
+  try { $candidate = Get-WE-LongPath ([string]$process.Path) } catch { $candidate = '' }
   $candidateRoot = ''
   try { if ($candidate) { $candidateRoot = [IO.Path]::GetDirectoryName($candidate) } } catch { $candidateRoot = '' }
   if ($expectedRoot -and $candidateRoot -and [string]::Equals($candidateRoot, $expectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
@@ -647,13 +648,25 @@ public static class MineradioWeWindowControl {
     };
   }
 
+  [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+  static extern uint GetLongPathNameW(string lpszShortPath, StringBuilder lpszLongPath, uint cchBuffer);
+  static string NormalizeExePath(string path) {
+    if (string.IsNullOrEmpty(path)) return "";
+    try { path = Path.GetFullPath(path); } catch { }
+    try {
+      StringBuilder sb = new StringBuilder(Math.Max(260, path.Length * 2));
+      uint r = GetLongPathNameW(path, sb, (uint)sb.Capacity);
+      if (r > 0 && r <= sb.Capacity) return sb.ToString();
+    } catch { }
+    return path;
+  }
   static uint ValidateProcess(IntPtr hWnd, string expectedExecutable) {
     uint processId;
     if (GetWindowThreadProcessId(hWnd, out processId) == 0 || processId == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
     Process process = Process.GetProcessById((int)processId);
     try {
-      string actual = Path.GetFullPath(process.MainModule.FileName);
-      string expected = Path.GetFullPath(expectedExecutable ?? "");
+      string actual = NormalizeExePath(process.MainModule.FileName);
+      string expected = NormalizeExePath(expectedExecutable ?? "");
       if (!String.Equals(actual, expected, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Window process mismatch");
     } finally { process.Dispose(); }
     return processId;
@@ -856,6 +869,18 @@ public static class MineradioWeParallaxPointerRelay {
     return text.ToString();
   }
 
+  [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+  static extern uint GetLongPathNameW(string lpszShortPath, StringBuilder lpszLongPath, uint cchBuffer);
+  static string NormalizeExePath(string path) {
+    if (string.IsNullOrEmpty(path)) return "";
+    try { path = Path.GetFullPath(path); } catch { }
+    try {
+      StringBuilder sb = new StringBuilder(Math.Max(260, path.Length * 2));
+      uint r = GetLongPathNameW(path, sb, (uint)sb.Capacity);
+      if (r > 0 && r <= sb.Capacity) return sb.ToString();
+    } catch { }
+    return path;
+  }
   static uint ValidateProcess(IntPtr hWnd, string expectedExecutable) {
     if (!IsWindow(hWnd)) throw new InvalidOperationException("Pointer relay window is missing");
     uint processId;
@@ -864,8 +889,8 @@ public static class MineradioWeParallaxPointerRelay {
     }
     Process process = Process.GetProcessById((int)processId);
     try {
-      string actual = Path.GetFullPath(process.MainModule.FileName);
-      string expected = Path.GetFullPath(expectedExecutable ?? "");
+      string actual = NormalizeExePath(process.MainModule.FileName);
+      string expected = NormalizeExePath(expectedExecutable ?? "");
       if (!String.Equals(actual, expected, StringComparison.OrdinalIgnoreCase)) {
         throw new InvalidOperationException("Pointer relay window process mismatch");
       }
@@ -1251,6 +1276,18 @@ public sealed class MineradioWeDwmSurfaceHost : Form {
     return text.ToString();
   }
 
+  [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+  static extern uint GetLongPathNameW(string lpszShortPath, StringBuilder lpszLongPath, uint cchBuffer);
+  static string NormalizeExePath(string path) {
+    if (string.IsNullOrEmpty(path)) return "";
+    try { path = Path.GetFullPath(path); } catch { }
+    try {
+      StringBuilder sb = new StringBuilder(Math.Max(260, path.Length * 2));
+      uint r = GetLongPathNameW(path, sb, (uint)sb.Capacity);
+      if (r > 0 && r <= sb.Capacity) return sb.ToString();
+    } catch { }
+    return path;
+  }
   static uint ValidateProcess(IntPtr hWnd, string expectedExecutable) {
     if (!IsWindow(hWnd)) throw new InvalidOperationException("DWM window is missing");
     uint processId;
@@ -1258,8 +1295,8 @@ public sealed class MineradioWeDwmSurfaceHost : Form {
       throw new Win32Exception(Marshal.GetLastWin32Error());
     }
     using (Process process = Process.GetProcessById((int)processId)) {
-      string actual = Path.GetFullPath(process.MainModule.FileName);
-      string expected = Path.GetFullPath(expectedExecutable ?? "");
+      string actual = NormalizeExePath(process.MainModule.FileName);
+      string expected = NormalizeExePath(expectedExecutable ?? "");
       if (!String.Equals(actual, expected, StringComparison.OrdinalIgnoreCase)) {
         throw new InvalidOperationException("DWM window process mismatch");
       }
