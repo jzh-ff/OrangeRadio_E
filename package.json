@@ -51,7 +51,9 @@
       "target": [
         { "target": "zip", "arch": ["x64"] }
       ],
-      "category": "public.app-category.music"
+      "category": "public.app-category.music",
+      "identity": null,
+      "hardenedRuntime": false
     },
     "win": {
       "executableName": "OrangeSea",
