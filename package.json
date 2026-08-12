@@ -47,7 +47,7 @@
     ],
     "asar": false,
     "mac": {
-      "icon": "build/icon.png",
+      "icon": "build/icon-mac.png",
       "target": [
         { "target": "zip", "arch": ["x64"] }
       ],
