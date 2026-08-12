@@ -22,11 +22,11 @@ function writeProject(root, name, manifest, files) {
 }
 
 async function main() {
-  // Windows 上 os.tmpdir() 可能返回 8.3 短路径（如 CI runner 的 RUNNER~1），
-  // 用 realpath 规范化为长路径，避免与应用代码返回的长路径比较时不一致
-  const tmpBase = fs.realpathSync(os.tmpdir());
-  const temp = fs.mkdtempSync(path.join(tmpBase, 'mineradio-we-'));
-  const libraryRoot = path.join(temp, 'library');
+  // Windows 上 os.tmpdir() 可能返回 8.3 短路径（如 CI runner 的 RUNNER~1）。
+  // 同步版 fs.realpathSync 在 Windows 上不还原 8.3，但应用代码用的
+  // fs.promises.realpath 会还原——统一用异步 realpath 规范化，确保两边一致
+  const temp = await fs.promises.realpath(fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-we-')));
+  const libraryRoot = await fs.promises.realpath(path.join(temp, 'library'));
   const userData = path.join(temp, 'user-data');
   fs.mkdirSync(libraryRoot, { recursive: true });
   fs.writeFileSync(path.join(libraryRoot, 'outside.mp4'), Buffer.alloc(64, 7));
