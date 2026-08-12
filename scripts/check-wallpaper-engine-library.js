@@ -26,7 +26,7 @@ async function main() {
   // 同步版 fs.realpathSync 在 Windows 上不还原 8.3，但应用代码用的
   // fs.promises.realpath 会还原——统一用异步 realpath 规范化，确保两边一致
   const temp = await fs.promises.realpath(fs.mkdtempSync(path.join(os.tmpdir(), 'mineradio-we-')));
-  const libraryRoot = await fs.promises.realpath(path.join(temp, 'library'));
+  const libraryRoot = path.join(temp, 'library');
   const userData = path.join(temp, 'user-data');
   fs.mkdirSync(libraryRoot, { recursive: true });
   fs.writeFileSync(path.join(libraryRoot, 'outside.mp4'), Buffer.alloc(64, 7));
