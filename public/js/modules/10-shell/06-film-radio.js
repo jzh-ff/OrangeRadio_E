@@ -30,6 +30,10 @@ function syncFilmRadioButton() {
 function applyFilmRadioMode(on, opts) {
   opts = opts || {};
   filmRadioMode = !!on;
+  // 双向互斥：进入胶片电台时先退出涂鸦墙（满屏涂鸦歌词）
+  if (filmRadioMode && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
+    applyGraffitiMode(false, { save: true });
+  }
   document.documentElement.classList.toggle('film-radio-preload', filmRadioMode);
   document.body.classList.toggle('film-radio', filmRadioMode);
   var overlay = document.getElementById('film-radio-overlay');

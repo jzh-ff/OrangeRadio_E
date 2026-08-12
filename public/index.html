@@ -25,6 +25,7 @@
   <script src="js/preload-mode.js"></script>
   <link rel="stylesheet" href="css/index.css?v=20260716-we-continuity-vsync">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
+  <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260812-ink-cover2">
 </head>
 
 <body>
@@ -1538,6 +1539,18 @@
       </div>
       <!-- 底部频谱 -->
       <div class="fr-spectrum" id="fr-spectrum"></div>
+    </div>
+
+    <!-- 涂鸦墙覆盖层（Graffiti Wall · 暗夜墨光）：满屏涂鸦歌词，无 3D 镜头 -->
+    <div id="graffiti-overlay" aria-hidden="true">
+      <div class="graffiti-bg-cover cover-empty" id="graffiti-cover"></div>
+      <div class="graffiti-bg-shade"></div>
+      <div class="graffiti-glow graffiti-glow-a"></div>
+      <div class="graffiti-glow graffiti-glow-b"></div>
+      <canvas class="graffiti-particles" id="graffiti-canvas"></canvas>
+      <div class="graffiti-stage" id="graffiti-stage">
+        <div class="graffiti-line" id="graffiti-line"></div>
+      </div>
     </div>
 
     <input type="file" id="file-input"

@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard();
   refreshPresetGrid();
 }
 
@@ -32,11 +32,25 @@ function buildFilmRadioPresetCard() {
     '</div>';
 }
 
+/* 涂鸦墙：独立于数值预设之外的特殊卡片，满屏涂鸦歌词 · 暗夜墨光 */
+function buildGraffitiPresetCard() {
+  return '<div class="preset-card graffiti-card" data-graffiti="1" onclick="toggleGraffitiMode()" title="涂鸦墙">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c2-6 5-10 9-13"/><path d="M13 7l3 3"/><path d="M16 4l4 4-3 3-4-4z"/><path d="M6 18l2 2"/></svg></div>' +
+    '<div class="pc-name">涂鸦墙</div>' +
+    '<div class="pc-desc">满屏歌词 · 暗夜墨光</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
   document.querySelectorAll('.preset-card').forEach(function (el) {
     var filmRadio = el.getAttribute('data-film-radio');
     if (filmRadio) {
       el.classList.toggle('active', !!(typeof filmRadioMode !== 'undefined' && filmRadioMode));
+      return;
+    }
+    var graffiti = el.getAttribute('data-graffiti');
+    if (graffiti) {
+      el.classList.toggle('active', !!(typeof graffitiMode !== 'undefined' && graffitiMode));
       return;
     }
     el.classList.toggle('active', Number(el.dataset.preset) === fx.preset);
@@ -87,6 +101,10 @@ function setPreset(p, opts) {
   // 切换到其他预设时退出胶片电台（全屏黑胶播放器）
   if (changed && typeof filmRadioMode !== 'undefined' && filmRadioMode && typeof applyFilmRadioMode === 'function') {
     applyFilmRadioMode(false, { save: true });
+  }
+  // 切换到其他预设时退出涂鸦墙（满屏涂鸦歌词）
+  if (changed && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
+    applyGraffitiMode(false, { save: true });
   }
   fx.preset = p;
   if (changed && prev === SKULL_PRESET_INDEX && p !== SKULL_PRESET_INDEX) clearSkullPresetResidue();

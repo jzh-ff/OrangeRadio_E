@@ -1,0 +1,182 @@
+/* =========================================================================
+   OrangeSea · 涂鸦墙（Graffiti Wall · 暗夜墨光 Darkroom Ink）
+   body.graffiti 命名空间，与 index.css / film-radio.css 完全隔离。
+   与胶片电台一致的交互范式：DIY 控制台卡片切换，保留底部控制栏；
+   选择其他预设自动退出。
+
+   设计概念：一句歌词用行草书法大字铺满屏幕，逐字蹦出。
+     · 氛围基调「暗夜墨光」：模糊封面取色做沉浸底 + 暗化遮罩 +
+       双光晕随节拍呼吸 + 墨光粒子飘散 + 字体柔光发光。
+     · 四层叠加：L0 模糊封面 / L0.5 暗化遮罩 / L1 光晕 / L2 粒子 / L3 歌词。
+
+   注意：背景必须不透明 —— Electron 下 backdrop-filter 不可靠，
+   半透明会把 3D 舞台歌词/粒子场景透出来盖住歌词。
+   ========================================================================= */
+
+#graffiti-overlay {
+  --gw-ink: #d7d2c4;                          /* 月白字色（默认） */
+  --gw-glow: rgba(215, 210, 196, 0.34);       /* 远光晕（随字色） */
+  --gw-font: "Liu Jian Mao Cao", "STCaoshu", "STKaiti", "KaiTi", cursive;
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                 /* 铺满全屏，#bottom-bar(z-index:6)悬浮其上 */
+  z-index: 5;                /* 高于 3D 场景，低于 #bottom-bar(6)/#fx-fab(19) */
+  display: none;
+  overflow: hidden;
+  background: linear-gradient(160deg, #100a16 0%, #06070c 55%, #0c0908 100%);  /* 兜底暗色渐变，封面未加载时也有氛围 */
+  color: var(--gw-ink);
+  pointer-events: none;      /* 默认不拦截，切到本模式时由 body.graffiti 打开 */
+}
+
+body.graffiti #graffiti-overlay {
+  display: block;
+}
+
+/* ---------- L0 · 模糊封面底（取色沉浸） ---------- */
+.graffiti-bg-cover {
+  position: absolute;
+  inset: -12%;               /* 放大避免 blur 后边缘漏出色块 */
+  background-size: cover;
+  background-position: center center;
+  background-color: #0a0b12;
+  filter: blur(72px) saturate(1.7) brightness(0.95);  /* 很模糊 + 高饱和提亮，让封面色调透出 */
+  transform: scale(1.32);
+  transition: background-image .7s ease;
+  z-index: 0;
+}
+.graffiti-bg-cover.cover-empty {
+  background-image: none;
+}
+
+/* ---------- L0.5 · 暗化遮罩（保证可读 + 暗夜感，适度减淡让模糊封面透出） ---------- */
+.graffiti-bg-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(8, 9, 14, 0.22), rgba(4, 5, 10, 0.58) 92%),
+    linear-gradient(176deg, rgba(6, 7, 12, 0.32) 0%, rgba(8, 6, 14, 0.52) 100%);
+  z-index: 1;
+}
+
+/* ---------- L1 · 双光晕呼吸（缓慢流动） ---------- */
+.graffiti-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(46px);
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+.graffiti-glow-a {
+  width: 62vmax;
+  height: 62vmax;
+  left: -12vmax;
+  top: -14vmax;
+  background: radial-gradient(circle, rgba(96, 138, 210, 0.22), transparent 64%);
+  animation: gw-breathe-a 11.5s ease-in-out infinite alternate;
+}
+.graffiti-glow-b {
+  width: 56vmax;
+  height: 56vmax;
+  right: -14vmax;
+  bottom: -12vmax;
+  background: radial-gradient(circle, rgba(206, 132, 84, 0.20), transparent 64%);
+  animation: gw-breathe-b 13.5s ease-in-out infinite alternate;
+}
+@keyframes gw-breathe-a {
+  from { opacity: 0.48; transform: scale(0.90) translate(0, 0); }
+  to   { opacity: 0.88; transform: scale(1.10) translate(3vmax, 2vmax); }
+}
+@keyframes gw-breathe-b {
+  from { opacity: 0.42; transform: scale(1.06) translate(0, 0); }
+  to   { opacity: 0.80; transform: scale(0.94) translate(-3vmax, -2vmax); }
+}
+
+/* ---------- L2 · 墨光粒子画布 ---------- */
+.graffiti-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ---------- L3 · 歌词舞台 ---------- */
+.graffiti-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7vh 8vw;
+  padding-bottom: calc(124px + 7vh);  /* 底部留出控制栏，歌词在其上方居中 */
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* 歌词行：固定宽度让 flex-wrap 自然换行，字号由 JS 二分测量铺满 */
+.graffiti-line {
+  width: 84vw;
+  max-width: 1500px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.02em 0.06em;
+  line-height: 1.08;
+  font-family: var(--gw-font);
+  font-weight: 400;
+  /* font-size 由 JS 动态设置 */
+}
+
+/* 逐字单元：默认隐藏，加 .is-shown 后蹦出 */
+.graffiti-char {
+  display: inline-block;
+  flex-shrink: 0;             /* 不压缩，宽度不足时换行而非压扁字形 */
+  opacity: 0;
+  transform: scale(0.38) rotate(var(--gw-rot, 0deg)) translateY(var(--gw-dy, 0em));
+  transition:
+    opacity 0.38s ease,
+    transform 0.46s cubic-bezier(0.2, 1.5, 0.42, 1);
+  color: var(--gw-ink);
+  text-shadow:
+    0 0 16px rgba(255, 255, 255, 0.40),
+    0 0 40px var(--gw-glow),
+    0 0 86px var(--gw-glow);
+}
+.graffiti-char.is-shown {
+  opacity: 1;
+  transform: scale(1) rotate(var(--gw-rot, 0deg)) translateY(var(--gw-dy, 0em));
+}
+
+/* 行切换时的整体淡入 */
+.graffiti-line.is-entering {
+  animation: gw-line-in 0.5s ease both;
+}
+@keyframes gw-line-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 空状态 */
+.graffiti-empty {
+  font-family: "Noto Sans SC", "Inter", sans-serif;
+  font-size: 1.05rem;
+  opacity: 0.32;
+  letter-spacing: 0.16em;
+  font-weight: 300;
+}
+
+/* 行内空白占位（英文歌词间距）：不参与逐字揭示，保持原始宽度 */
+.graffiti-space {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ---------- 预设卡片高亮（复用 .preset-card 基底） ---------- */
+.preset-card.graffiti-card {
+  /* 卡片底色与边框沿用 .preset-card，这里仅给一个可识别的标识色调 */
+  --pc-accent: #c9a06a;
+}
