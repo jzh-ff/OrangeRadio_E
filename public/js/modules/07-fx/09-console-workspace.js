@@ -281,6 +281,31 @@ var FX_CONSOLE_LAYOUT = [
 
 var fxConsoleRegistry = [];
 var fxConsoleGroups = {};
+var SONIC_FX_CONSOLE_GROUP_KEYS = [
+  'motion:sonic-terrain',
+  'motion:sonic-audio',
+  'motion:sonic-blocks'
+];
+
+function setSonicFxConsoleGroupsHidden(hidden) {
+  SONIC_FX_CONSOLE_GROUP_KEYS.forEach(function (key) {
+    var group = fxConsoleGroups[key];
+    if (!group) return;
+    group.classList.toggle('fx-sonic-hidden', !!hidden);
+    group.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  });
+  if (typeof document !== 'undefined' && typeof renderFxConsoleSearchResults === 'function') {
+    var search = document.getElementById('fx-console-search');
+    var results = document.getElementById('fx-console-search-results');
+    if (search && search.value && results && !results.hidden) renderFxConsoleSearchResults(search.value);
+  }
+}
+
+function fxConsoleEntryIsVisible(entry) {
+  if (!entry) return false;
+  var group = fxConsoleGroups[entry.tab + ':' + entry.group];
+  return !group || !group.classList.contains('fx-sonic-hidden');
+}
 
 function fxConsoleResolveBlock(ref) {
   var el = null;
@@ -506,6 +531,7 @@ function organizeFxConsoleWorkspace() {
   panel._fxConsoleWorkspaceOrganized = true;
   panel.setAttribute('data-console-layout', 'task-first-v2');
   setFxPanelTab(fxPanelTab);
+  if (typeof updateSonicSeriesControlVisibility === 'function') updateSonicSeriesControlVisibility();
 }
 
 function fxConsoleEntryForElement(element) {
@@ -602,6 +628,7 @@ function renderFxConsoleSearchResults(query) {
   if (history) history.hidden = true;
   if (historyBtn) historyBtn.setAttribute('aria-expanded', 'false');
   var matches = fxConsoleRegistry.filter(function (entry) {
+    if (!fxConsoleEntryIsVisible(entry)) return false;
     var text = [entry.title, entry.aliases, entry.tabLabel, entry.groupLabel, entry.element && entry.element.textContent].join(' ');
     return fxConsoleNormalizeSearch(text).indexOf(needle) >= 0;
   }).slice(0, 18);

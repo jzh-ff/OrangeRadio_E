@@ -173,8 +173,10 @@ function setFxPanelControlsHidden(ids, hidden) {
 }
 function updateSonicSeriesControlVisibility() {
   var preset = Number(fx && fx.preset) || 0;
-  var original = preset === 7;
+  var sonicPreset = typeof SONIC_PRESET_INDEX !== 'undefined' ? Number(SONIC_PRESET_INDEX) : 7;
+  var original = preset === sonicPreset;
   setFxPanelControlsHidden(SONIC_ORIGINAL_FX_CONTROL_IDS, !original);
+  if (typeof setSonicFxConsoleGroupsHidden === 'function') setSonicFxConsoleGroupsHidden(!original);
   setFxPanelControlsHidden(['fx-lyricbgadapt-row', 'fx-lyricbgadapt'], false);
 }
 function setPerformanceBackgroundMode(mode, silent) {
