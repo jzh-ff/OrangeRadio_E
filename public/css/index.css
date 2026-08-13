@@ -2650,9 +2650,7 @@ body.simple-mode #search-results {
   max-height: min(420px, calc(100vh - 210px))
 }
 
-body.simple-mode #quality-control,
-body.simple-mode #controls-hide-btn,
-body.simple-mode .fullscreen-toggle-btn {
+body.simple-mode #quality-control {
   display: none !important
 }
 
@@ -2662,10 +2660,6 @@ body.simple-mode .control-cluster.modes {
 
 body.simple-mode #bottom-bar {
   width: min(1060px, calc(100vw - 56px))
-}
-
-body.simple-mode #controls {
-  grid-template-columns: minmax(310px, 1.05fr) minmax(344px, auto) minmax(230px, .72fr)
 }
 
 body.simple-mode .control-meta {
@@ -5558,8 +5552,8 @@ body.home-controls-locked #bottom-bar {
   position: relative;
   z-index: 1;
   width: 100%;
-  display: grid;
-  grid-template-columns: minmax(340px, 1.08fr) minmax(380px, auto) minmax(400px, 1.08fr);
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 18px
 }
@@ -7311,7 +7305,6 @@ body.diy-mode #bottom-bar.stage-mode {
   }
 
   body.diy-mode #controls {
-    grid-template-columns: minmax(240px, 1fr) minmax(214px, auto) minmax(260px, auto);
     gap: 8px
   }
 
@@ -7358,7 +7351,6 @@ body.diy-mode #bottom-bar.stage-mode {
   }
 
   #controls {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 8px
   }
 
@@ -7403,10 +7395,6 @@ body.diy-mode #bottom-bar.stage-mode {
     width: 54px;
     height: 54px
   }
-
-  #time-display {
-    display: none
-  }
 }
 
 @media (max-width: 620px) {
@@ -7417,7 +7405,7 @@ body.diy-mode #bottom-bar.stage-mode {
   }
 
   #controls {
-    grid-template-columns: 1fr
+    gap: 6px
   }
 
   .control-cluster {
@@ -7462,77 +7450,8 @@ body.diy-mode #bottom-bar.stage-mode {
   width: min(1360px, calc(100vw - clamp(28px, 8vw, 148px)));
 }
 
-#controls,
-body.simple-mode #controls,
-body.diy-mode #controls {
-  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
-  gap: clamp(8px, 1.7vw, 18px);
-}
-
-.control-cluster {
-  min-width: 0
-}
-
-.control-cluster.actions {
-  justify-content: flex-start;
-  overflow: visible;
-}
-
-.control-cluster.transport {
-  justify-self: center;
-  justify-content: center;
-  width: max-content;
-  gap: clamp(8px, 1.1vw, 13px);
-  position: relative;
-  z-index: 2;
-}
-
-.control-cluster.modes {
-  justify-content: flex-end;
-  overflow: visible;
-}
-
-/* 空间自适应：按钮多时允许收缩（默认 36px → 最小 28px），而不是溢出/隐藏。
-   flex:0 1 让按钮在放不下时按比例收缩，min-width 保证不缩成畸形。 */
-.control-cluster.modes > * {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.control-cluster.modes .ctrl-btn {
-  flex: 0 1 36px;
-  width: auto;
-  min-width: 28px;
-  height: 36px;
-}
-
-/* 收紧 modes 间距，给按钮收缩留出更多空间 */
-@media (max-width:1420px) {
-  .control-cluster.modes {
-    gap: 8px;
-  }
-}
-
-.control-track {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .control-meta {
   max-width: min(320px, 100%);
-}
-
-/* Keep the transport and mode clusters from occupying the same grid space. */
-@media (max-width:1420px) {
-  #controls-hide-btn {
-    display: none !important
-  }
-}
-
-@media (max-width:1320px) {
-  #time-display {
-    display: none
-  }
 }
 
 @media (max-width:1180px) {
@@ -7558,12 +7477,6 @@ body.diy-mode #controls {
     width: calc(100vw - 28px);
   }
 
-  #controls,
-  body.simple-mode #controls,
-  body.diy-mode #controls {
-    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
-  }
-
   .control-meta {
     max-width: min(170px, 100%)
   }
@@ -7578,73 +7491,11 @@ body.diy-mode #controls {
     max-width: min(132px, 100%)
   }
 
-  .control-cluster.modes {
-    gap: 6px
-  }
-}
-
-@media (max-width:1180px) {
-  body.diy-mode .control-cluster.modes {
-    gap: 7px
-  }
-
-  body.diy-mode #controls {
-    gap: 10px
-  }
 }
 
 @media (max-width:1040px) {
-
-  body.diy-mode #time-display,
-  body.diy-mode #controls-hide-btn {
-    display: none !important
-  }
-
   body.diy-mode .control-track {
     max-width: 260px
-  }
-}
-
-/* DIY 模式：中等宽度下逐步收纳低频控件，防止 .modes 区块向左溢出盖住播放列表按钮。
-   .ctrl-btn 是 flex:0 0 auto 固定 36px 不收缩，按钮过多会从 flex-end 侧向左溢出。 */
-@media (max-width:1180px) {
-
-  body.diy-mode #sleep-timer-control,
-  body.diy-mode #eq-control {
-    display: none !important
-  }
-}
-
-@media (max-width:1080px) {
-
-  body.diy-mode #desktop-lyrics-bar-btn,
-  body.diy-mode #mini-player-btn {
-    display: none !important
-  }
-}
-
-@media (max-width:940px) {
-
-  body.diy-mode .lyrics-toggle-btn,
-  body.diy-mode #volume-control,
-  body.diy-mode .fullscreen-toggle-btn {
-    display: none !important
-  }
-}
-
-@media (max-width:620px) {
-
-  #controls,
-  body.simple-mode #controls,
-  body.diy-mode #controls {
-    grid-template-columns: 1fr;
-  }
-
-  .control-cluster.actions,
-  .control-cluster.transport,
-  .control-cluster.modes {
-    justify-content: center;
-    width: 100%;
   }
 }
 
@@ -7743,16 +7594,8 @@ body.immersive-mode .control-cluster.modes {
 }
 
 body.immersive-mode .control-track,
-body.immersive-mode #heart-btn,
-body.immersive-mode #collect-btn,
-body.immersive-mode #play-mode-btn,
-body.immersive-mode .lyrics-toggle-btn,
-body.immersive-mode #mini-queue-btn,
 body.immersive-mode #quality-control,
-body.immersive-mode #volume-control,
-body.immersive-mode #controls-hide-btn,
-body.immersive-mode .control-divider,
-body.immersive-mode .fullscreen-toggle-btn {
+body.immersive-mode .control-divider {
   display: none !important
 }
 
@@ -18241,4 +18084,81 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
 .eq-degraded .eq-presets {
   opacity: .5;
   pointer-events: none;
+}
+
+/* ---------- 底部控制栏：统一单行 Flex 布局 ---------- */
+#controls,
+body.simple-mode #controls,
+body.diy-mode #controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(2px, .55vw, 7px);
+}
+
+#controls > .control-cluster,
+body.immersive-mode #controls > .control-cluster {
+  display: contents;
+}
+
+#controls .control-track {
+  flex: 1 1 clamp(72px, 18vw, 320px);
+  min-width: 0;
+  max-width: none;
+}
+
+#controls > .control-cluster > :not(.control-track):not(#prev-btn):not(#play-btn):not(#next-btn):not(#time-display) {
+  box-sizing: border-box;
+  flex: 1 1 36px;
+  width: auto;
+  min-width: 0;
+  max-width: 36px;
+  height: clamp(28px, 3vw, 36px);
+  margin: 0;
+}
+
+#controls > .control-cluster > .ctrl-btn,
+#controls > .control-cluster > :not(.control-track) > .ctrl-btn {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  border-radius: 11px;
+}
+
+#controls #prev-btn,
+#controls #next-btn {
+  flex: 0 1 clamp(28px, 3vw, 38px);
+  width: clamp(28px, 3vw, 38px);
+  min-width: 24px;
+  max-width: 38px;
+  height: clamp(32px, 3.4vw, 42px);
+}
+
+#controls #play-btn {
+  flex: 0 1 clamp(42px, 4.6vw, 58px);
+  width: clamp(42px, 4.6vw, 58px);
+  min-width: 36px;
+  max-width: 58px;
+  height: clamp(42px, 4.6vw, 58px);
+}
+
+#controls #time-display {
+  box-sizing: border-box;
+  flex: 0 2 clamp(38px, 6vw, 86px);
+  width: clamp(38px, 6vw, 86px);
+  min-width: 0;
+  max-width: 86px;
+  height: clamp(28px, 3vw, 36px);
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+body.immersive-mode .control-cluster.actions,
+body.immersive-mode .control-cluster.transport,
+body.immersive-mode .control-cluster.modes {
+  display: contents;
 }

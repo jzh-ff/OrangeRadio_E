@@ -9,6 +9,23 @@ const css = fs.readFileSync(
   path.resolve(__dirname, '..', 'public', 'css', 'index.css'),
   'utf8',
 );
+const html = fs.readFileSync(
+  path.resolve(__dirname, '..', 'public', 'index.html'),
+  'utf8',
+);
+const loader = fs.readFileSync(
+  path.resolve(__dirname, '..', 'public', 'js', 'index-loader.js'),
+  'utf8',
+);
+const fitModulePath = path.resolve(
+  __dirname,
+  '..',
+  'public',
+  'js',
+  'modules',
+  '01-scene',
+  '05-modes-controls-fit.js',
+);
 
 function ruleBody(selectorPattern) {
   const match = css.match(new RegExp(`${selectorPattern}\\s*\\{([^}]+)\\}`, 'i'));
@@ -16,44 +33,58 @@ function ruleBody(selectorPattern) {
   return match[1];
 }
 
-test('desktop bottom bar has enough wide-screen room for all three control clusters', () => {
-  const desktopRule = ruleBody(
-    'body\\.desktop-shell\\.diy-mode #bottom-bar,\\s*body\\.desktop-shell\\.diy-mode #bottom-bar\\.stage-mode',
-  );
-  assert.match(desktopRule, /width:\s*min\(1360px,\s*calc\(100vw\s*-\s*72px\)\)/i);
-
-  const viewportWidth = 1440;
-  const barWidth = Math.min(1360, viewportWidth - 72);
-  const horizontalPadding = 24 * 2;
-  const gridGaps = 18 * 2;
-  const transportWidth = (5 * 36) + 58 + (5 * 13);
-  const modesWidth = (8 * 36) + (7 * 13) + 13 + 86;
-  const sideColumnWidth = (barWidth - horizontalPadding - gridGaps - transportWidth) / 2;
-
-  assert.equal(transportWidth, 303);
-  assert.equal(modesWidth, 478);
-  assert.equal(sideColumnWidth, 486.5);
-  assert.ok(
-    sideColumnWidth >= modesWidth,
-    'the right modes cluster must not overflow left into the transport cluster',
-  );
+test('bottom controls no longer use an overflow menu or measurement module', () => {
+  assert.doesNotMatch(html, /id="modes-overflow-/i);
+  assert.doesNotMatch(loader, /05-modes-controls-fit\.js/i);
+  assert.equal(fs.existsSync(fitModulePath), false);
 });
 
-test('narrower desktop widths shed low-priority items before clusters can overlap', () => {
-  assert.match(
-    css,
-    /@media\s*\(max-width:\s*1420px\)\s*\{[^]*?#controls-hide-btn\s*\{[^}]*display:\s*none\s*!important/i,
+test('all three control clusters participate in one nowrap flex row', () => {
+  const controlsRule = ruleBody(
+    '#controls,\\s*body\\.simple-mode #controls,\\s*body\\.diy-mode #controls',
   );
-  assert.match(
-    css,
-    /@media\s*\(max-width:\s*1320px\)\s*\{[^]*?#time-display\s*\{[^}]*display:\s*none/i,
+  assert.match(controlsRule, /display:\s*flex/i);
+  assert.match(controlsRule, /flex-wrap:\s*nowrap/i);
+
+  const clusterRule = ruleBody('#controls > \\.control-cluster');
+  assert.match(clusterRule, /display:\s*contents/i);
+  assert.doesNotMatch(css, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+max-content\s+minmax\(0,\s*1fr\)/i);
+});
+
+test('track info absorbs spare room while ordinary controls share one flex contract', () => {
+  const trackRule = ruleBody('#controls \\.control-track');
+  assert.match(trackRule, /flex:\s*1\s+1/i);
+  assert.match(trackRule, /min-width:\s*0/i);
+
+  const ordinaryRule = ruleBody(
+    '#controls > \\.control-cluster > :not\\(\\.control-track\\):not\\(#prev-btn\\):not\\(#play-btn\\):not\\(#next-btn\\):not\\(#time-display\\)',
   );
-  assert.match(
-    css,
-    /#controls,\s*body\.simple-mode #controls,\s*body\.diy-mode #controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+max-content\s+minmax\(0,\s*1fr\)/i,
-  );
-  assert.match(
-    css,
-    /\.control-cluster\.transport\s*\{[^}]*width:\s*max-content/i,
-  );
+  assert.match(ordinaryRule, /flex:\s*1\s+1/i);
+  assert.match(ordinaryRule, /min-width:\s*0/i);
+  assert.match(ordinaryRule, /max-width:\s*36px/i);
+});
+
+test('previous play and next remain the only emphasized playback controls', () => {
+  const edgeRule = ruleBody('#controls #prev-btn,\\s*#controls #next-btn');
+  const playRule = ruleBody('#controls #play-btn');
+  assert.match(edgeRule, /flex:\s*0\s+1/i);
+  assert.match(playRule, /flex:\s*0\s+1/i);
+  assert.match(playRule, /width:\s*clamp\(/i);
+});
+
+test('responsive modes do not hide ordinary playback controls', () => {
+  [
+    '#controls-hide-btn',
+    '#sleep-timer-control',
+    '#eq-control',
+    '#mini-player-btn',
+    '#desktop-lyrics-bar-btn',
+    '.fullscreen-toggle-btn',
+  ].forEach((selector) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.doesNotMatch(
+      css,
+      new RegExp(`${escaped}[^,{]*\\{[^}]*display:\\s*none\\s*!important`, 'i'),
+    );
+  });
 });
