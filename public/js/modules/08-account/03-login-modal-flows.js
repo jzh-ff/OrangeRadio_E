@@ -552,11 +552,19 @@ async function confirmCookieExportPrompt() {
   }
 }
 
+function updateLoginResetAllBtnVisibility() {
+  var btn = document.getElementById('login-reset-all-btn');
+  if (!btn) return;
+  // 未登录时隐藏登录弹窗里的“退出登录”按钮，避免误触触发全量清除流程
+  btn.style.display = hasAnyPlatformLogin() ? '' : 'none';
+}
+
 async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
   var modal = document.getElementById('login-modal');
   openGsapModal(modal);
+  updateLoginResetAllBtnVisibility();
   resumeLoginModalWorkflow();
 }
 function resumeLoginModalWorkflow() {

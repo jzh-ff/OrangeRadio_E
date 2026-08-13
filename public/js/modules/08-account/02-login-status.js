@@ -535,4 +535,5 @@ function renderUserBtn() {
     requestAnimationFrame(updateLoginNodeGraphUi);
   }
   updatePlaybackQualityUi();
+  if (typeof updateLoginResetAllBtnVisibility === 'function') updateLoginResetAllBtnVisibility();
 }

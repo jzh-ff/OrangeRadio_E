@@ -145,6 +145,11 @@ function resetAllProviderRendererLoginState() {
 
 async function logoutAllAccounts() {
   if (logoutAllAccountsBusy) return;
+  if (!hasAnyPlatformLogin()) {
+    showToast('当前未登录任何账号');
+    closeLoginModal();
+    return;
+  }
   if (!window.confirm('退出全部平台并清除登录 Cookie？')) return;
   logoutAllAccountsBusy = true;
   var button = document.getElementById('login-reset-all-btn');
