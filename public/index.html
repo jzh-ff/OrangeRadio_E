@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="css/index.css?v=20260813-modes-fit">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
-  <link rel="stylesheet" href="css/genre-mode.css?v=20260812-genre-mode">
+  <link rel="stylesheet" href="css/genre-mode.css?v=20260813-genre-world-cleanup">
 </head>
 
 <body>
@@ -1544,42 +1544,54 @@
       </div>
     </div>
 
-    <!-- 风格电台覆盖层（Genre Mode）：按歌曲风格自动切换整套视觉主题，
-         主题色由 JS 以 --gm-* CSS 变量下发（data-genre 标识当前族群） -->
-    <div id="genre-overlay" aria-hidden="true" data-genre="default" data-gm-font="sans" data-gm-deco="none">
-      <!-- 风格装饰层（网格/五线谱/纸纹/噪点/光斑/雾，按 data-gm-deco 切换） -->
-      <div class="gm-deco" aria-hidden="true"></div>
-      <!-- 顶部族群芯片选择器（自动跟随 / 手动锁定） -->
-      <div class="gm-chips" id="gm-chips"></div>
-      <div class="gm-main">
-        <!-- 左侧：大圆角封面 + 族群色旋转光弧 -->
-        <div class="gm-cover-stage">
-          <div class="gm-cover" id="gm-cover">
-            <div class="gm-cover-img cover-empty"></div>
-            <div class="gm-cover-ring" aria-hidden="true"></div>
-          </div>
-        </div>
-        <!-- 右侧：风格徽章 + 曲目信息 + 当前歌词单行 + 进度 -->
-        <div class="gm-info-stage">
-          <div class="gm-badge" id="gm-badge">GENRE · 综合</div>
-          <div class="gm-title" id="gm-title">未在播放</div>
-          <div class="gm-artist" id="gm-artist"></div>
-          <div class="gm-now-line" id="gm-now-line">—</div>
-          <div class="gm-genre-tag" id="gm-genre-tag" style="display:none"></div>
-          <div class="gm-progress-row">
-            <div class="gm-progress" id="gm-progress">
-              <div class="gm-progress-fill" id="gm-progress-fill"></div>
-            </div>
-            <div class="gm-time" id="gm-time">0:00 / 0:00</div>
-          </div>
-        </div>
+    <!-- 风格世界只叠加舞台注记与交互仪表，Three 场景保持可见。 -->
+    <div id="genre-overlay" aria-hidden="true" data-world="prism" data-lock="auto">
+      <div id="genre-world-portal" class="gm-portal" data-phase="idle" aria-hidden="true">
+        <span class="gm-portal-shutter gm-portal-shutter-a"></span>
+        <span class="gm-portal-shutter gm-portal-shutter-b"></span>
+        <span class="gm-portal-aperture"></span>
       </div>
-      <!-- 底部可视化区：按族群 viz 形态切换（bars 柱状 / wave 波形 / staff 五线谱光点；
-           ring 环形频谱挂在封面上，不占此区域） -->
-      <div class="gm-viz">
-        <div class="gm-spectrum" id="gm-spectrum"></div>
-        <canvas class="gm-viz-canvas" id="gm-viz-canvas"></canvas>
-      </div>
+
+      <section id="gm-hud" class="gm-hud" aria-label="风格世界状态">
+        <div class="gm-hud-rail" aria-hidden="true"><span></span></div>
+        <div class="gm-world-readout">
+          <span class="gm-kicker">WORLD SIGNAL</span>
+          <strong id="gm-world-name">棱镜梦乐园</strong>
+          <span id="gm-world-english">Prism Dreamland</span>
+        </div>
+        <div class="gm-recognition">
+          <button id="gm-compass-toggle" class="gm-lock-toggle" type="button" title="切换自动跟随或锁定当前世界">
+            <span id="gm-lock-state">自动巡航</span>
+          </button>
+          <span id="gm-profile-source">综合回退 · 15%</span>
+        </div>
+        <div class="gm-track-readout">
+          <strong id="gm-title">未在播放</strong>
+          <span id="gm-artist"></span>
+        </div>
+        <div class="gm-progress-row">
+          <div id="gm-progress" class="gm-progress" role="slider" aria-label="播放进度" aria-valuemin="0"
+            aria-valuemax="100" tabindex="0"><span id="gm-progress-fill"></span></div>
+          <time id="gm-time">0:00 / 0:00</time>
+          <button id="gm-hud-expand" class="gm-expand" type="button" aria-expanded="false"
+            aria-controls="gm-compass">世界罗盘</button>
+        </div>
+      </section>
+
+      <nav id="gm-compass" class="gm-compass" aria-label="选择风格世界">
+        <button type="button" data-world="electronic" aria-pressed="false"><i></i><span>霓虹反应城</span><small>NEON</small></button>
+        <button type="button" data-world="rock-metal" aria-pressed="false"><i></i><span>裂隙铸造场</span><small>RIFT</small></button>
+        <button type="button" data-world="hiphop" aria-pressed="false"><i></i><span>午夜街区</span><small>BLOCK</small></button>
+        <button type="button" data-world="prism" aria-pressed="true"><i></i><span>棱镜梦乐园</span><small>PRISM</small></button>
+        <button type="button" data-world="folk" aria-pressed="false"><i></i><span>琥珀旷野</span><small>AMBER</small></button>
+        <button type="button" data-world="classical" aria-pressed="false"><i></i><span>无尽歌剧院</span><small>OPERA</small></button>
+        <button type="button" data-world="jazz-soul" aria-pressed="false"><i></i><span>蓝烟俱乐部</span><small>SMOKE</small></button>
+        <button type="button" data-world="ambient" aria-pressed="false"><i></i><span>潮汐虚境</span><small>TIDAL</small></button>
+      </nav>
+
+      <div id="genre-world-lyrics" class="genre-world-lyrics" role="status" aria-live="polite"
+        aria-atomic="true"><div class="genre-world-lyrics__main"></div><div
+          class="genre-world-lyrics__translation" aria-hidden="true"></div></div>
     </div>
 
     <input type="file" id="file-input"

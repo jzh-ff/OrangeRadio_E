@@ -1,519 +1,485 @@
-/* =========================================================================
-   OrangeSea · 风格电台（Genre Mode · 风格视觉驱动）
-   body.genre-mode 命名空间，与 index.css / film-radio.css 完全隔离。
-   主题色全部由 JS（17-genre-themes.js）以 CSS 变量下发（--gm-*），
-   本文件只写结构与气质；变量变化靠 transition ~1.2s 平滑过渡。
-
-   注意：背景必须不透明 —— Electron 下 backdrop-filter 不可靠，
-   半透明会把 3D 舞台歌词/粒子场景透出来盖住内容。
-   ========================================================================= */
+/* OrangeSea · Genre Worlds — transparent stage annotations */
 
 #genre-overlay {
-  /* 默认变量（JS 未下发前的首帧兜底，与 default 族群一致） */
-  --gm-accent: #a9b8c8;
-  --gm-accent-2: #7f8ea0;
-  --gm-bg-1: #101216;
-  --gm-bg-2: #0b0d10;
-  --gm-bg-3: #07090b;
-  --gm-ink: #e9eef3;
-  --gm-muted: rgba(205, 216, 226, 0.42);
-  --gm-glow: rgba(169, 184, 200, 0.13);
-  --gm-track: rgba(233, 238, 243, 0.14);
-  /* 音频反应变量（09-genre-mode 每帧写入，暂停时自动归零） */
-  --gm-bass: 0;
-  --gm-energy: 0;
-  --gm-beat: 0;
-  --gm-spec-glow: 0.5;
-
+  --gm-accent: #ff79d1;
+  --gm-palette-a: #120d25;
+  --gm-palette-b: #72e8ff;
   position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;                 /* 铺满全屏，彻底盖住 3D 场景；#bottom-bar(z-index:6) 悬浮其上 */
-  padding-bottom: 104px;     /* 给底部悬浮胶囊控制栏让位 */
-  z-index: 5;                /* 高于 3D 场景，低于 #bottom-bar(6)/#fx-fab(19) */
+  inset: 0;
+  z-index: 5;
   display: none;
-  flex-direction: column;
-  background-color: var(--gm-bg-2);
-  background-image:
-    radial-gradient(ellipse at 82% 12%, var(--gm-glow), transparent 55%),
-    radial-gradient(ellipse at 12% 88%, var(--gm-glow), transparent 50%),
-    linear-gradient(165deg, var(--gm-bg-1) 0%, var(--gm-bg-2) 58%, var(--gm-bg-3) 100%);
-  color: var(--gm-ink);
-  font-family: var(--font-sans, "Noto Sans SC", "Inter", sans-serif);
+  color: #f6f7fb;
+  pointer-events: none;
   overflow: hidden;
-  pointer-events: none;      /* 默认不拦截，切到本模式时打开 */
-  transition: background-color 1.2s ease, color 1.2s ease;
+  font-family: "Segoe UI Variable", "Microsoft YaHei UI", sans-serif;
 }
 
-body.genre-mode #genre-overlay {
-  display: flex;
+body.genre-mode #genre-overlay { display: block; }
+
+.gm-hud,
+.gm-compass {
+  z-index: 40;
   pointer-events: auto;
 }
 
-/* ---------- 背景能量光晕（--gm-energy 呼吸） ---------- */
-#genre-overlay::before {
-  content: '';
+.gm-hud {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background:
-    radial-gradient(ellipse 46% 34% at 24% 30%, var(--gm-glow), transparent 70%),
-    radial-gradient(ellipse 52% 40% at 78% 66%, var(--gm-glow), transparent 72%);
-  opacity: calc(0.28 + var(--gm-energy) * 0.72);
-  transition: opacity 0.12s linear;
+  top: clamp(76px, 9vh, 108px);
+  left: clamp(18px, 3.4vw, 58px);
+  width: min(430px, calc(100vw - 36px));
+  padding: 0 0 0 18px;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, .72));
+  transition: opacity .45s ease, transform .45s ease, filter .45s ease;
 }
 
-/* ---------- 切族瞬间光晕脉冲（gm-theme-switch 类触发，一次 0.9s） ---------- */
-#genre-overlay::after {
-  content: '';
+.gm-hud.is-dimmed {
+  opacity: .24;
+  transform: translateX(-7px);
+  filter: drop-shadow(0 5px 14px rgba(0, 0, 0, .48)) saturate(.65);
+}
+
+.gm-hud:hover,
+.gm-hud:focus-within {
+  opacity: 1;
+  transform: none;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, .72));
+}
+
+.gm-hud-rail {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  background: radial-gradient(ellipse 70% 55% at 50% 46%, var(--gm-glow), transparent 72%);
-  opacity: 0;
-}
-#genre-overlay.gm-theme-switch::after {
-  animation: gm-switch-pulse 0.9s ease-out;
-}
-@keyframes gm-switch-pulse {
-  0%   { opacity: 0; }
-  22%  { opacity: 1; }
-  100% { opacity: 0; }
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--gm-accent) 18%, var(--gm-accent) 82%, transparent);
+  box-shadow: 0 0 14px var(--gm-accent);
 }
 
-/* 壁纸引擎启用时：让出背景，壁纸作底（半透明蒙版保证可读） */
-body.genre-mode.wallpaper-engine-active #genre-overlay {
-  background-color: rgba(11, 13, 16, 0.66);
-  background-image:
-    radial-gradient(ellipse at 82% 12%, var(--gm-glow), transparent 55%),
-    linear-gradient(165deg, rgba(11, 13, 16, 0.55) 0%, rgba(7, 9, 11, 0.72) 100%);
-}
-/* 壁纸层提到 3D 画布(z-1)之上，避免 3D 粒子从半透明覆盖层透出 */
-body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
-  z-index: 2;
-}
-
-/* ---------- 风格装饰层（按 data-gm-deco 切换，纯 CSS 纹理） ---------- */
-#genre-overlay .gm-deco {
+.gm-hud-rail::before,
+.gm-hud-rail::after {
+  content: "";
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0;
-  transition: opacity 1.2s ease;
+  left: -3px;
+  width: 8px;
+  height: 1px;
+  background: var(--gm-accent);
 }
-/* 电子：底部透视网格地平线（缓慢向观察者滚动，合成波感） */
-#genre-overlay[data-gm-deco="grid"] .gm-deco {
-  opacity: 1;
-  background-image:
-    linear-gradient(var(--gm-glow) 1px, transparent 1px),
-    linear-gradient(90deg, var(--gm-glow) 1px, transparent 1px);
-  background-size: 46px 46px;
-  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
-  animation: gm-grid-scroll 3.6s linear infinite;
-}
-@keyframes gm-grid-scroll {
-  to { background-position: 0 46px, 0 0; }
-}
-/* 古典：五线谱横线 */
-#genre-overlay[data-gm-deco="staff"] .gm-deco {
-  opacity: 1;
-  background-image: repeating-linear-gradient(to bottom,
-    transparent 0px, transparent 64px,
-    var(--gm-glow) 64px, var(--gm-glow) 65px,
-    transparent 65px, transparent 72px,
-    var(--gm-glow) 72px, var(--gm-glow) 73px,
-    transparent 73px, transparent 80px,
-    var(--gm-glow) 80px, var(--gm-glow) 81px,
-    transparent 81px, transparent 88px,
-    var(--gm-glow) 88px, var(--gm-glow) 89px,
-    transparent 89px, transparent 96px,
-    var(--gm-glow) 96px, var(--gm-glow) 97px);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
-}
-/* 民谣：纸质纤维纹理 */
-#genre-overlay[data-gm-deco="paper"] .gm-deco {
-  opacity: 0.09;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-}
-/* 嘻哈/摇滚/金属：粗颗粒噪点 */
-#genre-overlay[data-gm-deco="noise"] .gm-deco {
-  opacity: 0.06;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-}
-/* 流行/爵士/动漫：散景光斑（缓慢漂浮） */
-#genre-overlay[data-gm-deco="bokeh"] .gm-deco {
-  opacity: 0.8;
-  background-image:
-    radial-gradient(circle 90px at 78% 22%, var(--gm-glow), transparent 70%),
-    radial-gradient(circle 130px at 16% 68%, var(--gm-glow), transparent 70%),
-    radial-gradient(circle 60px at 62% 82%, var(--gm-glow), transparent 70%),
-    radial-gradient(circle 48px at 30% 16%, var(--gm-glow), transparent 70%);
-  filter: blur(6px);
-  animation: gm-bokeh-drift 16s ease-in-out infinite alternate;
-}
-@keyframes gm-bokeh-drift {
-  from { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
-  to   { background-position: 3% 4%, -4% -3%, 4% -4%, -3% 3%; }
-}
-/* 氛围：慢呼吸雾光 */
-#genre-overlay[data-gm-deco="mist"] .gm-deco {
-  opacity: 1;
-  background-image:
-    radial-gradient(ellipse 60% 42% at 50% 30%, var(--gm-glow), transparent 70%),
-    radial-gradient(ellipse 48% 36% at 30% 76%, var(--gm-glow), transparent 70%);
-  filter: blur(24px);
-  animation: gm-mist-breathe 12s ease-in-out infinite alternate;
-}
-@keyframes gm-mist-breathe {
-  from { opacity: 0.7; }
-  to   { opacity: 1; }
+.gm-hud-rail::before { top: 18%; }
+.gm-hud-rail::after { bottom: 18%; }
+
+.gm-world-readout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 14px 8px;
+  background: linear-gradient(90deg, rgba(7, 9, 15, .78), rgba(7, 9, 15, .2) 88%, transparent);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 18px, 100% 100%, 0 100%);
 }
 
-/* ---------- 顶部族群芯片选择器 ---------- */
-#genre-overlay .gm-chips {
-  position: relative;
-  z-index: 3;
+.gm-kicker {
+  grid-column: 1 / -1;
+  color: var(--gm-accent);
+  font: 650 9px/1.2 "Cascadia Mono", "Consolas", monospace;
+  letter-spacing: .28em;
+}
+
+.gm-world-readout strong {
+  font-size: clamp(22px, 2.3vw, 32px);
+  line-height: 1.12;
+  letter-spacing: .04em;
+}
+
+.gm-world-readout > span:last-child {
+  color: rgba(236, 241, 249, .56);
+  font: 500 9px/1.2 "Cascadia Mono", "Consolas", monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.gm-recognition,
+.gm-track-readout,
+.gm-progress-row {
+  margin-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, .14);
+  background: linear-gradient(90deg, rgba(7, 9, 15, .66), transparent);
+}
+
+.gm-recognition {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  color: rgba(236, 241, 249, .58);
+  font: 10px/1.2 "Cascadia Mono", "Consolas", monospace;
+  letter-spacing: .05em;
+}
+
+.gm-lock-toggle,
+.gm-expand {
+  appearance: none;
+  border: 0;
+  color: var(--gm-accent);
+  background: transparent;
+  font: inherit;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+
+.gm-lock-toggle::before {
+  content: "◇";
+  margin-right: 6px;
+}
+.gm-hud.is-locked .gm-lock-toggle::before { content: "◆"; }
+
+.gm-track-readout {
+  display: grid;
+  gap: 1px;
+  padding: 10px 12px 6px;
+}
+.gm-track-readout strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gm-track-readout span {
+  overflow: hidden;
+  color: rgba(236, 241, 249, .58);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-progress-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 11px;
+}
+.gm-progress {
+  position: relative;
+  height: 13px;
+  cursor: pointer;
+}
+.gm-progress::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0 auto;
+  height: 1px;
+  background: rgba(255, 255, 255, .2);
+}
+.gm-progress > span {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: var(--gm-accent);
+  box-shadow: 0 0 9px var(--gm-accent);
+}
+.gm-progress > span::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -1px;
+  width: 2px;
+  height: 9px;
+  background: #fff;
+}
+.gm-progress-row time {
+  color: rgba(236, 241, 249, .6);
+  font: 9px/1 "Cascadia Mono", "Consolas", monospace;
+}
+.gm-expand {
+  padding: 2px 0 2px 8px;
+  border-left: 1px solid rgba(255, 255, 255, .18);
+  color: rgba(236, 241, 249, .72);
+  font-size: 9px;
+}
+
+.gm-compass {
+  position: absolute;
+  top: clamp(82px, 10vh, 118px);
+  right: clamp(16px, 3.2vw, 52px);
+  display: grid;
+  gap: 4px;
+  width: min(224px, 28vw);
+  padding-right: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(10px);
+  transition: opacity .3s ease, transform .3s ease, visibility .3s step-end;
+}
+#genre-overlay.is-compass-open .gm-compass {
+  opacity: .72;
+  visibility: visible;
+  transform: none;
+  transition-timing-function: ease, ease, step-start;
+}
+.gm-compass:hover,
+.gm-compass:focus-within { opacity: 1; }
+.gm-compass::after {
+  content: "";
+  position: absolute;
+  inset: 5px 0 5px auto;
+  width: 1px;
+  background: linear-gradient(transparent, rgba(255, 255, 255, .35), transparent);
+}
+.gm-compass button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 9px 1fr auto;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 76px clamp(24px, 4vw, 64px) 4px;   /* 顶部让位给应用顶栏（~64px 高），避免与搜索框重影 */
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-}
-#genre-overlay .gm-chips::-webkit-scrollbar { display: none; }
-#genre-overlay .gm-chip {
-  flex: 0 0 auto;
-  appearance: none;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--gm-muted);
+  min-height: 27px;
+  padding: 3px 8px;
+  border: 0;
+  color: rgba(240, 244, 250, .48);
+  background: linear-gradient(270deg, rgba(7, 9, 15, .58), transparent);
   font-family: inherit;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  padding: 5px 13px;
-  border-radius: 999px;
+  text-align: left;
   cursor: pointer;
-  transition: color 0.35s ease, background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  transition: color .2s ease, transform .2s ease, background .2s ease;
 }
-#genre-overlay .gm-chip:hover {
-  color: var(--gm-ink);
-  border-color: var(--gm-accent);
-}
-#genre-overlay .gm-chip.active {
-  background: var(--gm-accent);
-  border-color: var(--gm-accent);
-  color: var(--gm-bg-3);
-  font-weight: 600;
-  box-shadow: 0 0 18px var(--gm-glow);
-}
-/* 自动模式下当前跟随到的族群：描边高亮（区别于锁定的实填充） */
-#genre-overlay .gm-chip.followed:not([data-family="auto"]) {
-  background: transparent;
-  color: var(--gm-accent);
-  border-color: var(--gm-accent);
-  box-shadow: 0 0 14px var(--gm-glow);
-}
-
-/* ---------- 主体两栏：左封面 / 右信息 ---------- */
-#genre-overlay .gm-main {
-  position: relative;
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(380px, 1.35fr);
-  gap: 56px;
-  padding: 24px clamp(36px, 5vw, 76px) 4px;
-  align-items: center;
-  min-height: 0;
-  z-index: 2;
-}
-
-/* ---------- 左侧封面（大圆角卡片 + 族群色光晕） ---------- */
-#genre-overlay .gm-cover-stage {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(400px, 34vw);
-  margin: 0 auto;
-}
-#genre-overlay .gm-cover {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 18px;
-  /* --gm-beat 节拍 punch：封面随鼓点微缩放；--gm-bass：光晕半径随低频涨落 */
-  transform: scale(calc(1 + var(--gm-beat) * 0.028));
-  transition: box-shadow 1.2s ease, filter 0.5s ease;
-  box-shadow:
-    0 30px 70px rgba(0, 0, 0, 0.58),
-    0 0 calc(46px + var(--gm-bass) * 74px) var(--gm-glow),
-    0 0 calc(8px + var(--gm-bass) * 22px) var(--gm-glow),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
-}
-#genre-overlay .gm-cover.is-paused {
-  filter: brightness(0.72) saturate(0.8);
-}
-#genre-overlay .gm-cover-img {
-  position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  background-size: cover;
-  background-position: center;
-  background-color: #101216;
-  overflow: hidden;
-  transition: filter 0.5s ease;
-}
-/* 封面上轻压一层族群色调 + 暗角，增强统一感 */
-#genre-overlay .gm-cover-img::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.36) 100%),
-    linear-gradient(150deg, var(--gm-glow), transparent 46%);
-  pointer-events: none;
-  transition: background-color 1.2s ease;
-}
-#genre-overlay .gm-cover-img.cover-empty {
-  background-image: radial-gradient(circle at 50% 40%, var(--gm-glow), transparent 65%);
-}
-/* 封面外圈慢旋转光弧（族群色） */
-#genre-overlay .gm-cover-ring {
-  position: absolute;
-  inset: -14px;
-  border-radius: 26px;
-  pointer-events: none;
-  background: conic-gradient(from 0deg,
-    transparent 0deg, var(--gm-accent) 60deg, transparent 130deg,
-    transparent 180deg, var(--gm-accent-2) 240deg, transparent 310deg);
-  opacity: 0.34;
-  filter: blur(9px);
-  animation: gm-ring-spin 16s linear infinite;
-  transition: opacity 0.6s ease;
-}
-#genre-overlay .gm-cover.is-paused .gm-cover-ring {
-  animation-play-state: paused;
-  opacity: 0.12;
-}
-@keyframes gm-ring-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ---------- 右侧信息区 ---------- */
-#genre-overlay .gm-info-stage {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-#genre-overlay .gm-badge {
-  align-self: flex-start;
-  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--gm-accent);
-  border: 1px solid var(--gm-accent);
-  border-radius: 999px;
-  padding: 5px 14px 4px;
-  /* --gm-beat：徽章光晕随节拍微闪 */
-  box-shadow:
-    0 0 calc(12px + var(--gm-beat) * 22px) var(--gm-glow),
-    0 0 calc(var(--gm-beat) * 10px) var(--gm-accent),
-    inset 0 0 10px rgba(0, 0, 0, 0.2);
-  transition: color 1.2s ease, border-color 1.2s ease;
-}
-#genre-overlay .gm-title {
-  font-size: clamp(26px, 3.2vw, 42px);
-  font-weight: 700;
-  line-height: 1.18;
-  letter-spacing: 0.01em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  transition: color 1.2s ease;
-}
-#genre-overlay .gm-artist {
-  font-size: clamp(14px, 1.3vw, 18px);
-  color: var(--gm-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color 1.2s ease;
-}
-/* 字体气质：serif 族（古典/民谣/爵士/灵魂乐）与 mono 族（电子/金属） */
-#genre-overlay[data-gm-font="serif"] .gm-title {
-  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
-  letter-spacing: 0.04em;
-}
-#genre-overlay[data-gm-font="mono"] .gm-title {
-  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
-  letter-spacing: -0.01em;
-}
-#genre-overlay .gm-now-line {
-  margin-top: 10px;
-  font-size: clamp(15px, 1.5vw, 20px);
-  line-height: 1.5;
-  color: var(--gm-ink);
-  min-height: 1.5em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-shadow: 0 0 22px var(--gm-glow);
-  transition: color 1.2s ease, text-shadow 1.2s ease;
-}
-#genre-overlay .gm-now-line.empty {
-  color: var(--gm-muted);
-  text-shadow: none;
-}
-#genre-overlay[data-gm-font="serif"] .gm-now-line {
-  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
-}
-/* 原始 genre 文本小标签（有 ID3/Spotify 流派时才显示） */
-#genre-overlay .gm-genre-tag {
-  align-self: flex-start;
-  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--gm-muted);
-  border-left: 2px solid var(--gm-accent);
-  padding-left: 8px;
-  transition: color 1.2s ease, border-color 1.2s ease;
-}
-
-/* ---------- 进度行 ---------- */
-#genre-overlay .gm-progress-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 16px;
-}
-#genre-overlay .gm-progress {
-  flex: 1;
+.gm-compass button i {
+  width: 5px;
   height: 5px;
-  border-radius: 999px;
-  background: var(--gm-track);
-  cursor: pointer;
-  overflow: hidden;
-  transition: background-color 1.2s ease;
+  border: 1px solid currentColor;
+  transform: rotate(45deg);
 }
-#genre-overlay .gm-progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--gm-accent), var(--gm-accent-2));
-  box-shadow: 0 0 10px var(--gm-glow);
-  transition: background-color 1.2s ease;
+.gm-compass button span { font-size: 11px; }
+.gm-compass button small {
+  font: 8px/1 "Cascadia Mono", "Consolas", monospace;
+  letter-spacing: .15em;
 }
-#genre-overlay .gm-progress.dragging .gm-progress-fill {
-  transition: none;
+.gm-compass button:hover,
+.gm-compass button.is-active {
+  color: #fff;
+  background: linear-gradient(270deg, color-mix(in srgb, var(--gm-accent) 24%, transparent), transparent);
+  transform: translateX(-5px);
 }
-#genre-overlay .gm-time {
-  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
-  font-size: 12px;
-  color: var(--gm-muted);
-  white-space: nowrap;
-  transition: color 1.2s ease;
+.gm-compass button.is-active i {
+  border-color: var(--gm-accent);
+  background: var(--gm-accent);
+  box-shadow: 0 0 10px var(--gm-accent);
 }
 
-/* ---------- 底部可视化区（viz 形态：bars / wave / staff；ring 挂在封面上） ---------- */
-#genre-overlay .gm-viz {
-  position: relative;
-  z-index: 2;
-  height: 72px;
-  margin: 0 clamp(24px, 4vw, 64px) 18px;
+.gm-lock-toggle:focus-visible,
+.gm-expand:focus-visible,
+.gm-progress:focus-visible,
+.gm-compass button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
 }
-#genre-overlay .gm-spectrum {
+
+/* Three-stage portal: iris closes, color seam crosses, aperture opens. */
+.gm-portal {
   position: absolute;
   inset: 0;
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 4px;
-}
-#genre-overlay[data-gm-viz="bars"] .gm-spectrum { display: flex; }
-#genre-overlay .gm-viz-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: none;
-}
-#genre-overlay[data-gm-viz="wave"] .gm-viz-canvas,
-#genre-overlay[data-gm-viz="staff"] .gm-viz-canvas { display: block; }
-
-#genre-overlay .gm-spectrum-bar {
-  flex: 1;
-  max-width: 14px;
-  height: 100%;
-  border-radius: 3px 3px 0 0;
-  background: linear-gradient(to top, var(--gm-accent), var(--gm-accent-2));
-  opacity: 0.85;
-  transform-origin: bottom;
-  transform: scaleY(0.1);
-  /* 辉光 = 族群静态强度(--gm-spec-glow) × 实时低频(--gm-bass) */
-  box-shadow: 0 0 calc(2px + var(--gm-bass) * 18px * var(--gm-spec-glow)) var(--gm-accent);
-  transition: background-color 1.2s ease;
-}
-
-/* ---------- ring 形态：封面外圈环形辐射频谱（电子族） ---------- */
-#genre-overlay .gm-ring-bars {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-  display: none;
+  z-index: 30;
+  visibility: hidden;
   pointer-events: none;
-  z-index: 3;
-  animation: gm-ring-bars-spin 24s linear infinite;
+  isolation: isolate;
 }
-#genre-overlay[data-gm-viz="ring"] .gm-ring-bars { display: block; }
-@keyframes gm-ring-bars-spin {
-  to { transform: rotate(360deg); }
-}
-#genre-overlay .gm-ring-bar {
+.gm-portal.is-active { visibility: visible; }
+.gm-portal-shutter {
   position: absolute;
-  left: -1.5px;
-  top: 0;
-  width: 3px;
-  height: 30px;
-  border-radius: 2px;
-  background: linear-gradient(to top, var(--gm-accent), var(--gm-accent-2));
-  transform-origin: 50% 0;
-  box-shadow: 0 0 calc(3px + var(--gm-bass) * 10px) var(--gm-accent);
+  inset: -16%;
+  background:
+    linear-gradient(115deg, transparent 0 32%, color-mix(in srgb, var(--gm-palette-a) 94%, #000) 33% 66%, transparent 67%),
+    radial-gradient(circle at center, var(--gm-palette-a), #020306 72%);
+  will-change: transform;
 }
-/* ring 形态时 conic 光弧让位（避免双圈视觉噪音） */
-#genre-overlay[data-gm-viz="ring"] .gm-cover-ring { opacity: 0.14; animation: none; }
+.gm-portal-shutter-a { transform: translateX(-105%) skewX(-10deg); }
+.gm-portal-shutter-b { transform: translateX(105%) skewX(-10deg); }
+.gm-portal.is-closing .gm-portal-shutter-a,
+.gm-portal.is-crossing .gm-portal-shutter-a { transform: translateX(-15%) skewX(-10deg); }
+.gm-portal.is-closing .gm-portal-shutter-b,
+.gm-portal.is-crossing .gm-portal-shutter-b { transform: translateX(15%) skewX(-10deg); }
+.gm-portal.is-opening .gm-portal-shutter-a { transform: translateX(-105%) skewX(-10deg); }
+.gm-portal.is-opening .gm-portal-shutter-b { transform: translateX(105%) skewX(-10deg); }
+.gm-portal-shutter {
+  transition: transform calc(var(--portal-duration, 2000ms) * .28) cubic-bezier(.7, 0, .3, 1);
+}
+.gm-portal-aperture {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, transparent 47%, var(--gm-accent) 50%, transparent 53%),
+    radial-gradient(circle at center, color-mix(in srgb, var(--gm-accent) 35%, transparent), transparent 54%);
+  mix-blend-mode: screen;
+}
+.gm-portal.is-crossing .gm-portal-aperture { opacity: 1; animation: gm-portal-cross .48s ease both; }
+.gm-portal.is-failed .gm-portal-aperture { filter: grayscale(.7); }
+@keyframes gm-portal-cross {
+  0% { transform: scaleX(.05); opacity: 0; }
+  45% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1.5); opacity: .2; }
+}
 
-/* ---------- 窄屏适配 ---------- */
-@media (max-width: 980px) {
-  #genre-overlay .gm-main {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding-top: 8px;
-  }
-  #genre-overlay .gm-cover-stage { width: min(240px, 44vw); }
-  #genre-overlay .gm-info-stage { text-align: center; align-items: center; }
-  #genre-overlay .gm-viz { height: 48px; }
+/* Lyrics remain readable while each world speaks a distinct visual language. */
+.genre-world-lyrics {
+  z-index: 20 !important;
+  pointer-events: none;
+  color: #fff;
+  text-wrap: balance;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, .94);
 }
-@media (max-width: 640px) {
-  #genre-overlay .gm-cover-stage { width: min(190px, 52vw); }
-  #genre-overlay .gm-title { font-size: 22px; }
-  #genre-overlay .gm-now-line { white-space: normal; }
-  #genre-overlay .gm-viz { height: 40px; margin-bottom: 12px; }
+.genre-world-lyrics__main {
+  font-size: clamp(22px, 3vw, 46px);
+}
+.genre-world-lyrics__translation {
+  font-size: clamp(12px, 1.25vw, 18px);
+}
+
+.genre-world-lyrics[data-style="hologram-signs"] {
+  padding: .3em .55em;
+  border-right: 3px solid #00e5ff;
+  color: #dffcff;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, .1));
+  text-shadow: 2px 0 #ff37d1, -2px 0 #00e5ff, 0 3px 18px #000;
+}
+.genre-world-lyrics[data-style="hologram-signs"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 255, 255, .08) 5px);
+}
+
+.genre-world-lyrics[data-style="fractured-stage"] {
+  padding: .25em .45em;
+  color: #fff3e8;
+  background: linear-gradient(103deg, rgba(255, 74, 36, .28), transparent 66%);
+  clip-path: polygon(0 7%, 96% 0, 100% 76%, 83% 100%, 3% 89%);
+  text-shadow: 4px 4px 0 #3b0902, 0 8px 22px #000;
+}
+.genre-world-lyrics[data-style="fractured-stage"] .genre-world-lyrics__main { transform: skewX(-4deg); }
+
+.genre-world-lyrics[data-style="architectural-type"] {
+  padding-left: .65em;
+  border-left: .18em solid #ffd64a;
+  color: #fff;
+  background: repeating-linear-gradient(90deg, rgba(191, 103, 255, .14) 0 1px, transparent 1px 2.4em);
+  text-shadow: 0 5px 0 #120b20, 0 10px 22px #000;
+}
+.genre-world-lyrics[data-style="architectural-type"] .genre-world-lyrics__translation {
+  border-top: 1px solid rgba(255, 214, 74, .6);
+  padding-top: .35em;
+}
+
+.genre-world-lyrics[data-style="dream-ribbons"] {
+  padding: .5em 1.2em;
+  border-radius: 50% 12% 50% 15% / 20% 45% 25% 50%;
+  color: #fff7fe;
+  background: linear-gradient(100deg, transparent, rgba(255, 121, 209, .27), rgba(114, 232, 255, .2), transparent);
+  text-shadow: 0 0 14px #ff79d1, 0 3px 18px #000;
+}
+
+.genre-world-lyrics[data-style="constellation-script"] {
+  padding: .45em .7em .5em 1.1em;
+  color: #fff0ce;
+  background-image:
+    radial-gradient(circle at 8% 25%, #fff 0 1px, transparent 2px),
+    radial-gradient(circle at 96% 80%, #fff 0 1px, transparent 2px);
+  border-bottom: 1px dashed rgba(232, 170, 76, .65);
+  text-shadow: 0 2px 10px #171109, 0 0 20px rgba(232, 170, 76, .48);
+}
+
+.genre-world-lyrics[data-style="spatial-score"] {
+  padding: .7em 1em;
+  color: #fffaf0;
+  background: repeating-linear-gradient(0deg, transparent 0 11px, rgba(233, 214, 173, .2) 12px 13px);
+  border-inline: 1px solid rgba(233, 214, 173, .45);
+  text-shadow: 0 3px 16px #050307;
+}
+.genre-world-lyrics[data-style="spatial-score"] .genre-world-lyrics__main::before {
+  content: "𝄞";
+  margin-right: .35em;
+  color: #e9d6ad;
+}
+
+.genre-world-lyrics[data-style="improvised-anchor"] {
+  padding: .4em .65em;
+  color: #e5f8ff;
+  border-bottom: 2px solid #58b6d9;
+  background: linear-gradient(90deg, rgba(5, 21, 29, .88), rgba(5, 21, 29, .16));
+  box-shadow: -9px 8px 0 rgba(217, 155, 104, .14);
+  text-shadow: 0 3px 13px #000;
+}
+.genre-world-lyrics[data-style="improvised-anchor"] .genre-world-lyrics__translation {
+  color: #d99b68;
+  font-style: italic;
+}
+
+.genre-world-lyrics[data-style="horizon-dissolve"] {
+  padding: .6em 2em 1em;
+  color: rgba(235, 255, 252, .92);
+  background: linear-gradient(0deg, rgba(112, 216, 204, .12), transparent 68%);
+  mask-image: linear-gradient(90deg, transparent, #000 18% 82%, transparent);
+  text-shadow: 0 0 22px rgba(112, 216, 204, .52), 0 3px 18px #000;
+}
+.genre-world-lyrics[data-style="horizon-dissolve"]::after {
+  content: "";
+  position: absolute;
+  right: 10%;
+  bottom: .5em;
+  left: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #70d8cc, transparent);
+}
+
+@media (max-width: 860px) {
+  .gm-compass {
+    top: auto;
+    right: 14px;
+    bottom: 104px;
+    left: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    width: auto;
+    padding: 8px;
+    background: rgba(5, 7, 11, .82);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+  }
+  #genre-overlay.is-compass-open .gm-compass {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+  .gm-compass::after { display: none; }
+  .gm-compass button {
+    grid-template-columns: 7px 1fr;
+    background: transparent;
+  }
+  .gm-compass button small { display: none; }
+}
+
+@media (max-width: 560px) {
+  .gm-hud { top: 68px; left: 12px; width: calc(100vw - 24px); }
+  .gm-world-readout strong { font-size: 21px; }
+  .gm-compass { grid-template-columns: repeat(2, 1fr); }
+  .gm-progress-row { grid-template-columns: 1fr auto; }
+  .gm-expand { grid-column: 1 / -1; justify-self: end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-hud,
+  .gm-compass,
+  .gm-compass button,
+  .gm-portal-shutter {
+    transition-duration: .01ms !important;
+  }
+  .gm-portal-aperture { animation: none !important; }
+  .gm-portal[data-motion="reduced"].is-active {
+    background: rgba(2, 3, 6, .42);
+    animation: gm-portal-fade .2s linear both;
+  }
+  @keyframes gm-portal-fade {
+    from { opacity: 0; }
+    50% { opacity: 1; }
+    to { opacity: 0; }
+  }
 }

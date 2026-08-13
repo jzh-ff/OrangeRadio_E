@@ -1,155 +1,178 @@
-# 风格电台（Genre Mode）· 音乐风格驱动的视觉模式
+# 风格世界（Genre Mode）
 
-> 根据当前歌曲的音乐风格（genre），自动切换整套视觉主题的全屏覆盖层——配色、字体气质、装饰纹理、频谱颜色全部跟随风格变化。
+## 目标与边界
 
-## 功能概述
+风格世界根据当前曲目的音乐风格，把播放器的既有 Three.js 舞台切换为八个可交互世界。它复用主 `scene`、`camera`、`renderer`、音频分析和主循环；DOM 只承载 HUD、世界罗盘、传送门过渡和歌词 surface，不遮蔽或替代 3D 舞台。
 
-「风格电台」是 OrangeSea 的独立视觉预设模式，与胶片电台（Film Radio）、涂鸦墙（Graffiti Wall）并列。它用一张不透明的全屏 DOM 覆盖层盖住 3D 场景，把当前歌曲解析到 **12 个视觉族群**之一，并将该族群的主题（CSS 变量）下发到覆盖层，切歌时 ~1.2s 平滑过渡。
+模式状态存于 `orangesea-genre-mode-v1`，罗盘锁定存于 `orangesea-genre-lock-v1`。风格世界与胶片电台、涂鸦墙和普通视觉预设双向互斥。启动预加载按最终模块顺序处理冲突：genre 优先于 film。
 
-12 个视觉族群：
+## 12 → 8 映射
 
-| 族群 | 中文 | 视觉气质 | 装饰层 | 可视化形态 |
-|---|---|---|---|---|
-| electronic | 电子 | 霓虹紫粉 · 等宽字体 | 透视网格地平线（滚动） | **ring** 环形辐射频谱 |
-| hiphop | 嘻哈 | 金链金 | 粗颗粒噪点 | bars 柱状 |
-| rock | 摇滚 | 红黑对比 | 粗颗粒噪点 | bars 柱状 |
-| metal | 金属 | 钢灰银 · 等宽字体 | 粗颗粒噪点 | bars 柱状 |
-| pop | 流行 | 蜜桃橙粉 | 散景光斑（漂浮） | bars 柱状 |
-| folk | 民谣 | 暖黄纸质 · 衬线字体 | 纸质纤维纹理 | **wave** 波形线 |
-| classical | 古典 | 黑金 · 衬线字体 | 五线谱横线 | **staff** 五线谱光点 |
-| jazz | 爵士 | 蓝调蓝 · 衬线字体 | 散景光斑（漂浮） | **wave** 波形线 |
-| soul | 灵魂乐 | 酒红丝绒 · 衬线字体 | 无 | **wave** 波形线 |
-| ambient | 氛围 | 雾蓝低饱和 | 慢呼吸雾光 | **wave** 波形线 |
-| anime | 动漫 | 樱花粉紫 | 散景光斑（漂浮） | bars 柱状 |
-| default | 综合 | 中性玻璃（兜底） | 无 | bars 柱状 |
+解析器保留 12 个稳定风格族群，注册表将相近族群合并为 8 个世界：
 
-### 律动性格（react）
-
-每族不仅有配色，还有一套**音频反应参数**（`theme.react`），让"风格"渗入动效——同样的音乐，电子族视觉炸裂、古典族克制沉稳：
-
-| 参数 | 作用 | 电子 | 嘻哈 | 古典 | 氛围 |
-|---|---|---|---|---|---|
-| `coverPulse` | 封面光晕半径/缩放随低频 | 0.85 | 0.65 | 0.25 | 0.30 |
-| `bgReact` | 背景光晕随整体能量 | 0.90 | 0.55 | 0.30 | 0.75 |
-| `beatPunch` | 节拍脉冲（封面 punch/徽章闪） | 0.85 | 1.00 | 0.10 | 0.05 |
-| `spectrumBoost` | 频谱高度增益 | 1.30 | 1.15 | 0.70 | 0.75 |
-| `spectrumSmooth` | 频谱平滑惯性（越大越柔） | 0.35 | 0.40 | 0.80 | 0.85 |
-| `spectrumGlow` | 频谱辉光强度 | 1.00 | 0.70 | 0.30 | 0.40 |
-
-### 可视化形态（viz）
-
-每族的**表现方式**本身也不同（`theme.viz`），不只是参数差异：
-
-| viz | 族群 | 形态 |
-|---|---|---|
-| `ring` | 电子 | **封面外圈环形辐射频谱**：56 根辐射条绕封面旋转（24s/圈），低频段驱动，从外圈向圆心生长 |
-| `bars` | 嘻哈/摇滚/金属/流行/动漫/综合 | **差异化柱状频谱**：48 根 DOM 条，高度增益/平滑惯性/辉光按族分化 |
-| `wave` | 民谣/爵士/灵魂乐/氛围 | **柔和波形线**：canvas 时域双线（主线 + 低透明镜像副线），中点二次贝塞尔平滑，无信号时平缓呼吸正弦 |
-| `staff` | 古典 | **五线谱光点**：canvas 五条谱线 + 12 个光点，低频点沉在低音线、高频点浮上高音线，克制跳动 |
-
-切换族时 `data-gm-viz` 驱动显隐（bars DOM / canvas / ring DOM），ring 挂在 `.gm-cover-stage` 内随封面定位。
-
-## 使用方法
-
-### 开启 / 关闭
-
-在 **DIY 控制台 → 视觉预设网格**中，点击末尾的「**风格电台**」卡片（图标为音符）。
-
-- 点击开启，再次点击关闭
-- 状态持久化（localStorage `orangesea-genre-mode-v1`，下次启动恢复）
-- 与胶片电台、涂鸦墙、所有数值视觉预设（0~8）**三方互斥**：开启任一模式自动退出其余；切换数值预设自动退出本模式
-
-### 自动跟随 / 手动锁定
-
-覆盖层顶部是族群芯片选择器：
-
-- **自动**（默认）：跟随每首歌自动切换主题。当前跟随到的族群以**描边**高亮
-- 点击任意族群芯片：**锁定**该主题，不再跟随切歌（描边变为**实填充**），锁定状态持久化（localStorage `orangesea-genre-lock-v1`）
-- 歌曲无任何风格信息时：回落「综合」中性主题
-
-### 风格数据来源（自动判定优先级）
-
-1. **本地文件 ID3 标签**：本地曲库扫描时用 music-metadata 读取 `common.genre`（如 `Synthwave/Electronic`）
-2. **Spotify artist.genres**：搜索/歌单/专辑结果批量后补（`/artists` 接口，artist 级进程内缓存，失败静默降级）
-3. **播客电台分类**：网易云 djradio 的 category
-4. **关键词推断**：中文在线源（网易云/QQ/酷狗/汽水）歌曲级无流派字段，用「艺术家 + 标题 + 专辑」关键词规则表推断（中英文艺人锚点 + 风格词）
-5. 全部失败 → `default`
-
-有原始 genre 文本时（来源 1/2），信息区还会显示原始标签小字（如 `thrash metal`）；曲目详情弹窗（歌曲/专辑/歌手三个分支）也会显示「风格」行。
-
-## 技术架构
-
-### 模块组成
-
-| 文件 | 职责 |
+| 族群 family | 世界 id |
 |---|---|
-| `local-library.js` | 本地扫描：`readMetadataWithLimit` 取 `common.genre` 透传到 song.genre |
-| `spotify-api.js` | `attachSpotifyArtistGenres(songs)`：`/artists?ids=` 批量后补，Map 缓存 |
-| `public/js/modules/02-visual/16-genre-resolve.js` | `normalizeGenre(text)` 文本归一化 + `inferGenreFamily(song)` 推断主入口，结果缓存 `song.visualGenre`（运行时，不持久化） |
-| `public/js/modules/02-visual/17-genre-themes.js` | `GENRE_THEMES` 12 族主题表 + `applyGenreTheme(family)` 下发 `--gm-*` CSS 变量 |
-| `public/js/modules/10-shell/09-genre-mode.js` | 模式切换/互斥/状态同步/芯片锁定/频谱/歌词/进度 seek（照抄 film-radio 范式） |
-| `public/css/genre-mode.css` | 覆盖层布局 + `data-gm-font`（serif/mono/sans）+ `data-gm-deco`（grid/staff/paper/noise/bokeh/mist/none）装饰纹理 |
+| `electronic` | `electronic` |
+| `rock`、`metal` | `rock-metal` |
+| `hiphop` | `hiphop` |
+| `pop`、`anime`、`default` | `prism` |
+| `folk` | `folk` |
+| `classical` | `classical` |
+| `jazz`、`soul` | `jazz-soul` |
+| `ambient` | `ambient` |
 
-### 归一化与推断（16-genre-resolve.js）
+八个世界的产品名和歌词 style 由 registry manifest 唯一声明：
 
-```
-song.genre ──→ normalizeGenre() ──→ 族群（规则表：anime>classical>metal>electronic>
-                                              hiphop>jazz>soul>ambient>rock>folk>pop）
-     ↓ 无 genre
-播客 category → normalizeGenre()
-     ↓ 仍 default
-关键词推断 inferGenreFromKeywords()（artist+name+album 过 GENRE_INFER_RULES）
-     ↓ 仍 default
-'default'，缓存到 song.visualGenre
+| id | 设计名 | 英文名 | lyricStyle |
+|---|---|---|---|
+| `electronic` | 霓虹反应城 | Neon Reactive City | `hologram-signs` |
+| `rock-metal` | 裂隙铸造场 | Rift Foundry | `fractured-stage` |
+| `hiphop` | 午夜街区 | Midnight Block | `architectural-type` |
+| `prism` | 棱镜梦乐园 | Prism Dreamland | `dream-ribbons` |
+| `folk` | 琥珀旷野 | Amber Wilds | `constellation-script` |
+| `classical` | 无尽歌剧院 | Infinite Opera House | `spatial-score` |
+| `jazz-soul` | 蓝烟俱乐部 | Blue Smoke Club | `improvised-anchor` |
+| `ambient` | 潮汐虚境 | Tidal Void | `horizon-dissolve` |
+
+## 风格画像解析
+
+`public/js/modules/02-visual/16-genre-resolve.js` 的 `resolveGenreProfile(song)` 返回：
+
+```js
+{
+  family: 'electronic',
+  world: 'electronic',
+  confidence: 1,
+  source: 'genre',
+  version: 'genre-profile-v1'
+}
 ```
 
-规则表顺序即优先级（更具体的在前，避免被宽泛词抢先：如 `synthpop` 含 `pop` 但归 electronic）。推断表复用并扩充了 `cuefield/transition-evaluator.js` 的艺术家锚点思路，中文侧只用风格词（民谣/古风/电音/说唱…），避免艺人名误判。
+来源按以下顺序解析：
 
-### 主题下发与平滑过渡（17-genre-themes.js + genre-mode.css）
+1. `song.genre`：本地 ID3 或 Spotify 艺人风格，`source: genre`，置信度 `1`。
+2. 播客 `radioCategory/category/album`：仅播客或有 `radioName` 时使用，`source: category`，置信度 `0.85`。
+3. 旧对象首次迁移的合法 `visualGenre`：`source: legacy`，通常为 `0.7`。
+4. `artist + name + album` 关键词规则：`source: keyword`，置信度 `0.65`。
+5. 无命中：`default → prism`，`source: default`，置信度 `0.15`。
 
-- 主题字段：`accent/accent2`（徽章/频谱/进度）、`bg1/2/3`（三段背景渐变）、`ink/muted`（文字）、`glow`（光晕）、`font`（字体气质）、`deco`（装饰层）
-- `applyGenreTheme()` 把字段写入 `#genre-overlay` 的 `style.setProperty('--gm-*')` 并设 `data-genre/data-gm-font/data-gm-deco`
-- stylesheet 中对 `background-color/color/border-color/box-shadow` 声明 `transition: 1.2s`，变量变化时自动平滑过渡
-- 装饰层为纯 CSS 纹理（SVG 噪点 data-uri / repeating-gradient 五线谱 / 透视网格 + mask），零图片请求、零 canvas 开销
+结果缓存在 `song.visualGenreProfile`，并用 `_visualGenreProfileSignature` 校验。签名包含规则版本、曲目身份字段、genre/category、艺人、标题、专辑和播客字段；任一输入或 `GENRE_PROFILE_VERSION` 变化都会使缓存失效并重新解析。`inferGenreFamily()` 和 `songGenreDisplayText()` 是兼容入口。
 
-### 覆盖层范式（09-genre-mode.js）
+## 模块架构
 
-照抄 film-radio 范式：
+### Registry
 
-- `applyGenreMode(on, opts)`：`body.genre-mode` class + `html.genre-mode-preload` + localStorage 持久化 + 三方双向互斥 + `refreshPresetGrid()` 联动
-- **性能降级**：进入时 `fx.performanceQuality` 临时降为 `'eco'`，退出恢复原档（不写入存档）；覆盖层盖住 3D 场景时主循环自动 0.5fps 保热
-- **状态同步**：MutationObserver 监听 `#control-cover/#control-title-text/#control-artist/#progress-fill/#play-icon/#time-display`，零侵入复用标准播放器状态；标题变化 = 切歌 → 触发主题跟随
-- **音频反应层**：`tickGenreReactive()` 每帧（~30fps）读主循环全局 `bass/audioEnergy/beatPulse`（暂停时自动衰减归零），按族群 `react` 参数缩放后写 CSS 变量 `--gm-bass/--gm-energy/--gm-beat`（变化 < 0.004 不写入，节流）；CSS 侧用 `calc()` 驱动封面光晕半径/缩放、背景光晕呼吸、徽章微闪、频谱辉光
-- **频谱**：48 根 DOM 条，`frequencyData` 对数映射 bin 1..256；高度乘族群 `spectrumBoost` 增益，按 `spectrumSmooth` 做 lerp 平滑（`Float32Array` 存当前值），辉光 = `spectrumGlow`(静态) × `--gm-bass`(实时)
-- **切族仪式感**：主题切换时 `gm-theme-switch` 类触发一次 0.9s 光晕脉冲（`::after` animation，reflow 重触发）
-- **歌词**：单行当前歌词，复用 `lyricsLines + findStageLyricIndexAtTime(getAdjustedLyricPlaybackTime())`
-- **进度**：`gm-progress` 拖动 seek（pointer capture）
+`17-genre-world-registry.js` 保存八世界 manifest、12 → 8 映射和运行时 kit。`registerGenreWorld(id, kit)` 只接受已声明 id、带 `create` 的对象，并且每个内置世界只允许成功注册一次。查询入口为 `getGenreWorld()`、`genreWorldForFamily()`、`listGenreWorlds()`。
 
-### 互斥接线（三处各加一行）
+### Engine
 
-- `10-shell/06-film-radio.js` `applyFilmRadioMode`：进入时 `applyGenreMode(false, { save: true })`
-- `10-shell/08-graffiti-lyrics.js` `applyGraffitiMode`：同上
-- `07-fx/04-preset-grid-uniforms.js`：`buildGenreModePresetCard()` 特殊卡片 + `refreshPresetGrid()` 激活态 + `setPreset()` 用户选预设时退出
+`18-genre-world-engine.js` 在主 scene 中创建一个 `genreWorldRoot`，所有世界对象使用 layer 29。进入模式时保存完整相机值、对象属性和 layer mask；退出或候选创建失败时恢复。任一时刻仅有一个 current world container。
 
-### 持久化键
+切换是事务式的：候选 kit 完成 `create`、质量设置和曲目应用后才挂入总根节点并替换旧世界；失败时清理候选并保留旧世界。`prism` 是缺失 kit 或目标启动失败时的统一回退。
 
-| 键 | 含义 |
-|---|---|
-| `orangesea-genre-mode-v1` | 模式开关（'1'/'0'） |
-| `orangesea-genre-lock-v1` | 手动锁定族群（'auto' 或 12 族 id） |
+### Transition
 
-### 其他联动
+`19-genre-world-transition.js` 是由主循环显式推进的 `idle → closing → crossing → opening → idle` 状态机。普通过渡为 1500–2500ms（默认 2000ms），reduced motion 为 120–300ms（默认 220ms）。crossing 阶段提交新世界；失败时尝试 `prism`，并把实际世界和失败状态提交给 HUD。
 
-- `public/js/preload-mode.js`：启动时按存储值预置 `html.genre-mode-preload`，避免首帧闪烁
-- `public/css/index.css`：`body.genre-mode #empty-home { z-index: 6 }`（主页浮在覆盖层之上，关掉主页模式仍在）
-- `05-playback/06-track-detail-lyrics-actions.js`：曲目详情三个分支（歌曲/专辑/歌手）加「风格」行（`songGenreDisplayText(song)`，无风格不显示）
-- 模块注册：`public/js/index-loader.js` 的 `modulePaths`（16/17 在 02-visual 尾，09-genre-mode 在 10-shell 尾）
+### Performance
 
-## 验证记录（2026-08-12/13）
+`20-genre-world-performance.js` 把用户质量档和全局帧压力合成为 `low / medium / high` profile，约束粒子密度、细节、体积光、后处理、灯光、纹理和粒子数量。压力等级会逐级降档；reduced motion 进一步关闭体积光和后处理并限制粒子。
 
-- `node --check` 全部改动/新建 JS 文件通过
-- 归一化/推断单元测试 18 例全过（含中英 genre 文本、艺人锚点、播客 category、缓存）
-- Playwright 端到端：模式开关/锁定持久化/eco 降级/三方互斥（胶片↔涂鸦↔风格 + setPreset 退出）/自动跟随（`thrash metal` → metal 族、赵雷《成都》关键词 → folk 族）全部通过
-- 律动性格验证：同一份频谱数据下，电子族频谱近满高 + 强辉光 + 封面大光晕，古典族频谱 ~40% 高 + 弱辉光——react 参数分化生效
-- 可视化形态验证：ring（电子封面外圈辐射条）/ wave（民谣平滑波形线）/ staff（古典五线谱光点）/ bars（嘻哈差异化柱狀频谱）四形态截图确认，wave 经中点贝塞尔平滑后曲线连续
-- 已知边界：无播放歌曲时开启胶片电台会在评论加载处抛错（`detailCommentsConfig(null)`）——**胶片电台既有问题**，与本模式无关
+世界模式沿用普通 DPR，再乘 profile 的 `dprScale`（low `0.72`、medium `0.86`、high `1`）。退出模式会恢复普通 DPR，并清空自适应质量签名。
+
+### World Kit 接口
+
+每个 `genre-worlds/*.js` 文件向 registry 注册一个 kit：
+
+- `create(ctx)`：必需；创建并返回世界根或实例。
+- `applyTrack(track, ctx, instance)`：应用封面色、曲目信息等静态输入。
+- `update(frame, ctx, instance)`：消费主循环提供的时间、低中高频、能量和节拍。
+- `renderLyrics(frame, ctx, instance)`：调用共享歌词 renderer 和该世界的 `lyricStyle`。
+- `setQuality(profile, ctx, instance)`：应用当前资源预算。
+- `dispose(instance, ctx)`：释放该 kit 拥有的资源。
+
+`ctx` 提供共享 `scene/camera/THREE`、世界 container、总根、layer、manifest、质量档、曲目、画像和歌词 style。共享 primitive 位于 `genre-worlds/00-shared-primitives.js`。
+
+## 单 scene、renderer、layer 与主循环
+
+`public/js/modules/11-main-loop.js` 是唯一帧入口。风格模式开启时，它按 gate：
+
+1. 同步曲目画像和目标世界。
+2. 推进传送门状态机。
+3. 更新 HUD 和自适应质量。
+4. 构造包含 `time/dt/bass/low/mid/high/energy/beat/frequencyData/timeDomainData/lyrics` 的 frame。
+5. 调用 `tickGenreWorld(frame)`，再用主 renderer 渲染主 scene 和主 camera。
+
+世界模块不创建第二套 scene、renderer 或帧调度。layer 29 只隔离风格世界对象；相机 layer 状态在进入时快照、退出时恢复。
+
+## 资源 ownership 与 dispose
+
+只有明确标记 `__genreWorldOwned === true` 或 `userData.genreWorldOwned === true` 的 GPU 资源属于风格世界。共享 primitive 的 `geometry()`、`material()`、`particles()` 和 `ownResource()` 会添加 ownership 标记。
+
+释放规则：
+
+- geometry、单个或数组 material、material 字段和 uniforms 中的 texture 都会遍历。
+- 每个 owned resource 只 dispose 一次，并记录 `__genreWorldDisposed`。
+- 未标记资源视为共享资源，绝不由世界引擎释放。
+- kit 的 `dispose` 成功执行后由 kit 负责其资源；缺失或抛错时引擎执行防御性清理。
+- 无论单个资源释放是否失败，container 移除、其余资源清理和相机恢复仍继续。
+
+## HUD、罗盘、锁定与歌词
+
+HUD 显示设计名、英文名、曲目、艺人、解析来源、置信度、锁定状态、播放进度和时间。空闲后 HUD 降低视觉权重；指针、键盘或 HUD 操作会恢复。
+
+罗盘默认 `auto`，随画像切换世界；选择一个世界后写入其 world id 并锁定。旧的 family 锁定值会迁移到对应世界。进度条支持指针定位和方向键、Home、End seek。
+
+`public/js/modules/06-lyrics/08-genre-world-lyrics.js` 提供一个共享歌词 surface，渲染主歌词、翻译、seek 标识和 reduced-motion 状态。每个世界通过 manifest 的 `lyricStyle` 选择排版预设；签名未变化时不重复写 DOM。
+
+## 失败回退
+
+- 无风格信息：`default → prism`。
+- 目标 kit 不存在或切换失败：尝试 `prism`，HUD 记录 target、actual 和 failed。
+- 引擎首次启动失败：模式进入原子回滚，移除 preload/body class、取消过渡、停止引擎、清歌词、恢复 DPR，并把持久化状态写为关闭。
+- 手动进入失败且此前 film/graffiti 已开启：恢复被临时退出的模式。
+- localStorage 读取异常：启动预加载保持 simple fallback。
+
+## 扩展新世界
+
+1. 在 `GENRE_WORLD_DEFINITIONS` 添加稳定 id、名称、palette、accent、`lyricStyle` 和 families。
+2. 更新 `GENRE_WORLD_FAMILY_MAP`、解析器的 family → world 映射、模式允许 id 和必要的旧锁迁移。
+3. 在 `genre-worlds/` 新建 ES5 kit，使用共享 primitive 标记 owned resource，实现 `create`，并按需实现其余生命周期方法。
+4. 在 `index-loader.js` 中把 kit 放在 registry、engine 和共享 primitive 之后、shell mode 之前。
+5. 为 manifest、注册、事务切换、质量预算、ownership/dispose、歌词 style 和回退路径补测试。
+6. 更新罗盘按钮与本文档，再进行低端质量、reduced motion 和长时间切歌检查。
+
+## 自动化测试
+
+在仓库根目录运行六个 genre 专项和 cleanup：
+
+```powershell
+node tests/genre-resolve.test.js
+node tests/genre-world-engine.test.js
+node tests/genre-world-kits.test.js
+node tests/genre-world-ownership.test.js
+node tests/genre-mode-lifecycle.test.js
+node tests/genre-main-loop-integration.test.js
+node tests/genre-world-cleanup.test.js
+```
+
+完整回归与静态检查：
+
+```powershell
+npm test
+node --check public/js/preload-mode.js
+node --check tests/genre-world-cleanup.test.js
+git diff --check
+```
+
+## 人工检查清单
+
+- 同时把 film 和 genre 存储值设为开启，冷启动无 film 首帧闪现，最终进入 genre。
+- 分别验证八个世界的构图、palette、音频反应和对应歌词排版。
+- 自动模式切换不同来源曲目，检查 family、world、来源与置信度；修改同一 song 对象的 genre 后确认缓存失效。
+- 锁定罗盘后切歌不换世界；恢复自动后立即跟随画像。
+- 快速连续切歌时传送门阶段连续，失败目标回退 `prism`，HUD target/actual 正确。
+- film、graffiti 和普通 preset 均能关闭 genre；genre 启动失败能恢复此前模式。
+- 检查 low/medium/high、压力降档、DPR 恢复和系统 reduced motion。
+- 多次进入、退出及跨世界切换后检查相机、layer、GPU 资源和内存无持续增长。
+- 用鼠标和键盘操作 HUD、罗盘与进度条，检查焦点、ARIA、seek 和空闲降权。

@@ -171,6 +171,9 @@ function sampleRenderPerf(now, dt) {
 }
 var thumbCoverCachedEl = null;   // 每帧缩略图脉动的 DOM 引用缓存
 var mainFrameGates = {  audio: createFrameGate('main.audio', 60),
+  genreTrack: createFrameGate('main.genreTrack', 6),
+  genreHud: createFrameGate('main.genreHud', 12),
+  genreQuality: createFrameGate('main.genreQuality', 8),
   shelf: createFrameGate('main.shelf', 30),
   lyricsParticles: createFrameGate('main.lyricsParticles', 45),
   stageLyrics: createFrameGate('main.stageLyrics', 45),
@@ -308,6 +311,96 @@ function targetMainDesktopOverlayFps(now) {
   }
   return 6;
 }
+function targetMainGenreTrackFps() {
+  return 6;
+}
+function targetMainGenreHudFps() {
+  return 12;
+}
+function targetMainGenreQualityFps() {
+  return 8;
+}
+// GENRE_WORLD_FRAME_HELPERS_BEGIN
+function currentGenreWorldLyricsFrame() {
+  var result = { text: '', translation: '', seekId: -1 };
+  if (typeof lyricsLines === 'undefined' || !lyricsLines || !lyricsLines.length) return result;
+  var playbackTime = audio ? Number(audio.currentTime) || 0 : 0;
+  if (typeof getAdjustedLyricPlaybackTime === 'function') {
+    playbackTime = getAdjustedLyricPlaybackTime(playbackTime);
+  }
+  var lyricIndex = typeof findStageLyricIndexAtTime === 'function'
+    ? findStageLyricIndexAtTime(playbackTime)
+    : -1;
+  if (lyricIndex < 0 || lyricIndex >= lyricsLines.length) return result;
+  var line = lyricsLines[lyricIndex] || {};
+  return {
+    text: line.text || '',
+    translation: line.translation || '',
+    seekId: line.seekId != null ? line.seekId : lyricIndex
+  };
+}
+function buildGenreWorldFrame(now, dt) {
+  return {
+    time: now / 1000,
+    dt: dt,
+    bass: bass,
+    low: bass,
+    mid: mid,
+    high: treble,
+    energy: audioEnergy,
+    beat: beatPulse,
+    frequencyData: typeof frequencyData !== 'undefined' ? frequencyData : null,
+    timeDomainData: typeof timeDomainData !== 'undefined' ? timeDomainData : null,
+    lyrics: currentGenreWorldLyricsFrame()
+  };
+}
+function runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe) {
+  if (typeof genreMode === 'undefined' || !genreMode) return false;
+  var genreTrackStepDt = consumeFrameGate(
+    mainFrameGates.genreTrack, now, dt, targetMainGenreTrackFps(), false, 'genre-track'
+  );
+  if (genreTrackStepDt > 0 && typeof syncGenreModeTrack === 'function') {
+    syncGenreModeTrack(false);
+  }
+  if (typeof advanceGenreWorldTransition === 'function') {
+    advanceGenreWorldTransition(now);
+  }
+  var genreHudStepDt = consumeFrameGate(
+    mainFrameGates.genreHud, now, dt, targetMainGenreHudFps(), false, 'genre-hud'
+  );
+  if (genreHudStepDt > 0) {
+    if (typeof syncGenreModeHud === 'function') syncGenreModeHud(false);
+    if (typeof updateGenreHudVisibility === 'function') updateGenreHudVisibility(now);
+  }
+  var genreQualityStepDt = consumeFrameGate(
+    mainFrameGates.genreQuality, now, dt, targetMainGenreQualityFps(), false, 'genre-quality'
+  );
+  if (genreQualityStepDt > 0 && typeof syncGenreWorldAdaptiveQuality === 'function') {
+    syncGenreWorldAdaptiveQuality(false);
+  }
+
+  var genreFrame = buildGenreWorldFrame(now, dt);
+  if (typeof tickGenreWorld === 'function') tickGenreWorld(genreFrame);
+  var genreRendererPerfStart = performance.now();
+  renderer.render(scene, camera);
+  if (perfProbe && perfProbe.markSince) {
+    perfProbe.markSince('renderer.render.genre-world', genreRendererPerfStart);
+  }
+  var genreFrameCostMs = performance.now() - framePerfStart;
+  if (typeof sampleAdaptiveFrameCost === 'function') {
+    var genreFrameLoad = sampleAdaptiveFrameCost(
+      genreFrameCostMs,
+      renderPerfState.targetFps || renderPerfState.displayHz || 60
+    );
+    if (genreFrameLoad) {
+      renderPerfState.adaptiveFrameCostMs = genreFrameLoad.avgMs;
+      renderPerfState.adaptivePressure = genreFrameLoad.level;
+    }
+  }
+  if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', genreFrameCostMs);
+  return true;
+}
+// GENRE_WORLD_FRAME_HELPERS_END
 function animate() {
   mainLoopAnimationRequested = false;
   scheduleNextMainLoopFrame();
@@ -324,7 +417,6 @@ function animate() {
   var dt = Math.min((now - prevTime) / 1000, 0.05);
   prevTime = now;
   sampleRenderPerf(now, dt);
-  uniforms.uTime.value += dt;
   if (isMainSceneCoveredBySplash()) {
     if (now - splashWarmRenderLast > 520) {
       splashWarmRenderLast = now;
@@ -367,9 +459,6 @@ function animate() {
     if (perfProbe && perfProbe.mark) perfProbe.mark('frame.total', overlayFrameCostMs);
     return;
   }
-  pointerParallax.x += (pointerTarget.x - pointerParallax.x) * 0.040;
-  pointerParallax.y += (pointerTarget.y - pointerParallax.y) * 0.040;
-
   // 频谱分析 — v7.1: 真正分离 kick 和人声
   // bin = sampleRate / fftSize = 44100/2048 ≈ 21.5Hz
   // kick 60-150Hz → bin 3-7 (用前 5 个 bin)
@@ -561,6 +650,13 @@ function animate() {
   bass = Math.min(0.90, smoothBass * 1.05 + beatPulse * 0.18) * fx.intensity;
   mid = Math.min(0.72, smoothMid * 1.12) * fx.intensity;
   treble = Math.min(0.62, smoothTreb * 1.20) * fx.intensity;
+
+  if (runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe)) return;
+
+  uniforms.uTime.value += dt;
+  pointerParallax.x += (pointerTarget.x - pointerParallax.x) * 0.040;
+  pointerParallax.y += (pointerTarget.y - pointerParallax.y) * 0.040;
+
   if (fx.preset >= 4) {
     var wallpaperAudio = fx.preset === 5;
     var ringBass = smoothBass * (wallpaperAudio ? 1.10 : 1.58) + beatPulse * (wallpaperAudio ? 0.18 : 0.42) - smoothMid * 0.16 - smoothTreb * 0.06;
