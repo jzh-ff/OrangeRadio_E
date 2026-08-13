@@ -19,6 +19,11 @@
   --gm-muted: rgba(205, 216, 226, 0.42);
   --gm-glow: rgba(169, 184, 200, 0.13);
   --gm-track: rgba(233, 238, 243, 0.14);
+  /* 音频反应变量（09-genre-mode 每帧写入，暂停时自动归零） */
+  --gm-bass: 0;
+  --gm-energy: 0;
+  --gm-beat: 0;
+  --gm-spec-glow: 0.5;
 
   position: fixed;
   left: 0;
@@ -46,6 +51,39 @@ body.genre-mode #genre-overlay {
   pointer-events: auto;
 }
 
+/* ---------- 背景能量光晕（--gm-energy 呼吸） ---------- */
+#genre-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 46% 34% at 24% 30%, var(--gm-glow), transparent 70%),
+    radial-gradient(ellipse 52% 40% at 78% 66%, var(--gm-glow), transparent 72%);
+  opacity: calc(0.28 + var(--gm-energy) * 0.72);
+  transition: opacity 0.12s linear;
+}
+
+/* ---------- 切族瞬间光晕脉冲（gm-theme-switch 类触发，一次 0.9s） ---------- */
+#genre-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse 70% 55% at 50% 46%, var(--gm-glow), transparent 72%);
+  opacity: 0;
+}
+#genre-overlay.gm-theme-switch::after {
+  animation: gm-switch-pulse 0.9s ease-out;
+}
+@keyframes gm-switch-pulse {
+  0%   { opacity: 0; }
+  22%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* 壁纸引擎启用时：让出背景，壁纸作底（半透明蒙版保证可读） */
 body.genre-mode.wallpaper-engine-active #genre-overlay {
   background-color: rgba(11, 13, 16, 0.66);
@@ -67,7 +105,7 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   opacity: 0;
   transition: opacity 1.2s ease;
 }
-/* 电子：底部透视网格地平线 */
+/* 电子：底部透视网格地平线（缓慢向观察者滚动，合成波感） */
 #genre-overlay[data-gm-deco="grid"] .gm-deco {
   opacity: 1;
   background-image:
@@ -76,6 +114,10 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   background-size: 46px 46px;
   mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
   -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
+  animation: gm-grid-scroll 3.6s linear infinite;
+}
+@keyframes gm-grid-scroll {
+  to { background-position: 0 46px, 0 0; }
 }
 /* 古典：五线谱横线 */
 #genre-overlay[data-gm-deco="staff"] .gm-deco {
@@ -106,7 +148,7 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
 }
-/* 流行/爵士/动漫：散景光斑 */
+/* 流行/爵士/动漫：散景光斑（缓慢漂浮） */
 #genre-overlay[data-gm-deco="bokeh"] .gm-deco {
   opacity: 0.8;
   background-image:
@@ -115,6 +157,11 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
     radial-gradient(circle 60px at 62% 82%, var(--gm-glow), transparent 70%),
     radial-gradient(circle 48px at 30% 16%, var(--gm-glow), transparent 70%);
   filter: blur(6px);
+  animation: gm-bokeh-drift 16s ease-in-out infinite alternate;
+}
+@keyframes gm-bokeh-drift {
+  from { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+  to   { background-position: 3% 4%, -4% -3%, 4% -4%, -3% 3%; }
 }
 /* 氛围：慢呼吸雾光 */
 #genre-overlay[data-gm-deco="mist"] .gm-deco {
@@ -206,10 +253,13 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 18px;
+  /* --gm-beat 节拍 punch：封面随鼓点微缩放；--gm-bass：光晕半径随低频涨落 */
+  transform: scale(calc(1 + var(--gm-beat) * 0.028));
   transition: box-shadow 1.2s ease, filter 0.5s ease;
   box-shadow:
     0 30px 70px rgba(0, 0, 0, 0.58),
-    0 0 60px var(--gm-glow),
+    0 0 calc(46px + var(--gm-bass) * 74px) var(--gm-glow),
+    0 0 calc(8px + var(--gm-bass) * 22px) var(--gm-glow),
     inset 0 0 0 1px rgba(255, 255, 255, 0.10);
 }
 #genre-overlay .gm-cover.is-paused {
@@ -279,8 +329,12 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   border: 1px solid var(--gm-accent);
   border-radius: 999px;
   padding: 5px 14px 4px;
-  box-shadow: 0 0 16px var(--gm-glow), inset 0 0 10px rgba(0, 0, 0, 0.2);
-  transition: color 1.2s ease, border-color 1.2s ease, box-shadow 1.2s ease;
+  /* --gm-beat：徽章光晕随节拍微闪 */
+  box-shadow:
+    0 0 calc(12px + var(--gm-beat) * 22px) var(--gm-glow),
+    0 0 calc(var(--gm-beat) * 10px) var(--gm-accent),
+    inset 0 0 10px rgba(0, 0, 0, 0.2);
+  transition: color 1.2s ease, border-color 1.2s ease;
 }
 #genre-overlay .gm-title {
   font-size: clamp(26px, 3.2vw, 42px);
@@ -376,17 +430,32 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   transition: color 1.2s ease;
 }
 
-/* ---------- 底部频谱 ---------- */
-#genre-overlay .gm-spectrum {
+/* ---------- 底部可视化区（viz 形态：bars / wave / staff；ring 挂在封面上） ---------- */
+#genre-overlay .gm-viz {
   position: relative;
   z-index: 2;
-  display: flex;
+  height: 72px;
+  margin: 0 clamp(24px, 4vw, 64px) 18px;
+}
+#genre-overlay .gm-spectrum {
+  position: absolute;
+  inset: 0;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  height: 64px;
-  padding: 0 clamp(24px, 4vw, 64px) 18px;
 }
+#genre-overlay[data-gm-viz="bars"] .gm-spectrum { display: flex; }
+#genre-overlay .gm-viz-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+#genre-overlay[data-gm-viz="wave"] .gm-viz-canvas,
+#genre-overlay[data-gm-viz="staff"] .gm-viz-canvas { display: block; }
+
 #genre-overlay .gm-spectrum-bar {
   flex: 1;
   max-width: 14px;
@@ -396,8 +465,40 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   opacity: 0.85;
   transform-origin: bottom;
   transform: scaleY(0.1);
+  /* 辉光 = 族群静态强度(--gm-spec-glow) × 实时低频(--gm-bass) */
+  box-shadow: 0 0 calc(2px + var(--gm-bass) * 18px * var(--gm-spec-glow)) var(--gm-accent);
   transition: background-color 1.2s ease;
 }
+
+/* ---------- ring 形态：封面外圈环形辐射频谱（电子族） ---------- */
+#genre-overlay .gm-ring-bars {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 3;
+  animation: gm-ring-bars-spin 24s linear infinite;
+}
+#genre-overlay[data-gm-viz="ring"] .gm-ring-bars { display: block; }
+@keyframes gm-ring-bars-spin {
+  to { transform: rotate(360deg); }
+}
+#genre-overlay .gm-ring-bar {
+  position: absolute;
+  left: -1.5px;
+  top: 0;
+  width: 3px;
+  height: 30px;
+  border-radius: 2px;
+  background: linear-gradient(to top, var(--gm-accent), var(--gm-accent-2));
+  transform-origin: 50% 0;
+  box-shadow: 0 0 calc(3px + var(--gm-bass) * 10px) var(--gm-accent);
+}
+/* ring 形态时 conic 光弧让位（避免双圈视觉噪音） */
+#genre-overlay[data-gm-viz="ring"] .gm-cover-ring { opacity: 0.14; animation: none; }
 
 /* ---------- 窄屏适配 ---------- */
 @media (max-width: 980px) {
@@ -408,11 +509,11 @@ body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
   }
   #genre-overlay .gm-cover-stage { width: min(240px, 44vw); }
   #genre-overlay .gm-info-stage { text-align: center; align-items: center; }
-  #genre-overlay .gm-spectrum { height: 44px; }
+  #genre-overlay .gm-viz { height: 48px; }
 }
 @media (max-width: 640px) {
   #genre-overlay .gm-cover-stage { width: min(190px, 52vw); }
   #genre-overlay .gm-title { font-size: 22px; }
   #genre-overlay .gm-now-line { white-space: normal; }
-  #genre-overlay .gm-spectrum { height: 36px; padding-bottom: 12px; }
+  #genre-overlay .gm-viz { height: 40px; margin-bottom: 12px; }
 }

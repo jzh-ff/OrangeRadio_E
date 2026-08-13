@@ -1574,8 +1574,12 @@
           </div>
         </div>
       </div>
-      <!-- 底部频谱 -->
-      <div class="gm-spectrum" id="gm-spectrum"></div>
+      <!-- 底部可视化区：按族群 viz 形态切换（bars 柱状 / wave 波形 / staff 五线谱光点；
+           ring 环形频谱挂在封面上，不占此区域） -->
+      <div class="gm-viz">
+        <div class="gm-spectrum" id="gm-spectrum"></div>
+        <canvas class="gm-viz-canvas" id="gm-viz-canvas"></canvas>
+      </div>
     </div>
 
     <input type="file" id="file-input"
