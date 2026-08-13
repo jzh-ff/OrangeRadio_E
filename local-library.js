@@ -80,6 +80,8 @@ async function readMetadataWithLimit(filePath) {
       title: common.title || '',
       artist: common.artist || '',
       album: common.album || '',
+      // ID3 风格标签（music-metadata 返回数组，如 ['Synthwave','Electronic']）
+      genre: Array.isArray(common.genre) ? common.genre.filter(Boolean).join('/') : (common.genre || ''),
       duration: meta.format && meta.format.duration ? Math.round(meta.format.duration) : 0,
       cover: cover
     };
@@ -119,6 +121,7 @@ async function scanDirectory(dir) {
           name: (meta && meta.title) ? meta.title : baseName,
           artist: (meta && meta.artist) ? meta.artist : '未知艺术家',
           album: (meta && meta.album) ? meta.album : '',
+          genre: (meta && meta.genre) ? meta.genre : '',
           cover: (meta && meta.cover) ? meta.cover : '',
           duration: (meta && meta.duration) ? meta.duration : 0,
           localKey: filePath,

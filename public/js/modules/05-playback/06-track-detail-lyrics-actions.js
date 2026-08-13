@@ -475,6 +475,7 @@ function openTrackDetailModal(type, songOverride) {
       detailRow('当前歌曲', title) +
       detailRow('专辑', albumTitle) +
       detailRow('歌手', song.artist || '未知歌手') +
+      (typeof songGenreDisplayText === 'function' && songGenreDisplayText(song) ? detailRow('风格', songGenreDisplayText(song)) : '') +
       detailRow('来源', songSourceLabel(song)) +
       '</div>' +
       '<div class="detail-chip-row">' +
@@ -558,6 +559,7 @@ function openTrackDetailModal(type, songOverride) {
       detailRow('当前歌曲', title) +
       detailRow('关联歌手', artistName) +
       detailRow('所属专辑', song.album || (song.type === 'podcast' ? (song.radioName || 'Podcast') : '未知')) +
+      (typeof songGenreDisplayText === 'function' && songGenreDisplayText(song) ? detailRow('风格', songGenreDisplayText(song)) : '') +
       detailRow('来源', songSourceLabel(song)) +
       '</div>' +
       '<div class="detail-chip-row">' + (artists.length ? artists.map(function (name) { return '<span class="detail-chip">' + escHtml(name) + '</span>'; }).join('') : '<span class="detail-chip">未知歌手</span>') + '</div>' +
@@ -609,6 +611,7 @@ function openTrackDetailModal(type, songOverride) {
       detailRow('歌手', song.artist || '未知歌手') +
       detailRow('专辑', song.album || (song.type === 'podcast' ? (song.radioName || 'Podcast') : '未知')) +
       detailRow('时长', songDurationLabel(song)) +
+      (typeof songGenreDisplayText === 'function' && songGenreDisplayText(song) ? detailRow('风格', songGenreDisplayText(song)) : '') +
       detailRow('来源', songSourceLabel(song)) +
       detailRow('歌词源', lyricSourceMode === 'custom' ? '自定义歌词' : (lyricsTimingSource === 'fallback' ? '占位歌词' : '原词')) +
       '</div>' +

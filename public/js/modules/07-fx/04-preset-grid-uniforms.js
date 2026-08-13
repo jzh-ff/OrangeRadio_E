@@ -19,7 +19,7 @@ function buildPresetGrid() {
       '<div class="pc-name">' + name + '</div>' +
       '<div class="pc-desc">' + desc + '</div>' +
       '</div>';
-  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard();
+  }).join('') + buildFilmRadioPresetCard() + buildGraffitiPresetCard() + buildGenreModePresetCard();
   refreshPresetGrid();
 }
 
@@ -41,9 +41,18 @@ function buildGraffitiPresetCard() {
     '</div>';
 }
 
+/* 风格电台：独立于数值预设之外的特殊卡片，按歌曲风格自动切换整套视觉主题 */
+function buildGenreModePresetCard() {
+  return '<div class="preset-card genre-mode-card" data-genre-mode="1" onclick="toggleGenreMode()" title="风格电台">' +
+    '<div class="pc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>' +
+    '<div class="pc-name">风格电台</div>' +
+    '<div class="pc-desc">风格驱动 · 自动主题</div>' +
+    '</div>';
+}
+
 function refreshPresetGrid() {
-  // 胶片电台/涂鸦墙激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
-  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode) || (typeof graffitiMode !== 'undefined' && graffitiMode);
+  // 胶片电台/涂鸦墙/风格电台激活时，常规预设卡片不再显示激活态，避免「两个预设同时亮」
+  var specialActive = (typeof filmRadioMode !== 'undefined' && filmRadioMode) || (typeof graffitiMode !== 'undefined' && graffitiMode) || (typeof genreMode !== 'undefined' && genreMode);
   document.querySelectorAll('.preset-card').forEach(function (el) {
     var filmRadio = el.getAttribute('data-film-radio');
     if (filmRadio) {
@@ -53,6 +62,11 @@ function refreshPresetGrid() {
     var graffiti = el.getAttribute('data-graffiti');
     if (graffiti) {
       el.classList.toggle('active', !!(typeof graffitiMode !== 'undefined' && graffitiMode));
+      return;
+    }
+    var genre = el.getAttribute('data-genre-mode');
+    if (genre) {
+      el.classList.toggle('active', !!(typeof genreMode !== 'undefined' && genreMode));
       return;
     }
     el.classList.toggle('active', !specialActive && Number(el.dataset.preset) === fx.preset);
@@ -109,6 +123,10 @@ function setPreset(p, opts) {
   // 同上：退出涂鸦墙（满屏涂鸦歌词）
   if (!opts.silent && typeof graffitiMode !== 'undefined' && graffitiMode && typeof applyGraffitiMode === 'function') {
     applyGraffitiMode(false, { save: true });
+  }
+  // 同上：退出风格电台（Genre Mode）
+  if (!opts.silent && typeof genreMode !== 'undefined' && genreMode && typeof applyGenreMode === 'function') {
+    applyGenreMode(false, { save: true });
   }
   fx.preset = p;
   if (changed && prev === SKULL_PRESET_INDEX && p !== SKULL_PRESET_INDEX) clearSkullPresetResidue();

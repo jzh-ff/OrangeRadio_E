@@ -6,6 +6,9 @@ try {
   if (localStorage.getItem('orangesea-film-radio-v1') === '1') {
     document.documentElement.classList.add('film-radio-preload');
   }
+  if (localStorage.getItem('orangesea-genre-mode-v1') === '1') {
+    document.documentElement.classList.add('genre-mode-preload');
+  }
 } catch (e) {
   document.documentElement.classList.add('simple-mode-preload');
 }

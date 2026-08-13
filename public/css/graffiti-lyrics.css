@@ -17,6 +17,7 @@
   --gw-ink: #d7d2c4;                          /* 月白字色（默认） */
   --gw-glow: rgba(215, 210, 196, 0.34);       /* 远光晕（随字色） */
   --gw-font: "Liu Jian Mao Cao", "STCaoshu", "STKaiti", "KaiTi", cursive;
+  --gw-word-gap: 0.22em;                      /* 词间距（固定占位，与字体空格度量脱钩） */
 
   position: fixed;
   left: 0;
@@ -129,7 +130,9 @@ body.graffiti.wallpaper-engine-active #wallpaper-engine-layer {
   pointer-events: none;
 }
 
-/* 歌词行：固定宽度让 flex-wrap 自然换行，字号由 JS 二分测量铺满 */
+/* 歌词行：固定宽度让 flex-wrap 自然换行，字号由 JS 二分测量铺满。
+   行距保留 0.02em、列距归零：字距/词距由 token 自控
+   （word 不可拆行、space 固定词距、CJK 字距 margin）。 */
 .graffiti-line {
   width: 84vw;
   max-width: 1500px;
@@ -137,40 +140,130 @@ body.graffiti.wallpaper-engine-active #wallpaper-engine-layer {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 0.02em 0.06em;
+  gap: 0.02em 0;
   line-height: 1.08;
   font-family: var(--gw-font);
   font-weight: 400;
   /* font-size 由 JS 动态设置 */
 }
 
-/* 逐字单元：默认隐藏，加 .is-shown 后蹦出 */
+/* 拉丁词单元：整词作为换行单元（不再从单词中间断行），词内字母自然紧排 */
+.graffiti-word {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  margin-right: 0.06em;      /* 与后续内容的基础间距（词距由 .graffiti-space 承担） */
+}
+.graffiti-word .graffiti-char {
+  margin-right: 0;           /* 词内字母紧排 */
+}
+
+/* 逐字单元：默认隐藏，加 .is-shown 后按 [data-anim] 变量组蹦出。
+   静态涂鸦错位留在 transform（恒定）；入场动效走 CSS 独立属性
+   translate/scale/rotate/filter（Chromium 104+），互不干扰；
+   旧浏览器忽略独立属性，自动降级为淡入。 */
 .graffiti-char {
   display: inline-block;
   flex-shrink: 0;             /* 不压缩，宽度不足时换行而非压扁字形 */
+  margin-right: 0.06em;       /* CJK 字距（词内字母由 .graffiti-word 规则归零） */
   opacity: 0;
-  transform: scale(0.38) rotate(var(--gw-rot, 0deg)) translateY(var(--gw-dy, 0em));
+  translate: var(--gw-fx, 0em) var(--gw-fy, 0em);
+  scale: var(--gw-fs, 0.38);
+  rotate: var(--gw-fr, 0deg);
+  filter: blur(var(--gw-fb, 0px));
+  transform: rotate(var(--gw-rot, 0deg)) translateY(var(--gw-dy, 0em));
   transition:
-    opacity 0.38s ease,
-    transform 0.46s cubic-bezier(0.2, 1.5, 0.42, 1);
+    opacity var(--gw-duro, 0.3s) ease,
+    translate var(--gw-dur, 0.46s) var(--gw-ease, cubic-bezier(0.2, 1.5, 0.42, 1)),
+    scale var(--gw-dur, 0.46s) var(--gw-ease, cubic-bezier(0.2, 1.5, 0.42, 1)),
+    rotate var(--gw-dur, 0.46s) var(--gw-ease, cubic-bezier(0.2, 1.5, 0.42, 1)),
+    filter var(--gw-durf, 0.5s) ease;
   color: var(--gw-ink);
   text-shadow:
     0 0 16px rgba(255, 255, 255, 0.40),
     0 0 40px var(--gw-glow),
     0 0 86px var(--gw-glow);
 }
+.graffiti-char:not(.is-shown) {
+  will-change: translate, scale, rotate, filter, opacity;  /* 入场动画合成层提示，点亮后释放 */
+}
 .graffiti-char.is-shown {
   opacity: 1;
-  transform: scale(1) rotate(var(--gw-rot, 0deg)) translateY(var(--gw-dy, 0em));
+  translate: 0em 0em;
+  scale: 1;
+  rotate: 0deg;
+  filter: blur(0px);
 }
 
-/* 行切换时的整体淡入 */
-.graffiti-line.is-entering {
-  animation: gw-line-in 0.5s ease both;
+/* 标点：缩小、不旋转不偏移（JS 已置 --gw-rot/--gw-dy 为 0），书法排版惯例 */
+.graffiti-char--punct {
+  font-size: 0.62em;
 }
-@keyframes gw-line-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+
+/* ---------- 入场动画池：每句随机一种，变量组驱动 ----------
+   --gw-fx/fy 起始位移 / --gw-fs 起始缩放 / --gw-fr 起始旋转（逐字 inline 给出） /
+   --gw-fb 起始模糊 / --gw-ease 缓动 / --gw-duro 透明时长 / --gw-durf 模糊时长；
+   --gw-dur 由 JS 逐字按基准时长 ±18% 抖动后 inline 给出。 */
+.graffiti-line[data-anim="pop"] {            /* 弹跳（原效果） */
+  --gw-fs: 0.38;
+  --gw-ease: cubic-bezier(0.2, 1.5, 0.42, 1);
+}
+.graffiti-line[data-anim="rise"] {           /* 自下方升起浮现 */
+  --gw-fs: 0.92;
+  --gw-fy: 0.72em;
+  --gw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gw-duro: 0.42s;
+}
+.graffiti-line[data-anim="drop"] {           /* 上方砸落，微回弹 */
+  --gw-fs: 1.06;
+  --gw-fy: -1.15em;
+  --gw-ease: cubic-bezier(0.3, 1.55, 0.45, 1);
+}
+.graffiti-line[data-anim="ink"] {            /* 晕墨：模糊放大 → 收拢清晰（毛笔晕开） */
+  --gw-fs: 1.26;
+  --gw-fb: 14px;
+  --gw-ease: cubic-bezier(0.25, 0.8, 0.35, 1);
+  --gw-duro: 0.5s;
+  --gw-durf: 0.72s;
+}
+.graffiti-line[data-anim="spin"] {           /* 旋转卷入（方向逐字随机 --gw-fr） */
+  --gw-fs: 0.3;
+  --gw-ease: cubic-bezier(0.2, 1.35, 0.4, 1);
+}
+.graffiti-line[data-anim="zoom"] {           /* 镜头对焦：放大+微模糊 → 归位 */
+  --gw-fs: 1.85;
+  --gw-fb: 7px;
+  --gw-ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --gw-durf: 0.58s;
+}
+.graffiti-line[data-anim="slide"] {          /* 左右交错滑入（方向逐字随机 --gw-fx） */
+  --gw-fs: 0.96;
+  --gw-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gw-duro: 0.36s;
+}
+.graffiti-line[data-anim="flash"] {          /* 打字机式干脆闪现（极短过渡） */
+  --gw-fs: 0.94;
+  --gw-ease: ease-out;
+  --gw-duro: 0.1s;
+}
+
+/* 字号二分测量期间：中和入场独立属性（scale/translate 计入祖先滚动溢出，
+   未点亮初始态会撑大 scrollHeight/scrollWidth 读数），并禁 transition 防读数触发过渡。
+   静态涂鸦错位 transform（--gw-rot/--gw-dy）保留——它参与最终视觉，应计入测量。 */
+.graffiti-line.is-measuring .graffiti-char {
+  transition: none !important;
+  translate: none !important;
+  scale: none !important;
+  rotate: none !important;
+  filter: none !important;
+}
+
+/* 旧浏览器降级：支持 filter 但不支持独立变换属性（Chrome <104）时禁用入场模糊，
+   纯淡入（这些环境往往正是跑不动全屏大字 blur 过渡的低端机） */
+@supports not (scale: 1) {
+  .graffiti-line[data-anim] {
+    --gw-fb: 0px;
+  }
 }
 
 /* 空状态 */
@@ -182,10 +275,12 @@ body.graffiti.wallpaper-engine-active #wallpaper-engine-layer {
   font-weight: 300;
 }
 
-/* 行内空白占位（英文歌词间距）：不参与逐字揭示，保持原始宽度 */
+/* 词距占位（拉丁/韩文词间空格）：固定宽度，不参与逐字揭示，
+   与字体空格宽度度量脱钩——多语言词间距统一可控 */
 .graffiti-space {
   display: inline-block;
   flex-shrink: 0;
+  width: var(--gw-word-gap, 0.22em);
 }
 
 /* ---------- 预设卡片高亮（复用 .preset-card 基底） ---------- */

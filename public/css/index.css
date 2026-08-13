@@ -2710,11 +2710,12 @@ body.empty-home-active #empty-home {
   transform: translateX(-50%) translateY(0) scale(1)
 }
 
-/* 胶片电台/涂鸦墙等全屏覆盖层（z-index:5）激活时，
+/* 胶片电台/涂鸦墙/风格电台等全屏覆盖层（z-index:5）激活时，
    主页要浮在覆盖层之上显示（不退出模式，关掉主页后模式仍在）。
    6 高于覆盖层 5，低于 fx-fab(19)；与 bottom-bar(6) 同层时 DOM 顺序保证控制栏在上。 */
 body.film-radio #empty-home,
-body.graffiti #empty-home {
+body.graffiti #empty-home,
+body.genre-mode #empty-home {
   z-index: 6;
 }
 

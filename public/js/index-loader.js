@@ -35,6 +35,8 @@
     'js/modules/02-visual/13-lyrics-mesh-build.js',
     'js/modules/02-visual/14-stage-lyrics-rendering.js',
     'js/modules/02-visual/15-ripples-cover-depth.js',
+    'js/modules/02-visual/16-genre-resolve.js',
+    'js/modules/02-visual/17-genre-themes.js',
     'sonic-topography-preset.js',
     'js/modules/03-beat/00-tempo-worker-cache-prefetch.js',
     'js/modules/03-beat/01-audio-beat-analysis.js',
@@ -110,6 +112,7 @@
     'js/modules/10-shell/06-film-radio.js',
     'js/modules/10-shell/07-mini-player.js',
     'js/modules/10-shell/08-graffiti-lyrics.js',
+    'js/modules/10-shell/09-genre-mode.js',
     'js/modules/11-main-loop.js',
   ];
 

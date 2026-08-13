@@ -731,6 +731,46 @@ function dedupeSpotifySongs(songs) {
   return out;
 }
 
+/* ---------- artist genres 后补（Spotify track 不带流派，需查 /artists 批量接口） ----------
+   artistId → 'synthwave/electronic' 文本，进程内缓存；任何失败静默，不影响主流程。 */
+const spotifyArtistGenreCache = new Map();
+
+async function attachSpotifyArtistGenres(songs) {
+  try {
+    const seen = new Set();
+    const missing = [];
+    (songs || []).forEach((song) => {
+      (song.artists || []).forEach((artist) => {
+        const id = normalizeText(artist && artist.id);
+        if (id && !seen.has(id) && !spotifyArtistGenreCache.has(id)) {
+          seen.add(id);
+          missing.push(id);
+        }
+      });
+    });
+    if (missing.length) {
+      const batch = missing.slice(0, 50);
+      const json = await spotifyGet('/artists', { ids: batch.join(',') }, { timeoutMs: 9000 });
+      (json && Array.isArray(json.artists) ? json.artists : []).forEach((artist) => {
+        const id = normalizeText(artist && artist.id);
+        if (!id) return;
+        const genres = Array.isArray(artist.genres) ? artist.genres.filter(Boolean) : [];
+        spotifyArtistGenreCache.set(id, genres.slice(0, 3).join('/'));
+      });
+      // 未返回的 artist 记空串，避免反复请求
+      batch.forEach((id) => { if (!spotifyArtistGenreCache.has(id)) spotifyArtistGenreCache.set(id, ''); });
+    }
+    (songs || []).forEach((song) => {
+      if (!song || song.genre) return;
+      for (const artist of (song.artists || [])) {
+        const text = spotifyArtistGenreCache.get(normalizeText(artist && artist.id));
+        if (text) { song.genre = text; break; }
+      }
+    });
+  } catch (err) { /* genre 后补失败静默降级 */ }
+  return songs;
+}
+
 function normalizeSpotifyProfile(profile) {
   profile = profile || {};
   const product = normalizeText(profile.product || '').toLowerCase();
@@ -918,6 +958,7 @@ async function handleSpotifySearch(keywords, limit, offset) {
       pageOffset += items.length;
     }
     const songs = dedupeSpotifySongs(pages.map((item, index) => mapSpotifyTrack(item, index, keywords)).filter(Boolean)).slice(0, limit);
+    await attachSpotifyArtistGenres(songs);
     return {
       provider: 'spotify',
       configured: true,
@@ -1199,6 +1240,7 @@ async function handleSpotifyPlaylistTracks(playlistId, opts) {
     if (item && item.type && item.type !== 'track') return null;
     return mapSpotifyTrack(item, offset + index, playlistId);
   }).filter(Boolean);
+  await attachSpotifyArtistGenres(tracks);
   return {
     provider: 'spotify',
     loggedIn: true,
@@ -1263,6 +1305,7 @@ async function handleSpotifyAlbumDetail(albumId, opts) {
       },
     }), index, 'album:' + id);
   }).filter(Boolean);
+  await attachSpotifyArtistGenres(songs);
   return {
     provider: 'spotify',
     album: albumInfo,

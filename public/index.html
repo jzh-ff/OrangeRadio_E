@@ -25,7 +25,8 @@
   <script src="js/preload-mode.js"></script>
   <link rel="stylesheet" href="css/index.css?v=20260716-we-continuity-vsync">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
-  <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260812-ink-cover2">
+  <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
+  <link rel="stylesheet" href="css/genre-mode.css?v=20260812-genre-mode">
 </head>
 
 <body>
@@ -1541,6 +1542,40 @@
       <div class="graffiti-stage" id="graffiti-stage">
         <div class="graffiti-line" id="graffiti-line"></div>
       </div>
+    </div>
+
+    <!-- 风格电台覆盖层（Genre Mode）：按歌曲风格自动切换整套视觉主题，
+         主题色由 JS 以 --gm-* CSS 变量下发（data-genre 标识当前族群） -->
+    <div id="genre-overlay" aria-hidden="true" data-genre="default" data-gm-font="sans" data-gm-deco="none">
+      <!-- 风格装饰层（网格/五线谱/纸纹/噪点/光斑/雾，按 data-gm-deco 切换） -->
+      <div class="gm-deco" aria-hidden="true"></div>
+      <!-- 顶部族群芯片选择器（自动跟随 / 手动锁定） -->
+      <div class="gm-chips" id="gm-chips"></div>
+      <div class="gm-main">
+        <!-- 左侧：大圆角封面 + 族群色旋转光弧 -->
+        <div class="gm-cover-stage">
+          <div class="gm-cover" id="gm-cover">
+            <div class="gm-cover-img cover-empty"></div>
+            <div class="gm-cover-ring" aria-hidden="true"></div>
+          </div>
+        </div>
+        <!-- 右侧：风格徽章 + 曲目信息 + 当前歌词单行 + 进度 -->
+        <div class="gm-info-stage">
+          <div class="gm-badge" id="gm-badge">GENRE · 综合</div>
+          <div class="gm-title" id="gm-title">未在播放</div>
+          <div class="gm-artist" id="gm-artist"></div>
+          <div class="gm-now-line" id="gm-now-line">—</div>
+          <div class="gm-genre-tag" id="gm-genre-tag" style="display:none"></div>
+          <div class="gm-progress-row">
+            <div class="gm-progress" id="gm-progress">
+              <div class="gm-progress-fill" id="gm-progress-fill"></div>
+            </div>
+            <div class="gm-time" id="gm-time">0:00 / 0:00</div>
+          </div>
+        </div>
+      </div>
+      <!-- 底部频谱 -->
+      <div class="gm-spectrum" id="gm-spectrum"></div>
     </div>
 
     <input type="file" id="file-input"

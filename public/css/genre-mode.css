@@ -1,0 +1,418 @@
+/* =========================================================================
+   OrangeSea · 风格电台（Genre Mode · 风格视觉驱动）
+   body.genre-mode 命名空间，与 index.css / film-radio.css 完全隔离。
+   主题色全部由 JS（17-genre-themes.js）以 CSS 变量下发（--gm-*），
+   本文件只写结构与气质；变量变化靠 transition ~1.2s 平滑过渡。
+
+   注意：背景必须不透明 —— Electron 下 backdrop-filter 不可靠，
+   半透明会把 3D 舞台歌词/粒子场景透出来盖住内容。
+   ========================================================================= */
+
+#genre-overlay {
+  /* 默认变量（JS 未下发前的首帧兜底，与 default 族群一致） */
+  --gm-accent: #a9b8c8;
+  --gm-accent-2: #7f8ea0;
+  --gm-bg-1: #101216;
+  --gm-bg-2: #0b0d10;
+  --gm-bg-3: #07090b;
+  --gm-ink: #e9eef3;
+  --gm-muted: rgba(205, 216, 226, 0.42);
+  --gm-glow: rgba(169, 184, 200, 0.13);
+  --gm-track: rgba(233, 238, 243, 0.14);
+
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;                 /* 铺满全屏，彻底盖住 3D 场景；#bottom-bar(z-index:6) 悬浮其上 */
+  padding-bottom: 104px;     /* 给底部悬浮胶囊控制栏让位 */
+  z-index: 5;                /* 高于 3D 场景，低于 #bottom-bar(6)/#fx-fab(19) */
+  display: none;
+  flex-direction: column;
+  background-color: var(--gm-bg-2);
+  background-image:
+    radial-gradient(ellipse at 82% 12%, var(--gm-glow), transparent 55%),
+    radial-gradient(ellipse at 12% 88%, var(--gm-glow), transparent 50%),
+    linear-gradient(165deg, var(--gm-bg-1) 0%, var(--gm-bg-2) 58%, var(--gm-bg-3) 100%);
+  color: var(--gm-ink);
+  font-family: var(--font-sans, "Noto Sans SC", "Inter", sans-serif);
+  overflow: hidden;
+  pointer-events: none;      /* 默认不拦截，切到本模式时打开 */
+  transition: background-color 1.2s ease, color 1.2s ease;
+}
+
+body.genre-mode #genre-overlay {
+  display: flex;
+  pointer-events: auto;
+}
+
+/* 壁纸引擎启用时：让出背景，壁纸作底（半透明蒙版保证可读） */
+body.genre-mode.wallpaper-engine-active #genre-overlay {
+  background-color: rgba(11, 13, 16, 0.66);
+  background-image:
+    radial-gradient(ellipse at 82% 12%, var(--gm-glow), transparent 55%),
+    linear-gradient(165deg, rgba(11, 13, 16, 0.55) 0%, rgba(7, 9, 11, 0.72) 100%);
+}
+/* 壁纸层提到 3D 画布(z-1)之上，避免 3D 粒子从半透明覆盖层透出 */
+body.genre-mode.wallpaper-engine-active #wallpaper-engine-layer {
+  z-index: 2;
+}
+
+/* ---------- 风格装饰层（按 data-gm-deco 切换，纯 CSS 纹理） ---------- */
+#genre-overlay .gm-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+/* 电子：底部透视网格地平线 */
+#genre-overlay[data-gm-deco="grid"] .gm-deco {
+  opacity: 1;
+  background-image:
+    linear-gradient(var(--gm-glow) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gm-glow) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 55%);
+}
+/* 古典：五线谱横线 */
+#genre-overlay[data-gm-deco="staff"] .gm-deco {
+  opacity: 1;
+  background-image: repeating-linear-gradient(to bottom,
+    transparent 0px, transparent 64px,
+    var(--gm-glow) 64px, var(--gm-glow) 65px,
+    transparent 65px, transparent 72px,
+    var(--gm-glow) 72px, var(--gm-glow) 73px,
+    transparent 73px, transparent 80px,
+    var(--gm-glow) 80px, var(--gm-glow) 81px,
+    transparent 81px, transparent 88px,
+    var(--gm-glow) 88px, var(--gm-glow) 89px,
+    transparent 89px, transparent 96px,
+    var(--gm-glow) 96px, var(--gm-glow) 97px);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.8) 30%, rgba(0, 0, 0, 0.8) 70%, transparent 100%);
+}
+/* 民谣：纸质纤维纹理 */
+#genre-overlay[data-gm-deco="paper"] .gm-deco {
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+/* 嘻哈/摇滚/金属：粗颗粒噪点 */
+#genre-overlay[data-gm-deco="noise"] .gm-deco {
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+/* 流行/爵士/动漫：散景光斑 */
+#genre-overlay[data-gm-deco="bokeh"] .gm-deco {
+  opacity: 0.8;
+  background-image:
+    radial-gradient(circle 90px at 78% 22%, var(--gm-glow), transparent 70%),
+    radial-gradient(circle 130px at 16% 68%, var(--gm-glow), transparent 70%),
+    radial-gradient(circle 60px at 62% 82%, var(--gm-glow), transparent 70%),
+    radial-gradient(circle 48px at 30% 16%, var(--gm-glow), transparent 70%);
+  filter: blur(6px);
+}
+/* 氛围：慢呼吸雾光 */
+#genre-overlay[data-gm-deco="mist"] .gm-deco {
+  opacity: 1;
+  background-image:
+    radial-gradient(ellipse 60% 42% at 50% 30%, var(--gm-glow), transparent 70%),
+    radial-gradient(ellipse 48% 36% at 30% 76%, var(--gm-glow), transparent 70%);
+  filter: blur(24px);
+  animation: gm-mist-breathe 12s ease-in-out infinite alternate;
+}
+@keyframes gm-mist-breathe {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
+/* ---------- 顶部族群芯片选择器 ---------- */
+#genre-overlay .gm-chips {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 76px clamp(24px, 4vw, 64px) 4px;   /* 顶部让位给应用顶栏（~64px 高），避免与搜索框重影 */
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+#genre-overlay .gm-chips::-webkit-scrollbar { display: none; }
+#genre-overlay .gm-chip {
+  flex: 0 0 auto;
+  appearance: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 5px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.35s ease, background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+#genre-overlay .gm-chip:hover {
+  color: var(--gm-ink);
+  border-color: var(--gm-accent);
+}
+#genre-overlay .gm-chip.active {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: var(--gm-bg-3);
+  font-weight: 600;
+  box-shadow: 0 0 18px var(--gm-glow);
+}
+/* 自动模式下当前跟随到的族群：描边高亮（区别于锁定的实填充） */
+#genre-overlay .gm-chip.followed:not([data-family="auto"]) {
+  background: transparent;
+  color: var(--gm-accent);
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 14px var(--gm-glow);
+}
+
+/* ---------- 主体两栏：左封面 / 右信息 ---------- */
+#genre-overlay .gm-main {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(380px, 1.35fr);
+  gap: 56px;
+  padding: 24px clamp(36px, 5vw, 76px) 4px;
+  align-items: center;
+  min-height: 0;
+  z-index: 2;
+}
+
+/* ---------- 左侧封面（大圆角卡片 + 族群色光晕） ---------- */
+#genre-overlay .gm-cover-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(400px, 34vw);
+  margin: 0 auto;
+}
+#genre-overlay .gm-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 18px;
+  transition: box-shadow 1.2s ease, filter 0.5s ease;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.58),
+    0 0 60px var(--gm-glow),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+}
+#genre-overlay .gm-cover.is-paused {
+  filter: brightness(0.72) saturate(0.8);
+}
+#genre-overlay .gm-cover-img {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center;
+  background-color: #101216;
+  overflow: hidden;
+  transition: filter 0.5s ease;
+}
+/* 封面上轻压一层族群色调 + 暗角，增强统一感 */
+#genre-overlay .gm-cover-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.36) 100%),
+    linear-gradient(150deg, var(--gm-glow), transparent 46%);
+  pointer-events: none;
+  transition: background-color 1.2s ease;
+}
+#genre-overlay .gm-cover-img.cover-empty {
+  background-image: radial-gradient(circle at 50% 40%, var(--gm-glow), transparent 65%);
+}
+/* 封面外圈慢旋转光弧（族群色） */
+#genre-overlay .gm-cover-ring {
+  position: absolute;
+  inset: -14px;
+  border-radius: 26px;
+  pointer-events: none;
+  background: conic-gradient(from 0deg,
+    transparent 0deg, var(--gm-accent) 60deg, transparent 130deg,
+    transparent 180deg, var(--gm-accent-2) 240deg, transparent 310deg);
+  opacity: 0.34;
+  filter: blur(9px);
+  animation: gm-ring-spin 16s linear infinite;
+  transition: opacity 0.6s ease;
+}
+#genre-overlay .gm-cover.is-paused .gm-cover-ring {
+  animation-play-state: paused;
+  opacity: 0.12;
+}
+@keyframes gm-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- 右侧信息区 ---------- */
+#genre-overlay .gm-info-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+#genre-overlay .gm-badge {
+  align-self: flex-start;
+  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gm-accent);
+  border: 1px solid var(--gm-accent);
+  border-radius: 999px;
+  padding: 5px 14px 4px;
+  box-shadow: 0 0 16px var(--gm-glow), inset 0 0 10px rgba(0, 0, 0, 0.2);
+  transition: color 1.2s ease, border-color 1.2s ease, box-shadow 1.2s ease;
+}
+#genre-overlay .gm-title {
+  font-size: clamp(26px, 3.2vw, 42px);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: color 1.2s ease;
+}
+#genre-overlay .gm-artist {
+  font-size: clamp(14px, 1.3vw, 18px);
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 1.2s ease;
+}
+/* 字体气质：serif 族（古典/民谣/爵士/灵魂乐）与 mono 族（电子/金属） */
+#genre-overlay[data-gm-font="serif"] .gm-title {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+  letter-spacing: 0.04em;
+}
+#genre-overlay[data-gm-font="mono"] .gm-title {
+  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
+  letter-spacing: -0.01em;
+}
+#genre-overlay .gm-now-line {
+  margin-top: 10px;
+  font-size: clamp(15px, 1.5vw, 20px);
+  line-height: 1.5;
+  color: var(--gm-ink);
+  min-height: 1.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 0 22px var(--gm-glow);
+  transition: color 1.2s ease, text-shadow 1.2s ease;
+}
+#genre-overlay .gm-now-line.empty {
+  color: var(--gm-muted);
+  text-shadow: none;
+}
+#genre-overlay[data-gm-font="serif"] .gm-now-line {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+}
+/* 原始 genre 文本小标签（有 ID3/Spotify 流派时才显示） */
+#genre-overlay .gm-genre-tag {
+  align-self: flex-start;
+  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--gm-muted);
+  border-left: 2px solid var(--gm-accent);
+  padding-left: 8px;
+  transition: color 1.2s ease, border-color 1.2s ease;
+}
+
+/* ---------- 进度行 ---------- */
+#genre-overlay .gm-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+#genre-overlay .gm-progress {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--gm-track);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background-color 1.2s ease;
+}
+#genre-overlay .gm-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--gm-accent), var(--gm-accent-2));
+  box-shadow: 0 0 10px var(--gm-glow);
+  transition: background-color 1.2s ease;
+}
+#genre-overlay .gm-progress.dragging .gm-progress-fill {
+  transition: none;
+}
+#genre-overlay .gm-time {
+  font-family: var(--font-mono, "JetBrains Mono", "SF Mono", monospace);
+  font-size: 12px;
+  color: var(--gm-muted);
+  white-space: nowrap;
+  transition: color 1.2s ease;
+}
+
+/* ---------- 底部频谱 ---------- */
+#genre-overlay .gm-spectrum {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 64px;
+  padding: 0 clamp(24px, 4vw, 64px) 18px;
+}
+#genre-overlay .gm-spectrum-bar {
+  flex: 1;
+  max-width: 14px;
+  height: 100%;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(to top, var(--gm-accent), var(--gm-accent-2));
+  opacity: 0.85;
+  transform-origin: bottom;
+  transform: scaleY(0.1);
+  transition: background-color 1.2s ease;
+}
+
+/* ---------- 窄屏适配 ---------- */
+@media (max-width: 980px) {
+  #genre-overlay .gm-main {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding-top: 8px;
+  }
+  #genre-overlay .gm-cover-stage { width: min(240px, 44vw); }
+  #genre-overlay .gm-info-stage { text-align: center; align-items: center; }
+  #genre-overlay .gm-spectrum { height: 44px; }
+}
+@media (max-width: 640px) {
+  #genre-overlay .gm-cover-stage { width: min(190px, 52vw); }
+  #genre-overlay .gm-title { font-size: 22px; }
+  #genre-overlay .gm-now-line { white-space: normal; }
+  #genre-overlay .gm-spectrum { height: 36px; padding-bottom: 12px; }
+}
