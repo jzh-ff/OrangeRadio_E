@@ -19,6 +19,7 @@
     'js/modules/01-scene/02-beat-camera-runtime.js',
     'js/modules/01-scene/03-focus-cinema-camera.js',
     'js/modules/01-scene/04-bottom-controls-cursor.js',
+    'js/modules/01-scene/05-modes-controls-fit.js',
     'js/modules/02-visual/00-pointer-cover-particles.js',
     'js/modules/02-visual/01-float-skull-backcover.js',
     'js/modules/02-visual/02-lyrics-state-layout.js',

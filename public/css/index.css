@@ -7483,11 +7483,34 @@ body.diy-mode #controls {
   justify-content: center;
   width: max-content;
   gap: clamp(8px, 1.1vw, 13px);
+  position: relative;
+  z-index: 2;
 }
 
 .control-cluster.modes {
   justify-content: flex-end;
   overflow: visible;
+}
+
+/* 空间自适应：按钮多时允许收缩（默认 36px → 最小 28px），而不是溢出/隐藏。
+   flex:0 1 让按钮在放不下时按比例收缩，min-width 保证不缩成畸形。 */
+.control-cluster.modes > * {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.control-cluster.modes .ctrl-btn {
+  flex: 0 1 36px;
+  width: auto;
+  min-width: 28px;
+  height: 36px;
+}
+
+/* 收紧 modes 间距，给按钮收缩留出更多空间 */
+@media (max-width:1420px) {
+  .control-cluster.modes {
+    gap: 8px;
+  }
 }
 
 .control-track {
@@ -7579,6 +7602,24 @@ body.diy-mode #controls {
 
   body.diy-mode .control-track {
     max-width: 260px
+  }
+}
+
+/* DIY 模式：中等宽度下逐步收纳低频控件，防止 .modes 区块向左溢出盖住播放列表按钮。
+   .ctrl-btn 是 flex:0 0 auto 固定 36px 不收缩，按钮过多会从 flex-end 侧向左溢出。 */
+@media (max-width:1180px) {
+
+  body.diy-mode #sleep-timer-control,
+  body.diy-mode #eq-control {
+    display: none !important
+  }
+}
+
+@media (max-width:1080px) {
+
+  body.diy-mode #desktop-lyrics-bar-btn,
+  body.diy-mode #mini-player-btn {
+    display: none !important
   }
 }
 
