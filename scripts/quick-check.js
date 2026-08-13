@@ -1612,6 +1612,7 @@ async function checkSpotifyProviderGuard() {
       return { items: [responseItem], total: 1, next: null };
     },
     mapSpotifyTrack: track => track ? { id: track.id, name: track.name } : null,
+    attachSpotifyArtistGenres: async (songs) => songs,
     spotifyErrorDetails: error => ({ error: error && error.message || 'FAILED', message: '' }),
     readStoredSpotifyToken: () => ({ scope: 'playlist-read-private playlist-read-collaborative' }),
     normalizeScopes: value => String(value || '').split(/\s+/).filter(Boolean),
