@@ -1,6 +1,6 @@
 # OrangeSea · 橘子海
 
-![OrangeSea 暗场启动页](./docs/assets/readme/cinema-beat-smoke.png)
+![OrangeSea 启动页 · 把日落调成你的频率](./docs/assets/readme/orangesea-splash.png)
 
 OrangeSea 是一款 Windows 桌面沉浸式音乐播放器，把搜索播放、歌词舞台、粒子视觉、3D 歌单架和完整桌面模式组合成一个更接近现场感的私人音乐空间。日落渐变暗色视觉，融合桌面模式、歌词舞台、粒子舞台与 3D 歌单架。
 
@@ -29,14 +29,6 @@ OrangeSea 目前处于开发阶段，暂未提供正式安装包。如需体验�
 1. 浏览器下载栏提示风险时，打开下载列表，点这条下载右侧的 `...` 三个点，选择 `保留` / `仍要保留` / `显示更多` 后继续保留。
 2. Windows SmartScreen 弹出蓝色拦截窗口时，点 `更多信息`，再点 `仍要运行`。
 3. 如果杀毒软件明确显示木马、高危或已经隔离，不要强行运行；删除该文件后重新下载，仍然异常请带截图反馈给作者。
-
-## 作者支持
-
-如果 OrangeSea 陪你多听了一首歌，也欢迎请作者一杯咖啡。
-
-[查看完整支持页](./docs/SUPPORT.md)
-
-![OrangeSea 作者支持渠道](./docs/assets/support/mineradio-author-support-poster.png)
 
 ## 核心特性
 
