@@ -242,10 +242,11 @@ var FX_CONSOLE_LAYOUT = [
   {
     key: 'system',
     groups: [
-      { key: 'startup', title: '启动与退出', hint: '关闭窗口行为和恢复播放方式', open: true, items: [
+      { key: 'startup', title: '启动与退出', hint: '关闭窗口行为、启动页视频和恢复播放方式', open: true, items: [
         fxConsoleItem('close-behavior-seg', '关闭窗口', '直接退出 后台托盘'),
         fxConsoleItem('t-startupAutoplay', '启动自动播放', '打开软件继续播放'),
         fxConsoleItem('t-startupFastSkip', '秒启动跳过启动页', '快速启动'),
+        fxConsoleItem('splash-video-panel', '启动页视频', '启动页 MP4 自定义 开场视频', false),
         fxConsoleItem('startup-resume-mode-seg', '恢复播放位置', '按上次进度 重播整首')
       ] },
       { key: 'output', title: '播放输出', hint: '音频输出设备和路由面板', items: [

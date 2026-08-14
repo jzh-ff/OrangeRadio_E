@@ -7,7 +7,7 @@
   <title>OrangeSea 橘子海</title>
   <meta name="referrer" content="no-referrer">
   <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=Noto+Sans+SC:wght@400;500;700;900&family=UnifrakturCook:wght@700&family=ZCOOL+XiaoWei&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Long+Cang&family=Liu+Jian+Mao+Cao&family=Noto+Sans+SC:wght@400;500;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=UnifrakturCook:wght@700&family=ZCOOL+XiaoWei&display=swap"
     rel="stylesheet">
   <!-- 本地打包的毛笔行楷字体（Ma Shan Zheng, SIL OFL），离线可用；woff2 约 3.1MB -->
   <style>
@@ -23,7 +23,7 @@
   <script src="vendor/music-tempo.min.js"></script>
   <script src="vendor/gsap.min.js"></script>
   <script src="js/preload-mode.js"></script>
-  <link rel="stylesheet" href="css/index.css?v=20260813-modes-fit">
+  <link rel="stylesheet" href="css/index.css?v=20260814-splash-video">
   <link rel="stylesheet" href="css/film-radio.css?v=20260728-vinyl-radio">
   <link rel="stylesheet" href="css/graffiti-lyrics.css?v=20260813-multilang-anim">
   <link rel="stylesheet" href="css/genre-mode.css?v=20260814-genre-world-redesign">
@@ -91,49 +91,46 @@
 
     <!-- 启动页 -->
     <div id="splash">
-      <canvas id="splash-canvas"></canvas>
-      <div class="splash-fx" aria-hidden="true">
-        <div class="splash-fx-flash"></div>
-        <div class="splash-fx-warp"></div>
-        <div class="splash-fx-prism"></div>
-        <div class="splash-fx-scan"></div>
-        <div class="splash-fx-aurora"></div>
-        <div class="splash-fx-orbits">
-          <i></i><i></i><i></i>
-        </div>
-        <div class="splash-fx-sweep splash-fx-sweep-a"></div>
-        <div class="splash-fx-sweep splash-fx-sweep-b"></div>
-        <div class="splash-fx-grid"></div>
-        <div class="splash-fx-spectrum"></div>
-        <div class="splash-fx-flare"></div>
-      </div>
-      <div class="splash-bg-noise"></div>
+      <video id="splash-video" muted loop playsinline preload="auto"
+        poster="assets/splash/splash-poster.jpg" src="assets/splash/splash.mp4"
+        aria-hidden="true"></video>
+      <div class="splash-vignette" aria-hidden="true"></div>
+      <div class="splash-fashion" aria-hidden="true">FASHION || FASHION || FASHION || FASHION || FASHION || FASHION</div>
 
-      <!-- 主内容 -->
       <div class="splash-content">
-        <div class="splash-brand-header">
-          <svg class="splash-brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <circle class="splash-mark-ring" cx="32" cy="32" r="27"></circle>
-          <circle class="splash-mark-sun" cx="32" cy="24" r="10"></circle>
-          <path class="splash-mark-wave splash-mark-wave-a" d="M12 38C19 34 25 34 32 38C39 42 45 42 52 38"></path>
-          <path class="splash-mark-wave splash-mark-wave-b" d="M15 46C21 42.8 26 42.8 32 46C38 49.2 43 49.2 49 46"></path>
-          </svg>
-          <div class="splash-brand-meta" aria-hidden="true">
-            <span>ORANGE SEA RADIO</span>
-            <small>SUNSET TRANSMISSION · 24H</small>
+        <div class="splash-kicker">Sweet memory</div>
+        <h1 class="splash-wordmark" id="splash-wordmark">OrangeRadio</h1>
+        <p class="splash-lyrics" aria-hidden="true">
+          在雨停之前把频率拧到最暖的一格。耳机里的街道比窗外更近，有人把晚风唱成未寄出的信。OrangeRadio 整夜都亮着，把心跳交给下一句副歌，直到天亮还不肯把声音关掉。慢一点也没关系，重要的是一直在向喜欢的生活靠近。
+        </p>
+        <div class="splash-player">
+          <div class="splash-album" aria-hidden="true">
+            <div class="splash-album-disc">
+              <img id="splash-album-art" class="splash-album-art" src="assets/splash/splash-poster.jpg" alt="">
+            </div>
+          </div>
+          <div class="splash-waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="splash-progress" aria-hidden="true"><span></span></div>
+          <div class="splash-controls">
+            <span class="splash-ctrl" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12.8 5.4 12 6.3l-.8-.9C9.4 3.6 6.5 3.7 4.8 5.5c-1.8 1.9-1.7 4.9.2 6.7L12 19.4l7-7.2c1.9-1.8 2-4.8.2-6.7-1.7-1.8-4.6-1.9-6.4-.1z"/></svg>
+            </span>
+            <span class="splash-ctrl" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M18 6.2 11.4 12 18 17.8V6.2zm-8.6 0L4 12l5.4 5.8V6.2z"/></svg>
+            </span>
+            <button type="button" id="splash-play-btn" class="splash-play-btn" aria-label="进入 OrangeRadio">
+              <svg viewBox="0 0 24 24"><rect x="6.2" y="5" width="3.4" height="14" rx=".6"/><rect x="14.4" y="5" width="3.4" height="14" rx=".6"/></svg>
+            </button>
+            <span class="splash-ctrl" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 6.2 12.6 12 6 17.8V6.2zm8.6 0L20 12l-5.4 5.8V6.2z"/></svg>
+            </span>
+            <span class="splash-ctrl" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 6.2h12.5v2.1H4V6.2zm0 4.8h12.5v2.1H4v-2.1zm0 4.8h8.6v2.1H4v-2.1z"/><rect x="16.4" y="14.6" width="3.6" height="3.6" rx=".5"/></svg>
+            </span>
           </div>
         </div>
-        <div class="splash-wordmark" id="splash-wordmark" aria-label="OrangeSea">
-          <span class="splash-word-mine">OrangeSea</span>
-          <span class="splash-word-radio" aria-label="OrangeSea 橘子海">OrangeSea</span>
-        </div>
-        <div class="splash-signal-line" aria-hidden="true"></div>
-        <div class="splash-sub">
-          <span>把日落调成你的频率</span>
-          <small>TUNE THE SUNSET</small>
-        </div>
-        <div class="splash-enter" aria-hidden="true"><span>点击进入</span></div>
       </div>
+      <div class="splash-now-playing" aria-hidden="true">把日落调成你的频率</div>
     </div>
 
     <div id="hint" aria-hidden="true"></div>
@@ -951,6 +948,15 @@
               <span>启动自动播放</span><span class="dot"></span></div>
             <div class="fx-toggle" id="t-startupFastSkip" onclick="toggleStartupFastSkip()" title="打开软件后直接进入主页，不等待启动动画">
               <span>秒启动跳过启动页</span><span class="dot"></span></div>
+          </div>
+          <div class="lyric-color-row image-pick-row splash-video-row" id="splash-video-panel">
+            <div class="splash-video-mark" aria-hidden="true">MP4</div>
+            <div class="fx-color-row-label">启动页视频<small id="splash-video-value">默认内置视频</small></div>
+            <div class="splash-video-actions">
+              <button class="fx-mini-btn ghost" type="button" onclick="openSplashVideoPicker()">选择</button>
+              <button class="fx-mini-btn ghost" id="splash-video-clear-btn" type="button" onclick="clearSplashVideo()" disabled>恢复默认</button>
+            </div>
+            <input id="splash-video-input" type="file" accept=".mp4,video/mp4" hidden aria-hidden="true">
           </div>
           <div class="fx-seg" id="startup-resume-mode-seg" title="控制恢复上次播放时从哪里开始">
             <button data-startup-resume-mode="resume">按上次进度</button>

@@ -2180,7 +2180,7 @@ function checkSearchGlassEntranceGuard() {
   const searchBoxSourceMergeCount = (searchBoxFilterText.match(/<feMergeNode in="SourceGraphic"/g) || []).length;
   const searchPillSourceMergeCount = (searchPillFilterText.match(/<feMergeNode in="SourceGraphic"/g) || []).length;
   const searchBoxFilterMatchesSavedRgbGlass =
-    /css\/index\.css\?v=20260716-we-continuity-vsync/.test(indexText) &&
+    /css\/index\.css\?v=20260814-splash-video/.test(indexText) &&
     /x="-24%"\s+y="-34%"\s+width="158%"/.test(searchBoxFilterText) &&
     /height="168%"/.test(searchBoxFilterText) &&
     /id="search-box-glass-map"\s+x="-10%"\s+y="-4%"\s+width="120%"\s+height="108%"/.test(searchBoxFilterText) &&
@@ -5199,6 +5199,8 @@ function checkFirstLaunchDefaultsAndSplashGuard() {
   const archive = JSON.parse(fs.readFileSync(path.join(appRoot, 'public', 'default-user-fx-archive.json'), 'utf8'));
   const splashText = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '10-shell', '03-splash.js'), 'utf8');
   const css = fs.readFileSync(path.join(appRoot, 'public', 'css', 'index.css'), 'utf8');
+  const html = fs.readFileSync(path.join(appRoot, 'public', 'index.html'), 'utf8');
+  const workspace = fs.readFileSync(path.join(appRoot, 'public', 'js', 'modules', '07-fx', '09-console-workspace.js'), 'utf8');
   const marker = 'var fxDefaults = ';
   const start = defaultsText.indexOf(marker);
   const end = defaultsText.indexOf('\n};', start);
@@ -5235,23 +5237,32 @@ function checkFirstLaunchDefaultsAndSplashGuard() {
   if (!/PACKAGED_DEFAULT_FX_SNAPSHOT\s*=\s*Object\.freeze\(Object\.assign\(\{[\s\S]{0,180}visualPresetSchema:\s*VISUAL_PRESET_SCHEMA[\s\S]{0,120}\},\s*fxDefaults\)\)/.test(packagedText)) {
     fail('packaged first-launch snapshot must inherit the synchronized runtime defaults');
   }
-  if (!/function splashTimelineElapsed\(elapsed\)\s*\{\s*return elapsed;\s*\}/.test(splashText)
-    || /elapsed\s*\*\s*3\.32/.test(splashText)
-    || !/setTimeout\(markSplashReadyToEnter,\s*650\)/.test(splashText)
-    || !/setTimeout\(markSplashReadyToEnter,\s*1500\)/.test(splashText)
-    || !/\.splash-word-mine\s*\{[\s\S]{0,160}animation:\s*splash-word-base-in 1450ms/.test(css)
-    || !/\.splash-word-radio\s*\{[\s\S]{0,420}animation:\s*splash-word-sunrise-in 1800ms/.test(css)
-    || !/\.splash-signal-line\s*\{[\s\S]{0,500}animation:\s*splash-horizon-in 1800ms/.test(css)
-    || !/\.splash-signal-line::after\s*\{[\s\S]{0,420}animation:\s*splash-horizon-signal 3600ms/.test(css)
-    || !/\.splash-sub\s*\{[\s\S]{0,260}animation:\s*splash-tagline-in 1200ms/.test(css)) {
-    fail('public-repo splash motion speed and the independent fast click-entry gate must stay decoupled');
+  if (!/function dismissSplash\(opts\)/.test(splashText)
+    || !/function releaseStartupFastSkipPreload\(/.test(splashText)
+    || !/startupFastSkipPreference/.test(splashText)
+    || !/getElementById\('splash-play-btn'\)/.test(splashText)
+    || !/function stopSplashVideo/.test(splashText)
+    || !/function captureSplashAlbumFrame/.test(splashText)
+    || /initMineradioSplashWebgl/.test(splashText)
+    || /playMineradioIntroSound/.test(splashText)
+    || /setTimeout\(markSplashReadyToEnter,\s*1500\)/.test(splashText)
+    || !/#splash-video/.test(css)
+    || !/@keyframes\s+splash-album-spin/.test(css)
+    || !/\.splash-play-btn/.test(css)
+    || !/\.splash-wordmark/.test(css)
+    || !/\.splash-album-disc/.test(css)
+    || !/id="splash-video-panel"/.test(html)
+    || !/function openSplashVideoPicker/.test(splashText)
+    || !/orangesea-splash-video-v1/.test(splashText)
+    || !/splash-video-panel/.test(workspace)) {
+    fail('video splash must keep the enter lifecycle while replacing the sunset shader overlay');
   }
   if (!/\.user-archive-toolbar\s*\{[\s\S]{0,220}display:\s*grid;[\s\S]{0,160}grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css)
     || !/\.user-archive-tools\s*\{[\s\S]{0,180}display:\s*grid;[\s\S]{0,160}grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/.test(css)
     || !/\.user-archive-tools \.fx-mini-btn\s*\{[\s\S]{0,180}width:\s*100%;[\s\S]{0,160}white-space:\s*nowrap/.test(css)) {
     fail('user archive actions must stay in one balanced three-column row');
   }
-  console.log(`[OK] ${keys.length} captured defaults match; splash motion is 5.2s/4.2s while entry stays ready at 1.5s/0.65s; archive actions stay in one row.`);
+  console.log(`[OK] ${keys.length} captured defaults match; video splash enters from the play button; archive actions stay in one row.`);
 }
 
 async function main() {
