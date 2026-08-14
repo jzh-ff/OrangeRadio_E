@@ -54,7 +54,7 @@ assert.ok(fallback.confidence <= 0.25, 'default confidence must remain low');
 assert.equal(typeof explicit.version, 'string');
 assert.ok(explicit.version.length > 0);
 
-// 12 family → 8 world
+// 12 family → 8 world；未识别 default 不固定 prism，按曲目身份稳定随机
 const expectedWorlds = {
   electronic: 'electronic',
   rock: 'rock-metal',
@@ -62,21 +62,60 @@ const expectedWorlds = {
   hiphop: 'hiphop',
   pop: 'prism',
   anime: 'prism',
-  default: 'prism',
   folk: 'folk',
   classical: 'classical',
   jazz: 'jazz-soul',
   soul: 'jazz-soul',
   ambient: 'ambient',
 };
+const worldIds = sandbox.GENRE_WORLD_IDS;
+assert.ok(Array.isArray(worldIds) && worldIds.length === 8);
 for (const [family, world] of Object.entries(expectedWorlds)) {
-  const song = family === 'default'
-    ? { id: `map-${family}` }
-    : { id: `map-${family}`, genre: family };
-  const resolved = profile(song);
+  const resolved = profile({ id: `map-${family}`, genre: family });
   assert.equal(resolved.family, family, `${family} family must resolve`);
   assert.equal(resolved.world, world, `${family} must map to ${world}`);
 }
+const unidentified = profile({ id: 'map-default', artist: 'Unknown Artist', name: 'Untitled' });
+assert.equal(unidentified.family, 'default');
+assert.equal(unidentified.source, 'default');
+assert.ok(worldIds.includes(unidentified.world), 'unidentified world must be one of eight');
+const unidentifiedAgain = profile({ id: 'map-default', artist: 'Unknown Artist', name: 'Untitled' });
+assert.equal(unidentifiedAgain.world, unidentified.world, 'same unidentified song must keep the same world');
+const spread = new Set();
+for (let i = 0; i < 48; i++) {
+  spread.add(profile({ id: `spread-${i}`, artist: 'Unknown', name: `Track ${i}` }).world);
+}
+assert.ok(spread.size >= 4, 'unidentified songs should spread across worlds');
+
+// 流媒体无 genre 时：艺人数组、标题风格词、专辑风格词仍能离开 default
+const artistsArrayJazz = profile({ id: 'artists-array', artists: [{ name: 'Miles Davis' }] });
+assert.equal(artistsArrayJazz.family, 'jazz');
+assert.equal(artistsArrayJazz.source, 'keyword');
+const titleJazz = profile({ id: 'title-jazz', name: 'Jazz Night Live' });
+assert.equal(titleJazz.family, 'jazz');
+assert.equal(titleJazz.source, 'keyword');
+assert.equal(titleJazz.world, 'jazz-soul');
+const albumMetal = profile({ id: 'album-metal', album: 'Metal Covers' });
+assert.equal(albumMetal.family, 'metal');
+assert.equal(albumMetal.world, 'rock-metal');
+const singerFolk = profile({ id: 'singer-folk', singer: '赵雷', title: '成都' });
+assert.equal(singerFolk.family, 'folk');
+assert.equal(singerFolk.world, 'folk');
+const pianoTitle = profile({ id: 'piano-title', name: '夜的钢琴曲' });
+assert.equal(pianoTitle.family, 'classical');
+
+// 「华语/国语/情歌」不能再把整库推进 pop → prism
+const mandopopCatchall = profile({ id: 'catchall-huayu', album: '华语金曲精选', artist: 'Unknown Artist' });
+assert.equal(mandopopCatchall.family, 'default');
+assert.ok(worldIds.includes(mandopopCatchall.world), 'unidentified mandopop catchall still picks a world');
+assert.equal(mandopopCatchall.source, 'default');
+const explicitMandopop = profile({ id: 'explicit-huayu', genre: '华语' });
+assert.equal(explicitMandopop.family, 'pop');
+assert.equal(explicitMandopop.source, 'genre');
+
+// 流行艺人仍进棱镜；未识别英文流行仍保持 default，不能误判 folk
+assert.equal(profile({ id: 'jay', artist: '周杰伦', name: '晴天' }).family, 'pop');
+assert.equal(profile({ id: 'jay', artist: '周杰伦', name: '晴天' }).world, 'prism');
 
 // 缓存随身份和解析输入签名变化：异步补 genre 后重算，同名不同曲不串缓存
 const asyncSong = { id: 'async-song', artist: 'Unknown', name: 'Shared Name' };
