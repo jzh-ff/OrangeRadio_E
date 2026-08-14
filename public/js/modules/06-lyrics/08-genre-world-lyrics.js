@@ -4,46 +4,63 @@
 
 var GENRE_WORLD_LYRIC_STYLE_PRESETS = {
   'hologram-signs': {
-    fontFamily: '"Rajdhani", "Segoe UI", sans-serif', textAlign: 'right', maxWidth: '58rem',
-    left: 'auto', right: 'max(5vw, env(safe-area-inset-right))', bottom: '16vh',
-    letterSpacing: '0.12em', transform: 'skewY(-1deg)', textTransform: 'uppercase', fontWeight: '650'
+    textAlign: 'right', maxWidth: '42rem',
+    left: 'auto', right: 'max(4vw, env(safe-area-inset-right))', bottom: '11vh',
+    letterSpacing: '0.12em', transform: 'skewY(-1deg)', textTransform: 'uppercase'
   },
   'fractured-stage': {
-    fontFamily: 'Impact, "Arial Narrow", sans-serif', textAlign: 'left', maxWidth: '64rem',
-    left: 'max(5vw, env(safe-area-inset-left))', right: 'auto', bottom: '13vh',
-    letterSpacing: '0.035em', transform: 'rotate(-1deg)', textTransform: 'uppercase', fontWeight: '800'
+    textAlign: 'left', maxWidth: '46rem',
+    left: 'max(4vw, env(safe-area-inset-left))', right: 'auto', bottom: '10vh',
+    letterSpacing: '0.035em', transform: 'rotate(-1deg)', textTransform: 'uppercase'
   },
   'architectural-type': {
-    fontFamily: '"Arial Black", "Segoe UI", sans-serif', textAlign: 'left', maxWidth: '52rem',
-    left: 'max(8vw, env(safe-area-inset-left))', right: 'auto', bottom: '19vh',
-    letterSpacing: '0.08em', transform: 'translateX(0)', textTransform: 'uppercase', fontWeight: '750'
+    textAlign: 'left', maxWidth: '40rem',
+    left: 'max(5vw, env(safe-area-inset-left))', right: 'auto', bottom: '10vh',
+    letterSpacing: '0.08em', transform: 'translateX(0)', textTransform: 'uppercase'
   },
   'dream-ribbons': {
-    fontFamily: '"Segoe UI", "Microsoft YaHei", sans-serif', textAlign: 'center', maxWidth: '70rem',
-    left: '50%', right: 'auto', bottom: '14vh',
-    letterSpacing: '0.025em', transform: 'translateX(-50%) rotate(.2deg)', textTransform: 'none', fontWeight: '600'
+    textAlign: 'center', maxWidth: '58rem',
+    left: '50%', right: 'auto', bottom: '8vh',
+    letterSpacing: '0.025em', transform: 'translateX(-50%) rotate(.2deg)', textTransform: 'none'
   },
   'constellation-script': {
-    fontFamily: 'Georgia, "STKaiti", serif', textAlign: 'left', maxWidth: '48rem',
-    left: 'max(7vw, env(safe-area-inset-left))', right: 'auto', bottom: '18vh',
-    letterSpacing: '0.045em', transform: 'translateY(-.4rem)', textTransform: 'none', fontWeight: '500'
+    textAlign: 'left', maxWidth: '40rem',
+    left: 'max(5vw, env(safe-area-inset-left))', right: 'auto', bottom: '12vh',
+    letterSpacing: '0.045em', transform: 'translateY(-.4rem)', textTransform: 'none'
   },
   'spatial-score': {
-    fontFamily: '"Times New Roman", "Songti SC", serif', textAlign: 'center', maxWidth: '62rem',
-    left: '50%', right: 'auto', bottom: '22vh',
-    letterSpacing: '0.075em', transform: 'translateX(-50%) scale(.98)', textTransform: 'none', fontWeight: '500'
+    textAlign: 'center', maxWidth: '54rem',
+    left: '50%', right: 'auto', bottom: '9vh',
+    letterSpacing: '0.075em', transform: 'translateX(-50%) scale(.98)', textTransform: 'none'
   },
   'improvised-anchor': {
-    fontFamily: '"Trebuchet MS", "Microsoft YaHei", sans-serif', textAlign: 'left', maxWidth: '44rem',
-    left: 'max(10vw, env(safe-area-inset-left))', right: 'auto', bottom: '12vh',
-    letterSpacing: '0.018em', transform: 'rotate(.35deg)', textTransform: 'none', fontWeight: '650'
+    textAlign: 'left', maxWidth: '38rem',
+    left: 'max(6vw, env(safe-area-inset-left))', right: 'auto', bottom: '9vh',
+    letterSpacing: '0.018em', transform: 'rotate(.35deg)', textTransform: 'none'
   },
   'horizon-dissolve': {
-    fontFamily: '"Segoe UI Light", "Microsoft YaHei UI", sans-serif', textAlign: 'center', maxWidth: '76rem',
-    left: '50%', right: 'auto', bottom: '27vh',
-    letterSpacing: '0.16em', transform: 'translateX(-50%) translateY(.5rem)', textTransform: 'none', fontWeight: '400'
+    textAlign: 'center', maxWidth: '62rem',
+    left: '50%', right: 'auto', bottom: '32vh',
+    letterSpacing: '0.16em', transform: 'translateX(-50%) translateY(.5rem)', textTransform: 'none'
   }
 };
+
+var GENRE_WORLD_LYRIC_FONT_FALLBACK = 'Inter,"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,sans-serif';
+
+function genreWorldLyricFontKey() {
+  if (typeof fx !== 'undefined' && fx && fx.lyricFont) return String(fx.lyricFont);
+  return 'sans';
+}
+
+function genreWorldLyricFontFamily() {
+  if (typeof lyricFontStackForKey === 'function') return lyricFontStackForKey(genreWorldLyricFontKey());
+  return GENRE_WORLD_LYRIC_FONT_FALLBACK;
+}
+
+function genreWorldLyricFontWeight() {
+  if (typeof lyricFontWeightValue === 'function') return String(lyricFontWeightValue());
+  return '600';
+}
 
 function genreWorldSetProperty(target, property, value) {
   if (target && target[property] !== value) target[property] = value;
@@ -71,6 +88,19 @@ function genreWorldSetDataset(target, name, value) {
   if (target && target.dataset && target.dataset[name] !== value) target.dataset[name] = value;
 }
 
+/* reduced-motion 结果缓存：系统设置几乎不变，避免每帧 matchMedia 强制样式引擎评估 */
+var genreWorldReducedMotionCache = null;
+
+function genreWorldReducedMotionFromWindow(motionWindow) {
+  if (genreWorldReducedMotionCache !== null) return genreWorldReducedMotionCache;
+  try {
+    genreWorldReducedMotionCache = !!motionWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch (err) {
+    genreWorldReducedMotionCache = false;
+  }
+  return genreWorldReducedMotionCache;
+}
+
 function normalizeGenreWorldLyricFrame(frame, ctx) {
   frame = frame || {};
   ctx = ctx || {};
@@ -91,9 +121,7 @@ function normalizeGenreWorldLyricFrame(frame, ctx) {
   var reduced = ctx.reducedMotion === true || payload.reducedMotion === true;
   var motionWindow = ctx.window || (typeof window !== 'undefined' ? window : null);
   if (!reduced && motionWindow && typeof motionWindow.matchMedia === 'function') {
-    try {
-      reduced = !!motionWindow.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch (err) {}
+    reduced = genreWorldReducedMotionFromWindow(motionWindow);
   }
   return {
     text: text == null ? '' : String(text),
@@ -108,15 +136,25 @@ function genreWorldLyricDocument(ctx) {
   return typeof document !== 'undefined' ? document : null;
 }
 
+/* 歌词 surface 元素缓存：节点常驻 DOM，避免每帧 getElementById */
+var genreWorldLyricSurfaceCached = null;
+
 function ensureGenreWorldLyricSurface(ctx) {
   ctx = ctx || {};
   var doc = genreWorldLyricDocument(ctx);
   var surface = ctx.lyricElement || null;
-  if (!surface && doc && typeof doc.getElementById === 'function') surface = doc.getElementById('genre-world-lyrics');
+  if (!surface && genreWorldLyricSurfaceCached && genreWorldLyricSurfaceCached.isConnected) {
+    surface = genreWorldLyricSurfaceCached;
+  }
+  if (!surface && doc && typeof doc.getElementById === 'function') {
+    surface = doc.getElementById('genre-world-lyrics');
+    genreWorldLyricSurfaceCached = surface;
+  }
   if (!surface && doc && typeof doc.createElement === 'function') {
     surface = doc.createElement('div');
     genreWorldSetProperty(surface, 'id', 'genre-world-lyrics');
     if (doc.body && typeof doc.body.appendChild === 'function') doc.body.appendChild(surface);
+    genreWorldLyricSurfaceCached = surface;
   }
   if (!surface) return null;
   if (!surface.id) genreWorldSetProperty(surface, 'id', 'genre-world-lyrics');
@@ -164,11 +202,11 @@ function genreWorldApplyLyricPreset(surface, styleName) {
   genreWorldSetStyle(surface, 'bottom', preset.bottom);
   genreWorldSetStyle(surface, 'letterSpacing', preset.letterSpacing);
   genreWorldSetStyle(surface, 'transform', preset.transform);
-  genreWorldSetStyle(main, 'fontFamily', preset.fontFamily);
-  genreWorldSetStyle(main, 'fontWeight', preset.fontWeight);
+  genreWorldSetStyle(main, 'fontFamily', genreWorldLyricFontFamily());
+  genreWorldSetStyle(main, 'fontWeight', genreWorldLyricFontWeight());
   genreWorldSetStyle(main, 'lineHeight', '1.25');
   genreWorldSetStyle(main, 'textTransform', preset.textTransform);
-  genreWorldSetStyle(translated, 'fontFamily', preset.fontFamily);
+  genreWorldSetStyle(translated, 'fontFamily', genreWorldLyricFontFamily());
   genreWorldSetStyle(translated, 'marginTop', '0.35em');
   genreWorldSetStyle(translated, 'opacity', '0.78');
   genreWorldSetStyle(translated, 'fontSize', '0.72em');
@@ -179,7 +217,16 @@ function renderGenreWorldLyrics(style, frame, ctx) {
   if (!surface || !surface.children || surface.children.length < 2) return false;
   var normalized = normalizeGenreWorldLyricFrame(frame, ctx);
   var styleName = GENRE_WORLD_LYRIC_STYLE_PRESETS[style] ? style : 'dream-ribbons';
-  var signature = [styleName, normalized.text, normalized.translation, normalized.seek, normalized.reducedMotion ? '1' : '0'].join('\u001f');
+  var signature = [
+    styleName,
+    genreWorldLyricFontKey(),
+    genreWorldLyricFontFamily(),
+    genreWorldLyricFontWeight(),
+    normalized.text,
+    normalized.translation,
+    normalized.seek,
+    normalized.reducedMotion ? '1' : '0'
+  ].join('\u001f');
   if (surface.__genreWorldLyricSignature === signature) return true;
   var main = surface.children[0];
   var translated = surface.children[1];
@@ -198,7 +245,17 @@ function renderGenreWorldLyrics(style, frame, ctx) {
 }
 
 function clearGenreWorldLyrics(ctx) {
-  var surface = ensureGenreWorldLyricSurface(ctx);
+  /* 沿用 ctx.document 查找路径（与 ensureGenreWorldLyricSurface 一致），
+     但绝不创建节点——不存在时直接返回，避免退出 genre 时留下常驻空 div */
+  ctx = ctx || {};
+  var doc = genreWorldLyricDocument(ctx);
+  var surface = ctx.lyricElement || null;
+  if (!surface && genreWorldLyricSurfaceCached && genreWorldLyricSurfaceCached.isConnected) {
+    surface = genreWorldLyricSurfaceCached;
+  }
+  if (!surface && doc && typeof doc.getElementById === 'function') {
+    surface = doc.getElementById('genre-world-lyrics');
+  }
   if (!surface || !surface.children || surface.children.length < 2) return false;
   if (surface.__genreWorldLyricSignature === '__clear__') return true;
   genreWorldSetProperty(surface.children[0], 'textContent', '');

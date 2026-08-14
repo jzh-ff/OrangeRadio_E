@@ -1,64 +1,94 @@
-/* OrangeSea · Folk world: amber open field. */
+/* OrangeSea · Folk world: cover dissolving into amber dust constellations. */
 (function registerFolkWorld() {
   if (typeof registerGenreWorld !== 'function' || typeof GenreWorldPrimitives === 'undefined') return;
   var P = GenreWorldPrimitives;
 
-  function mesh(THREE, kind, args, materialValue, parent, name) {
-    var value = new THREE.Mesh(P.geometry(THREE, kind, args), materialValue);
-    value.name = name;
-    parent.add(value);
-    return value;
+  function fragHead() {
+    var C = P.shaderChunks();
+    return [
+      'precision highp float;',
+      'uniform float uTime,uBass,uMid,uHigh,uEnergy,uBeat,uHasCover;',
+      'uniform vec3 uAccent;',
+      'uniform sampler2D uCover;',
+      'varying vec2 vUv;',
+      C.hash, C.cover
+    ].join('\n');
   }
 
   var kit = {
     create: function (ctx) {
       var THREE = ctx.THREE;
-      var root = P.group(THREE, 'folk-amber-wilderness', ctx.root);
-      var low = P.group(THREE, 'amber-grass-waves', root);
-      var mid = P.group(THREE, 'wood-paper-grove', root);
-      var high = P.group(THREE, 'sunset-string-sky', root);
-      var wood = P.material(THREE, 'MeshStandardMaterial', {
-        color: 0x70421f, metalness: 0.04, roughness: 0.92
-      });
-      var paper = P.material(THREE, 'MeshStandardMaterial', {
-        color: 0xe8c98b, transparent: true, opacity: 0.78, roughness: 0.8
-      });
-      var amber = P.material(THREE, 'MeshBasicMaterial', {
-        color: 0xef8f32, transparent: true, opacity: 0.7, side: THREE.DoubleSide
-      });
+      var vis = P.visualizerRoot(THREE, ctx, 'folk-amber-dust');
+      var uniforms = P.audioUniforms(THREE, 0xe8aa4c, P.dummyCover(THREE));
       var detailNodes = [];
-      for (var i = 0; i < 13; i++) {
-        var blade = mesh(THREE, 'PlaneGeometry', [0.22, 1.2 + i % 4 * 0.25], paper, low, 'paper-grass-wave');
-        blade.position.set((i - 6) * 0.72, 0.4 + i % 3 * 0.12, (i % 2 ? -1 : 1) * (1.8 + i % 4 * 0.4));
-        blade.rotation.y = i * 0.37;
-        detailNodes.push(blade);
+
+      var soil = P.material(THREE, 'MeshBasicMaterial', { color: 0x241610 });
+      var wood = P.material(THREE, 'MeshBasicMaterial', { color: 0x150d07 });
+      var amber = P.material(THREE, 'MeshBasicMaterial', { color: 0xe8aa4c });
+
+      var dusk = P.shaderPlane(THREE, vis.low, 'amber-dusk', [22, 12], uniforms, [
+        fragHead(),
+        'void main(){',
+        '  float h=smoothstep(0.15,0.72,vUv.y);',
+        '  vec3 col=mix(vec3(0.12,0.06,0.03),uAccent,0.18+h*0.55);',
+        '  col=mix(col,vec3(0.08,0.04,0.03),smoothstep(0.55,0.95,vUv.y));',
+        '  gl_FragColor=vec4(col,1.0);',
+        '}'
+      ].join('\n'), { renderOrder: -4 });
+      dusk.position.set(0, 0.7, -8);
+
+      var hero = P.shaderPlane(THREE, vis.mid, 'dissolving-cover', [4.0, 4.0], uniforms, [
+        fragHead(),
+        'void main(){',
+        '  vec2 uv=vUv;',
+        '  float n=noise21(uv*7.5+vec2(uTime*0.03,uTime*0.01));',
+        '  float dissolve=smoothstep(0.12,0.88,n+uEnergy*0.22+uMid*0.1);',
+        '  vec3 cover=sampleCover(uv);',
+        '  vec3 dust=mix(uAccent,vec3(1.0,0.82,0.5),n);',
+        '  vec3 col=mix(dust*0.38,cover,dissolve);',
+        '  float edge=smoothstep(0.58,0.22,length(uv-0.5));',
+        '  gl_FragColor=vec4(col,(0.32+dissolve*0.6)*edge);',
+        '}'
+      ].join('\n'), { renderOrder: 2 });
+      hero.position.set(0, 0.35, 0.1);
+
+      for (var i = 0; i < 6; i++) {
+        var mote = P.shaderPlane(THREE, vis.high, 'constellation-mote', [0.22, 0.22], uniforms, [
+          fragHead(),
+          'void main(){',
+          '  float g=smoothstep(0.5,0.0,length(vUv-0.5));',
+          '  gl_FragColor=vec4(uAccent,(0.25+uHigh*0.4)*g);',
+          '}'
+        ].join('\n'), { blending: THREE.AdditiveBlending, renderOrder: 3 });
+        var ang = i / 6 * Math.PI * 2;
+        mote.position.set(Math.cos(ang) * 1.7, 0.9 + Math.sin(ang * 2) * 0.35, -1.1);
+        mote.userData.detailIndex = i;
+        mote.userData.detailMin = i / 12;
+        detailNodes.push(mote);
       }
-      for (var j = 0; j < 7; j++) {
-        var trunk = mesh(THREE, 'CylinderGeometry', [0.12, 0.2, 2.4 + j * 0.15, 7], wood, mid, 'carved-wood-post');
-        trunk.position.set((j - 3) * 1.35, 1.1, -2.5 + (j % 2) * 1.1);
-        var page = mesh(THREE, 'PlaneGeometry', [0.8, 1.1], paper, mid, 'floating-paper-page');
-        page.position.set(trunk.position.x + 0.35, 2.3 + j % 3 * 0.35, trunk.position.z);
-        page.rotation.y = j * 0.48;
-        detailNodes.push(page);
-      }
-      var sun = mesh(THREE, 'TorusGeometry', [3.8, 0.13, 10, 48], amber, high, 'long-sunset-halo');
-      sun.position.set(0, 4.8, -4.5);
-      sun.rotation.x = Math.PI / 2;
-      detailNodes.push(sun);
-      var pollen = P.particles(THREE, 54, 13, {
-        color: 0xffcf78, size: 0.08, transparent: true, opacity: 0.62
-      }, P.random('folk-amber-field'));
-      pollen.name = 'amber-pollen';
-      high.add(pollen);
-      detailNodes.push(pollen);
-      P.light(THREE, 'AmbientLight', 0x6b4028, 0.75, 0, root);
-      var sunsetLight = P.light(THREE, 'DirectionalLight', 0xffa04d, 1.8, 0, root);
-      sunsetLight.position.set(-4, 6, 3);
-      var state = {
-        layers: { low: low, mid: mid, high: high },
+
+      var dust = P.particles(THREE, 100, 10, {
+        color: 0xffd9a0, size: 0.1, transparent: true, opacity: 0.65,
+        depthWrite: false, sizeAttenuation: true,
+        blending: THREE.AdditiveBlending,
+        map: P.glowTexture(THREE) || undefined
+      }, P.random('amber-dust'));
+      dust.name = 'amber-dust';
+      vis.high.add(dust);
+      detailNodes.push(hero, dust);
+
+      P.light(THREE, 'AmbientLight', 0x3a2414, 0.5, 0, vis.root);
+      var sunsetLight = P.light(THREE, 'PointLight', 0xe8aa4c, 1.6, 16, vis.root);
+      sunsetLight.position.set(0, 1.6, -3);
+      var warmFill = P.light(THREE, 'PointLight', 0xc76a20, 0.5, 12, vis.root);
+      warmFill.position.set(0, 0.6, 2.4);
+
+      vis.root.userData.genreWorldState = {
+        layers: { low: vis.low, mid: vis.mid, high: vis.high },
         detailNodes: detailNodes,
-        coreMaterials: [wood, paper],
-        accentMaterials: [amber],
+        coreMaterials: [soil, wood, amber],
+        accentMaterials: [hero.material, dusk.material],
+        uniforms: uniforms,
         accent: new THREE.Color(0xef8f32),
         variant: 'acoustic',
         accentLight: sunsetLight,
@@ -66,15 +96,10 @@
         sustainedEnergy: 0,
         disposed: false
       };
-      root.userData.genreWorldState = state;
-      if (ctx.root && root.parent !== ctx.root) ctx.root.add(root);
-      if (ctx.camera && ctx.camera.position) {
-        ctx.camera.position.set(0, 6.5, 15.5);
-        ctx.camera.fov = 50;
-        if (typeof ctx.camera.lookAt === 'function') ctx.camera.lookAt(0, 1.8, -0.8);
-        if (typeof ctx.camera.updateProjectionMatrix === 'function') ctx.camera.updateProjectionMatrix();
-      }
-      return root;
+      if (ctx.root && vis.root.parent !== ctx.root) ctx.root.add(vis.root);
+      P.frameCamera(ctx.camera, { x: 0, y: 1.45, z: 7.0, lookY: 0.32, lookZ: -1.6, fov: 46 });
+      P.bindCover(uniforms);
+      return vis.root;
     },
 
     applyTrack: function (track, ctx, root) {
@@ -84,20 +109,19 @@
       state.variant = track.visualVariant || 'acoustic';
       for (var i = 0; i < state.accentMaterials.length; i++) P.setAccent(state.accentMaterials[i], state.accent);
       if (state.accentLight && state.accentLight.color) state.accentLight.color.set(state.accent);
+      P.writeAudio(state.uniforms, { bass: 0, mid: 0, high: 0, energy: 0, beat: 0 }, 0, state.accent);
+      P.bindCover(state.uniforms);
     },
 
     update: function (frame, ctx, root) {
       if (!root || !root.userData || !root.userData.genreWorldState || root.userData.genreWorldState.disposed) return;
       var state = root.userData.genreWorldState;
-      var audio = P.readFrame(frame);
+      var audio = P.tickVisualizer(state, frame, {
+        bassScale: 0.1, bassSmooth: 0.1, midSpin: 0.006, midBase: 0.0007,
+        highLift: 0.6, highBase: 0.35, highSmooth: 0.1
+      });
       state.sustainedEnergy = P.smooth(state.sustainedEnergy, audio.energy * 0.7 + audio.mid * 0.3, 0.06);
-      state.layers.low.scale.x = state.layers.low.scale.z = P.smooth(state.layers.low.scale.x, 1 + audio.bass * 0.16, 0.1);
-      state.layers.low.scale.y = 1 + state.sustainedEnergy * 0.025;
-      state.layers.mid.rotation.y += 0.0007 + audio.mid * 0.006;
-      state.layers.mid.rotation.z = P.smooth(state.layers.mid.rotation.z, (audio.high - 0.5) * 0.035, 0.12);
-      state.layers.high.position.y = P.smooth(state.layers.high.position.y, 0.45 + audio.high * 0.72, 0.1);
-      state.layers.high.rotation.y += audio.mid * 0.002;
-      state.sunsetLight.intensity = 1.2 + state.sustainedEnergy * 1.4 + audio.high * 0.35;
+      if (state.sunsetLight) state.sunsetLight.intensity = 1.2 + state.sustainedEnergy * 1.1 + audio.high * 0.3;
     },
 
     renderLyrics: function (frame, ctx) {
@@ -107,12 +131,11 @@
 
     setQuality: function (profile, ctx, root) {
       if (!root || !root.userData || !root.userData.genreWorldState) return;
-      var state = root.userData.genreWorldState;
-      P.applyQualityBudget(state, profile, root);
+      P.applyQualityBudget(root.userData.genreWorldState, profile, root);
     },
 
     dispose: function (root) {
-      if (!root || !root.userData || !root.userData.genreWorldState || root.userData.genreWorldState.disposed) return;
+      if (!root || !root.userData || root.userData.genreWorldState.disposed) return;
       root.userData.genreWorldState.disposed = true;
       P.dispose(root);
     }

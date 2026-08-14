@@ -15,7 +15,8 @@
 | `electronic` | `electronic` |
 | `rock`、`metal` | `rock-metal` |
 | `hiphop` | `hiphop` |
-| `pop`、`anime`、`default` | `prism` |
+| `pop`、`anime` | `prism` |
+| `default`（未识别） | 按曲目身份在 8 个世界中稳定随机 |
 | `folk` | `folk` |
 | `classical` | `classical` |
 | `jazz`、`soul` | `jazz-soul` |
@@ -44,7 +45,7 @@
   world: 'electronic',
   confidence: 1,
   source: 'genre',
-  version: 'genre-profile-v1'
+  version: 'genre-profile-v4'
 }
 ```
 
@@ -53,8 +54,10 @@
 1. `song.genre`：本地 ID3 或 Spotify 艺人风格，`source: genre`，置信度 `1`。
 2. 播客 `radioCategory/category/album`：仅播客或有 `radioName` 时使用，`source: category`，置信度 `0.85`。
 3. 旧对象首次迁移的合法 `visualGenre`：`source: legacy`，通常为 `0.7`。
-4. `artist + name + album` 关键词规则：`source: keyword`，置信度 `0.65`。
-5. 无命中：`default → prism`，`source: default`，置信度 `0.15`。
+4. 艺人 / 标题 / 专辑关键词：先匹配艺人锚点表，再匹配风格词（兼容 `artists[]`、`title`、`singer`）。`source: keyword`，置信度 `0.65`。
+5. 无命中：`family: default`，`source: default`，置信度 `0.15`；世界按曲目身份哈希在 8 个世界中稳定抽取，同一首歌不跳世界。
+
+流行和动漫仍映射到棱镜梦乐园。未识别不再固定棱镜。标题或专辑里出现摇滚 / 爵士 / 电音等风格词时，应进入对应世界，而不是被「华语」一词统一推进 pop。
 
 结果缓存在 `song.visualGenreProfile`，并用 `_visualGenreProfileSignature` 校验。签名包含规则版本、曲目身份字段、genre/category、艺人、标题、专辑和播客字段；任一输入或 `GENRE_PROFILE_VERSION` 变化都会使缓存失效并重新解析。`inferGenreFamily()` 和 `songGenreDisplayText()` 是兼容入口。
 
@@ -91,7 +94,24 @@
 - `setQuality(profile, ctx, instance)`：应用当前资源预算。
 - `dispose(instance, ctx)`：释放该 kit 拥有的资源。
 
-`ctx` 提供共享 `scene/camera/THREE`、世界 container、总根、layer、manifest、质量档、曲目、画像和歌词 style。共享 primitive 位于 `genre-worlds/00-shared-primitives.js`。
+`ctx` 提供共享 `scene/camera/THREE`、世界 container、总根、layer、manifest、质量档、曲目、画像和歌词 style。共享 primitive 位于 `genre-worlds/00-shared-primitives.js`，视觉器 kit 应优先使用 `shaderMaterial` / `shaderPlane` / `audioUniforms` / `bindCover` / `frameCamera` / `tickVisualizer`，而不是再堆楼宇几何体。
+
+### 视觉设计语言（2026-08 视觉器重做）
+
+八个世界不再用方块、圆柱、圆环拼假场景。每个世界是一套**曲风视觉器**，由三层构成：**签名色器**（一眼认出曲风的那个机制，采样全局 `coverTex`）、**气氛底板**（全屏/大平面色器）、**音频分工**（低频尺度、中频形态、高频闪点，beat 只打签名主体）。相机用近机位看英雄，不看沙盘。`coverTex` 是共享资源，kit 不得 dispose。
+
+| 世界 | 签名主体 | 气氛与光 |
+|---|---|---|
+| electronic | 透视霓虹网格 + 封面全息切片/扫描线 | 深蓝虚空，青色扫描与电火花 |
+| rock-metal | 封面裂核平面，bass 冲击波环 + 火星 | 暗红熔床，烟层与点光 |
+| hiphop | 封面切成水平金砖条，军鼓错位弹出 | 紫金夜色，低机位 |
+| prism | 封面六折万花筒折射，糖果光带 | 粉青天幕，柔和填充 |
+| folk | 封面溶解成琥珀尘埃并聚成星座 | 暖橙黄昏，胶片颗粒 |
+| classical | 频谱拉成金丝谱线，封面作远处徽章 | 剧院丝绒，几乎不跟 beat 闪 |
+| jazz-soul | 噪声烟幕里淡印封面，两束加法光锥 | 蓝金对比，近距现场 |
+| ambient | 顶点位移雾海 + 地平线溶解 | 青色空境，长周期呼吸 |
+
+程序化纹理仍由 Canvas 生成（`glowTexture`/`dummyCover`/`noiseTexture`）；色器通过 `shaderMaterial` 标记 owned。全局 `coverTex` 只绑定、不拥有。歌词以可读性优先，排在签名主体之外的安全区。
 
 ## 单 scene、renderer、layer 与主循环
 
@@ -123,11 +143,11 @@ HUD 显示设计名、英文名、曲目、艺人、解析来源、置信度、�
 
 罗盘默认 `auto`，随画像切换世界；选择一个世界后写入其 world id 并锁定。旧的 family 锁定值会迁移到对应世界。进度条支持指针定位和方向键、Home、End seek。
 
-`public/js/modules/06-lyrics/08-genre-world-lyrics.js` 提供一个共享歌词 surface，渲染主歌词、翻译、seek 标识和 reduced-motion 状态。每个世界通过 manifest 的 `lyricStyle` 选择排版预设；签名未变化时不重复写 DOM。
+`public/js/modules/06-lyrics/08-genre-world-lyrics.js` 提供一个共享歌词 surface，渲染主歌词、翻译、seek 标识和 reduced-motion 状态。每个世界通过 manifest 的 `lyricStyle` 选择排版预设（对齐、位置、字距）；字体和字重跟随 DIY 控制台的 `fx.lyricFont` / `lyricFontWeightValue()`，与涂鸦墙一致。签名未变化时不重复写 DOM。
 
 ## 失败回退
 
-- 无风格信息：`default → prism`。
+- 无风格信息：`default` 按曲目身份稳定随机进入八世界之一。
 - 目标 kit 不存在或切换失败：尝试 `prism`，HUD 记录 target、actual 和 failed。
 - 引擎首次启动失败：模式进入原子回滚，移除 preload/body class、取消过渡、停止引擎、清歌词、恢复 DPR，并把持久化状态写为关闭。
 - 手动进入失败且此前 film/graffiti 已开启：恢复被临时退出的模式。
@@ -168,7 +188,7 @@ git diff --check
 ## 人工检查清单
 
 - 同时把 film 和 genre 存储值设为开启，冷启动无 film 首帧闪现，最终进入 genre。
-- 分别验证八个世界的构图、palette、音频反应和对应歌词排版。
+- 分别验证八个世界的签名色器（封面参与、音频分层、近机位构图）和对应歌词安全区。
 - 自动模式切换不同来源曲目，检查 family、world、来源与置信度；修改同一 song 对象的 genre 后确认缓存失效。
 - 锁定罗盘后切歌不换世界；恢复自动后立即跟随画像。
 - 快速连续切歌时传送门阶段连续，失败目标回退 `prism`，HUD target/actual 正确。

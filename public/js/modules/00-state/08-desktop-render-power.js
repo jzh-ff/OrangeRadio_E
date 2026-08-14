@@ -410,6 +410,13 @@ function applyRendererPowerMode() {
   var mode = deep ? 'sleep' : 'active';
   if (renderPowerState.mode === mode && renderPowerState.width === width && renderPowerState.height === height && Math.abs(renderPowerState.pixelRatio - pixelRatio) < 0.001) return;
   renderPowerState = { mode: mode, width: width, height: height, pixelRatio: pixelRatio };
+  /* 单一所有权：genre 世界激活期间（非深后台），pixelRatio/size 由 genre 自适应质量管理，
+     主系统只更新内部状态，避免两者竞争导致分辨率抖动/drawing buffer 重复重建。 */
+  var genreOwnsViewport = !deep && renderer.userData && renderer.userData.pixelRatioOwner === 'genre';
+  if (genreOwnsViewport) {
+    if (typeof uniforms !== 'undefined' && uniforms && uniforms.uPixel) uniforms.uPixel.value = renderer.getPixelRatio();
+    return;
+  }
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
   if (typeof uniforms !== 'undefined' && uniforms && uniforms.uPixel) uniforms.uPixel.value = renderer.getPixelRatio();

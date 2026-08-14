@@ -124,6 +124,25 @@ class FakeBufferAttribute {
   constructor(array, itemSize) { this.array = array; this.itemSize = itemSize; }
 }
 
+class FakeShaderMaterial extends FakeMaterial {
+  constructor(options = {}) {
+    super(options);
+    this.uniforms = options.uniforms || {};
+    this.vertexShader = options.vertexShader || '';
+    this.fragmentShader = options.fragmentShader || '';
+    this.isShaderMaterial = true;
+  }
+}
+class FakeCanvasTexture {
+  constructor(canvas) {
+    this.image = canvas;
+    this.needsUpdate = true;
+    this.isTexture = true;
+    this.disposed = false;
+  }
+  dispose() { this.disposed = true; }
+}
+
 const THREE = {
   Color: FakeColor,
   Group: FakeGroup,
@@ -137,17 +156,22 @@ const THREE = {
   ConeGeometry: FakeGeometry,
   OctahedronGeometry: FakeGeometry,
   IcosahedronGeometry: FakeGeometry,
+  SphereGeometry: FakeGeometry,
   BufferGeometry: FakeBufferGeometry,
   Float32BufferAttribute: FakeBufferAttribute,
   MeshStandardMaterial: FakeMaterial,
   MeshBasicMaterial: FakeMaterial,
   LineBasicMaterial: FakeMaterial,
   PointsMaterial: FakeMaterial,
+  ShaderMaterial: FakeShaderMaterial,
+  CanvasTexture: FakeCanvasTexture,
   AmbientLight: FakeLight,
   PointLight: FakeLight,
   DirectionalLight: FakeLight,
   AdditiveBlending: 2,
+  NormalBlending: 1,
   DoubleSide: 2,
+  FrontSide: 0,
 };
 
 const sandbox = { console, THREE };
@@ -161,6 +185,7 @@ assert.ok(primitives, 'shared primitives must be exported');
 for (const api of [
   'group', 'material', 'geometry', 'light', 'particles',
   'accentColor', 'readFrame', 'smooth', 'quality', 'applyQualityBudget', 'random', 'pool',
+  'shaderMaterial', 'bindCover', 'audioUniforms', 'frameCamera', 'visualizerRoot', 'tickVisualizer',
 ]) {
   assert.equal(typeof primitives[api], 'function', `missing shared primitive: ${api}`);
 }
@@ -177,6 +202,15 @@ assert.equal(primitives.quality({ quality: 'ultra' }).level, 'high', 'project ul
 assert.equal(primitives.quality('low').level, 'low', 'low alias must remain supported');
 assert.equal(primitives.quality('medium').level, 'medium', 'medium alias must remain supported');
 assert.equal(primitives.quality('high').level, 'high', 'high alias must remain supported');
+assert.equal(typeof primitives.shaderChunks().vertUv, 'string');
+const framed = { position: new FakeVector(9, 9, 9), fov: 90, lookAtCalls: [], projectionUpdates: 0, lookAt(x, y, z) { this.lookAtCalls.push([x, y, z]); }, updateProjectionMatrix() { this.projectionUpdates += 1; } };
+assert.equal(primitives.frameCamera(framed, { x: 0, y: 1.2, z: 5.6, lookY: 0.4, fov: 36 }), true);
+assert.equal(framed.position.z, 5.6);
+assert.equal(framed.fov, 36);
+assert.deepEqual(framed.lookAtCalls[0], [0, 0.4, 0]);
+const coverUniforms = primitives.audioUniforms(THREE, 0xff00aa, null);
+assert.equal(primitives.bindCover(coverUniforms), null, 'missing global coverTex must be a no-op');
+assert.equal(coverUniforms.uHasCover.value, 0);
 assert.deepEqual(
   JSON.parse(JSON.stringify(primitives.quality({
     level: 'medium',
@@ -254,39 +288,18 @@ for (const id of worldIds) {
 
   const state = instance.userData.genreWorldState;
   assert.ok(state && state.layers && state.layers.low && state.layers.mid && state.layers.high);
+  assert.ok(state.uniforms, `${id} must expose shared audio/cover uniforms`);
   if (id === 'electronic') {
     const floor = state.layers.low.children.find((node) => node.name === 'neon-grid-floor');
     const beam = state.layers.high.children.find((node) => node.name === 'vertical-laser');
-    assert.ok(floor && beam, 'electronic must expose its grid floor and city laser beams');
-    assert.notEqual(floor.material, beam.material, 'electronic floor must not share the city beam material');
-    assert.equal(floor.material.wireframe, true, 'electronic floor must render as a wireframe grid');
-    assert.equal(floor.material.transparent, true, 'electronic floor grid must remain transparent');
-    assert.notEqual(beam.material.wireframe, true, 'electronic city beams must remain solid beam geometry');
+    assert.ok(floor && beam, 'electronic must expose its grid floor and scan beams');
     assert.equal(primitives.isOwnedResource(floor.material), true, 'electronic floor material must be world-owned');
+    assert.ok(floor.material.uniforms, 'electronic floor must use a shader material');
   }
-  if (id === 'ambient') {
-    const terrain = state.layers.low.children.find((node) => node.name === 'slow-terrain-wave');
-    const veil = state.layers.mid.children.find((node) => node.name === 'floating-fabric-veil');
-    const mistLayers = state.layers.high.children.filter((node) => node.name === 'mist-sea-layer');
-    const monoliths = state.layers.mid.children.filter((node) => node.name === 'tidal-monolith');
-    assert.ok(terrain && veil, 'ambient must expose its slow terrain and horizon fabric veil');
-    assert.notEqual(terrain.material, veil.material, 'ambient terrain must not share the horizon veil material');
-    assert.equal(terrain.material.wireframe, true, 'ambient terrain must render as a wireframe surface');
-    assert.equal(terrain.material.transparent, true, 'ambient terrain wireframe must remain transparent');
-    assert.notEqual(veil.material.wireframe, true, 'ambient horizon veil must remain a fabric plane');
-    assert.equal(primitives.isOwnedResource(terrain.material), true, 'ambient terrain material must be world-owned');
-    assert.ok(mistLayers.length > 1, 'ambient must expose layered mist-sea planes');
-    assert.ok(mistLayers.every((node) => node.material.depthWrite === false),
-      'every transparent ambient mist layer must disable depth writes');
-    assert.ok(mistLayers.every((node) => Math.abs(node.rotation.x + Math.PI / 2) <= 0.08),
-      'ambient mist-sea planes must stay near-horizontal');
-    const mistY = mistLayers.map((node) => node.position.y);
-    const mistZ = mistLayers.map((node) => node.position.z);
-    assert.ok(Math.max(...mistY) < Math.min(...monoliths.map((node) => node.position.y)),
-      'ambient mist sea must remain below the monolith field');
-    assert.ok(Math.max(...mistY) > Math.min(...mistY), 'ambient mist sea needs subtle vertical layering');
-    assert.ok(Math.max(...mistZ) - Math.min(...mistZ) >= 6,
-      'ambient mist sea must layer through substantial horizon depth');
+  if (id === 'prism') {
+    const hero = state.layers.mid.children.find((node) => node.name === 'prism-kaleido-cover');
+    assert.ok(hero && hero.material && hero.material.uniforms, 'prism must expose a kaleidoscope cover shader');
+    assert.ok(hero.material.uniforms.uCover, 'prism hero must bind a cover sampler');
   }
   const stableCoreColors = id === 'folk' || id === 'classical' || id === 'jazz-soul' || id === 'ambient'
     ? state.coreMaterials.map((material) => material.color.getHex())
@@ -522,6 +535,24 @@ for (const style of Object.values(expectedLyricStyles)) {
   ].join('|'));
 }
 assert.equal(presetSignatures.size, 8, 'all eight lyric presets need observably distinct structure');
+sandbox.lyricFontStackForKey = function (key) {
+  return key === 'mashan' ? '"Ma Shan Zheng",cursive' : 'Inter,sans-serif';
+};
+sandbox.lyricFontWeightValue = function () { return sandbox.fx && sandbox.fx.lyricWeight || 700; };
+sandbox.fx = { lyricFont: 'sans', lyricWeight: 700 };
+sandbox.renderGenreWorldLyrics('dream-ribbons', { text: 'font-follow', seekId: 'font-a' }, lyricCtx);
+assert.equal(surface.children[0].style.fontFamily, 'Inter,sans-serif', 'genre lyrics must follow DIY lyricFont');
+assert.equal(surface.children[0].style.fontWeight, '700');
+resetMutations(surface);
+sandbox.renderGenreWorldLyrics('dream-ribbons', { text: 'font-follow', seekId: 'font-a' }, lyricCtx);
+assert.equal(countMutations(surface), 0, 'unchanged DIY font must not mutate lyric DOM');
+sandbox.fx = { lyricFont: 'mashan', lyricWeight: 400 };
+sandbox.renderGenreWorldLyrics('dream-ribbons', { text: 'font-follow', seekId: 'font-a' }, lyricCtx);
+assert.equal(surface.children[0].style.fontFamily, '"Ma Shan Zheng",cursive', 'DIY font changes must update genre lyrics live');
+assert.equal(surface.children[0].style.fontWeight, '400');
+delete sandbox.lyricFontStackForKey;
+delete sandbox.lyricFontWeightValue;
+delete sandbox.fx;
 const translationOnly = { text: '', translation: 'Translation only', seekId: 'translation-only' };
 sandbox.renderGenreWorldLyrics('spatial-score', translationOnly, lyricCtx);
 assert.equal(surface.style.opacity, '1', 'translation-only lyrics must remain visible');

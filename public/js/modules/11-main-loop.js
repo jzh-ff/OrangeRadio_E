@@ -365,6 +365,15 @@ function runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe) {
   if (typeof advanceGenreWorldTransition === 'function') {
     advanceGenreWorldTransition(now);
   }
+  /* genre 接管主循环后仍驱动 shelf（UI 系统）：打开歌单/播放列表时内容动画与自动收起不冻结 */
+  var genreShelfFps = typeof targetMainShelfFps === 'function' ? targetMainShelfFps(now) : 30;
+  var genreShelfStepDt = consumeFrameGate(
+    mainFrameGates.shelf, now, dt, genreShelfFps, false, 'shelf-manager'
+  );
+  if (genreShelfStepDt > 0 && typeof shelfManager !== 'undefined' && shelfManager &&
+    typeof shelfManager.update === 'function') {
+    try { shelfManager.update(genreShelfStepDt); } catch (err) {}
+  }
   var genreHudStepDt = consumeFrameGate(
     mainFrameGates.genreHud, now, dt, targetMainGenreHudFps(), false, 'genre-hud'
   );
@@ -382,7 +391,15 @@ function runGenreWorldMainLoopFrame(now, dt, framePerfStart, perfProbe) {
   var genreFrame = buildGenreWorldFrame(now, dt);
   if (typeof tickGenreWorld === 'function') tickGenreWorld(genreFrame);
   var genreRendererPerfStart = performance.now();
-  renderer.render(scene, camera);
+  /* WebGL context lost / 场景异常时保护本帧，不影响下一帧调度 */
+  try {
+    renderer.render(scene, camera);
+  } catch (renderErr) {
+    if (typeof genreWorldWarnThrottled === 'function') {
+      genreWorldWarnThrottled('render', 'render failed: ' + (renderErr && renderErr.message || renderErr));
+    }
+    return false;
+  }
   if (perfProbe && perfProbe.markSince) {
     perfProbe.markSince('renderer.render.genre-world', genreRendererPerfStart);
   }

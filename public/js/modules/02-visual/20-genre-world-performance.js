@@ -5,8 +5,13 @@
 
 var genreWorldAdaptiveQualityState = {
   profileSignature: '',
-  pixelRatio: null
+  pixelRatio: null,
+  appliedRank: -1,
+  rankStableCount: 0
 };
+
+/* DPR 档位滞回阈值：连续 N 次采样指向同一新档位才切换，避免帧耗时抖动导致反复重建 drawing buffer */
+var GENRE_WORLD_RANK_HYSTERESIS = 3;
 
 function resolveGenreWorldQualityProfile(baseQuality, pressureLevel, reducedMotion) {
   var quality = typeof normalizePerformanceQuality === 'function'
@@ -94,6 +99,8 @@ function applyGenreWorldPixelRatio(value, force) {
     : genreWorldAdaptiveQualityState.pixelRatio;
   if (!force && isFinite(current) && Math.abs(current - value) < 0.015) return false;
   try {
+    /* 单一所有权：genre 激活期间标记 renderer，主系统 applyRendererPowerMode 不再覆盖 */
+    if (renderer.userData) renderer.userData.pixelRatioOwner = 'genre';
     renderer.setPixelRatio(value);
     var width = typeof innerWidth !== 'undefined'
       ? Number(innerWidth)
@@ -112,6 +119,7 @@ function applyGenreWorldPixelRatio(value, force) {
 }
 
 function syncGenreWorldAdaptiveQuality(force) {
+  var state = genreWorldAdaptiveQualityState;
   var frameState = typeof adaptiveFrameLoadState !== 'undefined' && adaptiveFrameLoadState
     ? adaptiveFrameLoadState
     : {};
@@ -127,10 +135,27 @@ function syncGenreWorldAdaptiveQuality(force) {
     pressureLevel,
     genreWorldReducedMotionEnabled()
   );
+  var rank = profile.level === 'high' ? 2 : (profile.level === 'medium' ? 1 : 0);
+
+  /* 档位滞回：降档（压力恶化）立即应用以保护帧率；升档（恢复）需连续多次
+     采样指向同一新档位才切换，吸收帧耗时边界抖动，避免反复重建 drawing buffer */
+  if (rank !== state.appliedRank) {
+    var degrading = rank < state.appliedRank;
+    if (force || degrading) {
+      state.rankStableCount = GENRE_WORLD_RANK_HYSTERESIS;
+    } else {
+      state.rankStableCount = (state.rankStableCount || 0) + 1;
+    }
+    if (state.rankStableCount < GENRE_WORLD_RANK_HYSTERESIS) return false;
+  } else {
+    state.rankStableCount = 0;
+  }
+  state.appliedRank = rank;
+
   var signature = JSON.stringify(profile);
   var changed = false;
-  if (force || signature !== genreWorldAdaptiveQualityState.profileSignature) {
-    genreWorldAdaptiveQualityState.profileSignature = signature;
+  if (force || signature !== state.profileSignature) {
+    state.profileSignature = signature;
     if (typeof setGenreWorldQuality === 'function') {
       try { setGenreWorldQuality(profile); } catch (err) {}
     }
@@ -142,9 +167,19 @@ function syncGenreWorldAdaptiveQuality(force) {
 }
 
 function resetGenreWorldAdaptiveQuality() {
+  /* 释放 renderer 所有权，交还主系统 */
+  if (typeof renderer !== 'undefined' && renderer && renderer.userData) {
+    renderer.userData.pixelRatioOwner = '';
+  }
   var ordinaryDpr = genreWorldOrdinaryPixelRatio();
   var changed = applyGenreWorldPixelRatio(ordinaryDpr, false);
   genreWorldAdaptiveQualityState.profileSignature = '';
   genreWorldAdaptiveQualityState.pixelRatio = null;
+  genreWorldAdaptiveQualityState.appliedRank = -1;
+  genreWorldAdaptiveQualityState.rankStableCount = 0;
+  /* 触发主系统按当前状态重应用一次（幂等，仅当值不同才真正写 renderer） */
+  if (typeof applyRendererPowerMode === 'function') {
+    try { applyRendererPowerMode(); } catch (err) {}
+  }
   return changed;
 }

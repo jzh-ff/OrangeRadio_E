@@ -25,6 +25,17 @@ var GENRE_WORLD_CAMERA_OBJECT_KEYS = [
   'position', 'quaternion', 'rotation', 'up', 'scale'
 ];
 
+/* 运行时异常节流日志：tick 每帧调用，异常时不刷屏（2 秒最多一次） */
+var genreWorldWarnLastTs = 0;
+function genreWorldWarnThrottled(tag, message) {
+  var now = typeof performance !== 'undefined' && performance.now
+    ? performance.now()
+    : Date.now();
+  if (now - genreWorldWarnLastTs < 2000) return;
+  genreWorldWarnLastTs = now;
+  console.warn('[GenreWorld:' + tag + ']', message);
+}
+
 function resolveGenreWorldRuntime(ctx) {
   ctx = ctx || {};
   return {
@@ -117,6 +128,7 @@ function disposeGenreWorldObject(root) {
       resource.dispose();
     } catch (err) {
       // 单个 GPU 资源异常不能阻断其余资源与相机状态的清理。
+      genreWorldWarnThrottled('dispose', 'resource dispose failed: ' + (err && err.message || err));
     }
   };
   var disposeTextureValue = function (value, recurseObjects) {
@@ -163,11 +175,23 @@ function disposeGenreWorldObject(root) {
     else disposeObject(root);
   } catch (err) {
     // 非标准 Object3D 的 traverse 异常按已完成的清理结果降级。
+    genreWorldWarnThrottled('dispose', 'traverse dispose failed: ' + (err && err.message || err));
   }
+  /* 资源袋内按类型分拣：material 需遍历纹理引用，geometry 只需直接 dispose */
+  var disposeBaggedResource = function (resource) {
+    if (!resource) return;
+    if (resource.isMaterial === true) {
+      disposeMaterial(resource);
+    } else if (resource.isGeometry === true) {
+      disposeOnce(resource);
+    } else {
+      disposeOnce(resource);
+    }
+  };
   var resourceBag = root.userData && root.userData.genreWorldOwnedResources;
   if (Array.isArray(resourceBag)) {
     for (var bagIndex = 0; bagIndex < resourceBag.length; bagIndex++) {
-      disposeMaterial(resourceBag[bagIndex]);
+      disposeBaggedResource(resourceBag[bagIndex]);
     }
     resourceBag.length = 0;
   }
@@ -328,6 +352,7 @@ function switchGenreWorld(id, ctx) {
     }
   } catch (err) {
     candidateFailed = true;
+    genreWorldWarnThrottled('create', 'world "' + record.id + '" create failed: ' + (err && err.message || err));
   } finally {
     if (resourceScope && typeof GenreWorldPrimitives !== 'undefined' &&
       typeof GenreWorldPrimitives.endOwnedResourceScope === 'function') {
@@ -367,6 +392,7 @@ function tickGenreWorld(frame) {
     }
     return true;
   } catch (err) {
+    genreWorldWarnThrottled('tick', 'world "' + (current.record && current.record.id || '?') + '" update failed: ' + (err && err.message || err));
     return false;
   }
 }
@@ -379,6 +405,7 @@ function setGenreWorldQuality(profile) {
     current.kit.setQuality(profile, current.context, current.instance);
     return true;
   } catch (err) {
+    genreWorldWarnThrottled('quality', 'world "' + (current.record && current.record.id || '?') + '" setQuality failed: ' + (err && err.message || err));
     return false;
   }
 }

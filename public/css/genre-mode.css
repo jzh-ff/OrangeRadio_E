@@ -325,7 +325,7 @@ body.genre-mode #genre-overlay { display: block; }
   pointer-events: none;
   color: #fff;
   text-wrap: balance;
-  text-shadow: 0 2px 16px rgba(0, 0, 0, .94);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .96), 0 0 28px rgba(0, 0, 0, .55);
 }
 .genre-world-lyrics__main {
   font-size: clamp(22px, 3vw, 46px);
@@ -335,25 +335,18 @@ body.genre-mode #genre-overlay { display: block; }
 }
 
 .genre-world-lyrics[data-style="hologram-signs"] {
-  padding: .3em .55em;
-  border-right: 3px solid #00e5ff;
-  color: #dffcff;
-  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, .1));
-  text-shadow: 2px 0 #ff37d1, -2px 0 #00e5ff, 0 3px 18px #000;
-}
-.genre-world-lyrics[data-style="hologram-signs"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 255, 255, .08) 5px);
+  padding: .3em .9em .3em .3em;
+  border-right: 2px solid var(--gm-accent, #00e5ff);
+  color: #e9fbff;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, .07));
+  text-shadow: 0 0 18px rgba(0, 229, 255, .45), 0 3px 16px #000;
 }
 
 .genre-world-lyrics[data-style="fractured-stage"] {
-  padding: .25em .45em;
+  padding: .25em .5em;
   color: #fff3e8;
-  background: linear-gradient(103deg, rgba(255, 74, 36, .28), transparent 66%);
-  clip-path: polygon(0 7%, 96% 0, 100% 76%, 83% 100%, 3% 89%);
-  text-shadow: 4px 4px 0 #3b0902, 0 8px 22px #000;
+  background: linear-gradient(103deg, rgba(255, 74, 36, .2), transparent 72%);
+  text-shadow: 0 3px 0 rgba(59, 9, 2, .55), 0 8px 24px #000;
 }
 .genre-world-lyrics[data-style="fractured-stage"] .genre-world-lyrics__main { transform: skewX(-4deg); }
 
@@ -361,51 +354,39 @@ body.genre-mode #genre-overlay { display: block; }
   padding-left: .65em;
   border-left: .18em solid #ffd64a;
   color: #fff;
-  background: repeating-linear-gradient(90deg, rgba(191, 103, 255, .14) 0 1px, transparent 1px 2.4em);
-  text-shadow: 0 5px 0 #120b20, 0 10px 22px #000;
+  text-shadow: 0 4px 0 rgba(18, 11, 32, .85), 0 10px 22px #000;
 }
 .genre-world-lyrics[data-style="architectural-type"] .genre-world-lyrics__translation {
-  border-top: 1px solid rgba(255, 214, 74, .6);
+  border-top: 1px solid rgba(255, 214, 74, .55);
   padding-top: .35em;
 }
 
 .genre-world-lyrics[data-style="dream-ribbons"] {
-  padding: .5em 1.2em;
-  border-radius: 50% 12% 50% 15% / 20% 45% 25% 50%;
+  padding: .4em 1.1em;
   color: #fff7fe;
-  background: linear-gradient(100deg, transparent, rgba(255, 121, 209, .27), rgba(114, 232, 255, .2), transparent);
-  text-shadow: 0 0 14px #ff79d1, 0 3px 18px #000;
+  background: linear-gradient(100deg, transparent, rgba(255, 121, 209, .16), rgba(114, 232, 255, .12), transparent);
+  text-shadow: 0 0 16px rgba(255, 121, 209, .4), 0 3px 18px #000;
 }
 
 .genre-world-lyrics[data-style="constellation-script"] {
-  padding: .45em .7em .5em 1.1em;
+  padding: .4em .6em .5em;
   color: #fff0ce;
-  background-image:
-    radial-gradient(circle at 8% 25%, #fff 0 1px, transparent 2px),
-    radial-gradient(circle at 96% 80%, #fff 0 1px, transparent 2px);
-  border-bottom: 1px dashed rgba(232, 170, 76, .65);
-  text-shadow: 0 2px 10px #171109, 0 0 20px rgba(232, 170, 76, .48);
+  border-bottom: 1px dashed rgba(232, 170, 76, .6);
+  text-shadow: 0 2px 10px #171109, 0 0 22px rgba(232, 170, 76, .35);
 }
 
 .genre-world-lyrics[data-style="spatial-score"] {
-  padding: .7em 1em;
+  padding: .55em 1.2em;
   color: #fffaf0;
-  background: repeating-linear-gradient(0deg, transparent 0 11px, rgba(233, 214, 173, .2) 12px 13px);
-  border-inline: 1px solid rgba(233, 214, 173, .45);
+  border-block: 1px solid rgba(233, 214, 173, .4);
   text-shadow: 0 3px 16px #050307;
-}
-.genre-world-lyrics[data-style="spatial-score"] .genre-world-lyrics__main::before {
-  content: "𝄞";
-  margin-right: .35em;
-  color: #e9d6ad;
 }
 
 .genre-world-lyrics[data-style="improvised-anchor"] {
   padding: .4em .65em;
   color: #e5f8ff;
-  border-bottom: 2px solid #58b6d9;
-  background: linear-gradient(90deg, rgba(5, 21, 29, .88), rgba(5, 21, 29, .16));
-  box-shadow: -9px 8px 0 rgba(217, 155, 104, .14);
+  border-bottom: 2px solid rgba(88, 182, 217, .85);
+  background: linear-gradient(90deg, rgba(5, 21, 29, .7), rgba(5, 21, 29, .1));
   text-shadow: 0 3px 13px #000;
 }
 .genre-world-lyrics[data-style="improvised-anchor"] .genre-world-lyrics__translation {

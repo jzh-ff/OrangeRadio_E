@@ -28,7 +28,7 @@ var GENRE_PROFILE_SOURCE_LABELS = {
   category: '分类识别',
   keyword: '关键词推断',
   legacy: '旧画像迁移',
-  default: '综合回退'
+  default: '未识别随机'
 };
 
 var genreMode = typeof readBooleanPreference === 'function'
@@ -50,6 +50,8 @@ var genreActiveProfile = null;
 var genreLastTrackSignature = '';
 var genreHudLastActivity = 0;
 var genreHudLastPointerActivity = -Infinity;
+var genreModeDocumentPointerMoveHandler = null;
+var genreModeDocumentKeydownHandler = null;
 var genreHudDimDelay = 4000;
 var genreModeBindingsReady = false;
 
@@ -156,23 +158,33 @@ function rollbackGenreModeEntry(previousFilmMode, previousGraffitiMode, opts) {
   if (previousGraffitiMode && typeof applyGraffitiMode === 'function') {
     applyGraffitiMode(true, { save: true });
   }
+  genreModeEnteredFilmPref = false;
+  genreModeEnteredGraffitiPref = false;
+  if (typeof unbindGenreModeDocumentHandlers === 'function') unbindGenreModeDocumentHandlers();
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
   if (opts.toast && typeof showToast === 'function') showToast('风格世界启动失败');
   return false;
 }
+
+/* 进入 genre 前的 film/graffiti 偏好快照：退出时恢复，避免持久化被永久改写 */
+var genreModeEnteredFilmPref = false;
+var genreModeEnteredGraffitiPref = false;
 
 function applyGenreMode(on, opts) {
   opts = opts || {};
   on = !!on;
   var previousFilmMode = typeof filmRadioMode !== 'undefined' && !!filmRadioMode;
   var previousGraffitiMode = typeof graffitiMode !== 'undefined' && !!graffitiMode;
-  if (on && typeof filmRadioMode !== 'undefined' && filmRadioMode &&
-    typeof applyFilmRadioMode === 'function') {
-    applyFilmRadioMode(false, { save: true });
-  }
-  if (on && typeof graffitiMode !== 'undefined' && graffitiMode &&
-    typeof applyGraffitiMode === 'function') {
-    applyGraffitiMode(false, { save: true });
+  if (on) {
+    /* 快照进入前的互斥模式偏好：退出 genre 时恢复，避免持久化被永久改写 */
+    genreModeEnteredFilmPref = previousFilmMode;
+    genreModeEnteredGraffitiPref = previousGraffitiMode;
+    if (previousFilmMode && typeof applyFilmRadioMode === 'function') {
+      applyFilmRadioMode(false, { save: true });
+    }
+    if (previousGraffitiMode && typeof applyGraffitiMode === 'function') {
+      applyGraffitiMode(false, { save: true });
+    }
   }
 
   if (on) {
@@ -215,6 +227,16 @@ function applyGenreMode(on, opts) {
     closeGenreModeCompass();
     var hud = typeof document !== 'undefined' ? document.getElementById('gm-hud') : null;
     if (hud) hud.classList.remove('is-dimmed', 'is-locked');
+    /* 恢复进入 genre 前的 film/graffiti 偏好（含持久化） */
+    if (genreModeEnteredFilmPref && typeof applyFilmRadioMode === 'function') {
+      applyFilmRadioMode(true, { save: true });
+    }
+    if (genreModeEnteredGraffitiPref && typeof applyGraffitiMode === 'function') {
+      applyGraffitiMode(true, { save: true });
+    }
+    genreModeEnteredFilmPref = false;
+    genreModeEnteredGraffitiPref = false;
+    unbindGenreModeDocumentHandlers();
   }
 
   if (typeof refreshPresetGrid === 'function') refreshPresetGrid();
@@ -352,7 +374,7 @@ function syncGenreModeHud(force) {
   setText('gm-lock-state', genreLock === 'auto' ? '自动巡航' : '手动锁定');
   var confidence = Math.round((Number(profile.confidence) || 0) * 100);
   setText('gm-profile-source', genreLock === 'auto'
-    ? (GENRE_PROFILE_SOURCE_LABELS[profile.source] || profile.source || '综合回退') + ' · ' + confidence + '%'
+    ? (GENRE_PROFILE_SOURCE_LABELS[profile.source] || profile.source || '未识别随机') + ' · ' + confidence + '%'
     : '罗盘指定 · 100%');
 
   var current = typeof audio !== 'undefined' && audio ? Number(audio.currentTime) || 0 : 0;
@@ -466,15 +488,38 @@ function bindGenreModeUi() {
   }
   var overlay = document.getElementById('genre-overlay');
   if (overlay) overlay.addEventListener('pointerdown', function () { noteGenreHudActivity(); });
-  document.addEventListener('pointermove', function (event) {
-    var now = event && isFinite(Number(event.timeStamp))
-      ? Number(event.timeStamp)
-      : (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
-    if (now - genreHudLastPointerActivity < 100) return;
-    genreHudLastPointerActivity = now;
-    noteGenreHudActivity(now);
-  });
-  document.addEventListener('keydown', function () { noteGenreHudActivity(); });
+  if (!genreModeDocumentPointerMoveHandler) {
+    genreModeDocumentPointerMoveHandler = function (event) {
+      var now = event && isFinite(Number(event.timeStamp))
+        ? Number(event.timeStamp)
+        : (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+      if (now - genreHudLastPointerActivity < 100) return;
+      genreHudLastPointerActivity = now;
+      noteGenreHudActivity(now);
+    };
+    document.addEventListener('pointermove', genreModeDocumentPointerMoveHandler);
+  }
+  if (!genreModeDocumentKeydownHandler) {
+    genreModeDocumentKeydownHandler = function () { noteGenreHudActivity(); };
+    document.addEventListener('keydown', genreModeDocumentKeydownHandler);
+  }
+}
+
+/* 退出 genre 时移除 document 级监听器，避免常驻空转 */
+function unbindGenreModeDocumentHandlers() {
+  if (typeof document === 'undefined' || typeof document.removeEventListener !== 'function') {
+    genreModeDocumentPointerMoveHandler = null;
+    genreModeDocumentKeydownHandler = null;
+    return;
+  }
+  if (genreModeDocumentPointerMoveHandler) {
+    document.removeEventListener('pointermove', genreModeDocumentPointerMoveHandler);
+    genreModeDocumentPointerMoveHandler = null;
+  }
+  if (genreModeDocumentKeydownHandler) {
+    document.removeEventListener('keydown', genreModeDocumentKeydownHandler);
+    genreModeDocumentKeydownHandler = null;
+  }
 }
 
 function initGenreMode() {

@@ -13,13 +13,19 @@ var genreWorldTransitionState = {
   reducedMotion: false,
   switched: false,
   failed: false,
-  context: null
+  context: null,
+  _lastProgress: -1
 };
 
+var genreWorldPortalCached = null;
+
 function genreWorldTransitionPortal() {
-  return typeof document !== 'undefined' && document.getElementById
+  /* 缓存元素引用：portal 常驻 DOM，避免过渡期间每帧 getElementById */
+  if (genreWorldPortalCached && genreWorldPortalCached.isConnected) return genreWorldPortalCached;
+  genreWorldPortalCached = typeof document !== 'undefined' && document.getElementById
     ? document.getElementById('genre-world-portal')
     : null;
+  return genreWorldPortalCached;
 }
 
 function genreWorldTransitionCurrentId() {
@@ -42,22 +48,33 @@ function genreWorldTransitionReduced(opts) {
 }
 
 function genreWorldTransitionSetPhase(phase, progress) {
+  var phaseChanged = genreWorldTransitionState.phase !== phase;
   genreWorldTransitionState.phase = phase;
   var portal = genreWorldTransitionPortal();
   if (!portal) return;
-  portal.dataset.phase = phase;
-  portal.dataset.fromWorld = genreWorldTransitionState.fromWorldId || '';
-  portal.dataset.targetWorld = genreWorldTransitionState.targetWorldId || '';
-  portal.dataset.failed = genreWorldTransitionState.failed ? 'true' : 'false';
-  portal.dataset.motion = genreWorldTransitionState.reducedMotion ? 'reduced' : 'full';
-  portal.classList.toggle('is-active', phase !== 'idle');
-  portal.classList.toggle('is-closing', phase === 'closing');
-  portal.classList.toggle('is-crossing', phase === 'crossing');
-  portal.classList.toggle('is-opening', phase === 'opening');
-  portal.classList.toggle('is-failed', genreWorldTransitionState.failed);
+  /* dataset/class 只在 phase 变化时写入，避免过渡期间每帧重复操作 */
+  if (phaseChanged) {
+    portal.dataset.phase = phase;
+    portal.dataset.fromWorld = genreWorldTransitionState.fromWorldId || '';
+    portal.dataset.targetWorld = genreWorldTransitionState.targetWorldId || '';
+    portal.dataset.failed = genreWorldTransitionState.failed ? 'true' : 'false';
+    portal.dataset.motion = genreWorldTransitionState.reducedMotion ? 'reduced' : 'full';
+    portal.classList.toggle('is-active', phase !== 'idle');
+    portal.classList.toggle('is-closing', phase === 'closing');
+    portal.classList.toggle('is-crossing', phase === 'crossing');
+    portal.classList.toggle('is-opening', phase === 'opening');
+    portal.classList.toggle('is-failed', genreWorldTransitionState.failed);
+  }
   if (portal.style && typeof portal.style.setProperty === 'function') {
-    portal.style.setProperty('--portal-progress', String(Math.max(0, Math.min(1, progress || 0))));
-    portal.style.setProperty('--portal-duration', genreWorldTransitionState.duration + 'ms');
+    if (phaseChanged) {
+      portal.style.setProperty('--portal-duration', genreWorldTransitionState.duration + 'ms');
+    }
+    /* progress 量化到 1% 粒度，值未变化时跳过 setProperty，避免每帧强制样式重算 */
+    var quantized = Math.round(Math.max(0, Math.min(1, progress || 0)) * 100) / 100;
+    if (quantized !== genreWorldTransitionState._lastProgress) {
+      genreWorldTransitionState._lastProgress = quantized;
+      portal.style.setProperty('--portal-progress', String(quantized));
+    }
   }
 }
 
@@ -218,11 +235,14 @@ function cancelGenreWorldTransition(opts) {
   genreWorldTransitionState.phase = 'idle';
   genreWorldTransitionState.fromWorldId = '';
   genreWorldTransitionState.targetWorldId = '';
+  /* 清空 activeWorldId：避免引擎停止后残留旧值，导致下次冷启动多走一次完整过渡 */
+  genreWorldTransitionState.activeWorldId = '';
   genreWorldTransitionState.startedAt = 0;
   genreWorldTransitionState.duration = 0;
   genreWorldTransitionState.reducedMotion = false;
   genreWorldTransitionState.switched = false;
   genreWorldTransitionState.context = null;
+  genreWorldTransitionState._lastProgress = -1;
   if (!opts.preserveFailure) genreWorldTransitionState.failed = false;
   genreWorldTransitionSetPhase('idle', 0);
   return true;

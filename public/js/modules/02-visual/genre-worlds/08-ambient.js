@@ -1,66 +1,119 @@
-/* OrangeSea · Ambient world: tidal virtual horizon. */
+/* OrangeSea · Ambient world: slow displaced fog sea, no beat flash. */
 (function registerAmbientWorld() {
   if (typeof registerGenreWorld !== 'function' || typeof GenreWorldPrimitives === 'undefined') return;
   var P = GenreWorldPrimitives;
 
-  function mesh(THREE, kind, args, materialValue, parent, name) {
-    var value = new THREE.Mesh(P.geometry(THREE, kind, args), materialValue);
-    value.name = name;
-    parent.add(value);
-    return value;
+  function fragHead() {
+    var C = P.shaderChunks();
+    return [
+      'precision highp float;',
+      'uniform float uTime,uBass,uMid,uHigh,uEnergy,uBeat,uHasCover;',
+      'uniform vec3 uAccent;',
+      'uniform sampler2D uCover;',
+      'varying vec2 vUv;',
+      C.hash, C.cover
+    ].join('\n');
   }
 
   var kit = {
     create: function (ctx) {
       var THREE = ctx.THREE;
-      var root = P.group(THREE, 'ambient-tidal-void', ctx.root);
-      var low = P.group(THREE, 'slow-terrain-tide', root);
-      var mid = P.group(THREE, 'monolith-fabric-field', root);
-      var high = P.group(THREE, 'mist-sea-horizon', root);
-      var stone = P.material(THREE, 'MeshStandardMaterial', {
-        color: 0x38434c, metalness: 0.08, roughness: 0.96
-      });
-      var fabric = P.material(THREE, 'MeshStandardMaterial', {
-        color: 0x7d8c91, transparent: true, opacity: 0.48, metalness: 0.02, roughness: 0.9, side: THREE.DoubleSide
-      });
-      var terrainWire = P.material(THREE, 'MeshBasicMaterial', {
-        color: 0x6f858b, transparent: true, opacity: 0.2,
-        wireframe: true, depthWrite: false, side: THREE.DoubleSide
-      });
-      var mist = P.material(THREE, 'MeshBasicMaterial', {
-        color: 0xa8c7ce, transparent: true, opacity: 0.13,
-        depthWrite: false, side: THREE.DoubleSide
-      });
-      var terrain = mesh(THREE, 'PlaneGeometry', [18, 18, 16, 16], terrainWire, low, 'slow-terrain-wave');
-      terrain.rotation.x = -Math.PI / 2;
-      terrain.position.y = -0.55;
+      var vis = P.visualizerRoot(THREE, ctx, 'ambient-tidal-void');
+      var uniforms = P.audioUniforms(THREE, 0x70d8cc, P.dummyCover(THREE));
       var detailNodes = [];
-      for (var i = 0; i < 7; i++) {
-        var monolith = mesh(THREE, 'BoxGeometry', [0.75 + i % 2 * 0.4, 2.2 + i * 0.42, 0.8], stone, mid, 'tidal-monolith');
-        monolith.position.set((i - 3) * 1.8, 0.6 + i * 0.2, -1.5 + i % 3 * 1.7);
-        monolith.rotation.y = i * 0.29;
-        detailNodes.push(monolith);
-        var veil = mesh(THREE, 'PlaneGeometry', [1.5, 3 + i % 3], fabric, mid, 'floating-fabric-veil');
-        veil.position.set(monolith.position.x + 0.7, 2.2, monolith.position.z - 0.35);
-        veil.rotation.y = i * 0.35;
-        detailNodes.push(veil);
+
+      var stone = P.material(THREE, 'MeshBasicMaterial', { color: 0x33404a });
+      var fabric = P.material(THREE, 'MeshBasicMaterial', { color: 0x6d848c, transparent: true, opacity: 0.2 });
+      var mistCore = P.material(THREE, 'MeshBasicMaterial', { color: 0x9fc4c8, transparent: true, opacity: 0.08 });
+
+      var sky = P.shaderPlane(THREE, vis.low, 'tidal-sky', [24, 14], uniforms, [
+        fragHead(),
+        'void main(){',
+        '  float h=vUv.y;',
+        '  vec3 col=mix(vec3(0.02,0.05,0.06),uAccent,0.12+h*0.22);',
+        '  gl_FragColor=vec4(col,1.0);',
+        '}'
+      ].join('\n'), { renderOrder: -5 });
+      sky.position.set(0, 1.2, -10);
+
+      var tideVert = [
+        'uniform float uTime,uEnergy,uBass;',
+        'varying vec2 vUv;',
+        'void main(){',
+        '  vUv=uv;',
+        '  vec3 p=position;',
+        '  p.z+=sin(p.x*0.38+uTime*0.32)* (0.16+uEnergy*0.42);',
+        '  p.z+=sin(p.y*0.26+uTime*0.18)*0.1;',
+        '  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);',
+        '}'
+      ].join('\n');
+
+      var terrain = P.shaderPlane(THREE, vis.low, 'slow-terrain-wave', [18, 16], uniforms, [
+        fragHead(),
+        'void main(){',
+        '  float n=noise21(vUv*4.0+uTime*0.05);',
+        '  vec3 col=mix(vec3(0.03,0.07,0.08),uAccent,0.28+n*0.25+uEnergy*0.15);',
+        '  float fade=smoothstep(1.0,0.2,vUv.y);',
+        '  gl_FragColor=vec4(col,0.42*fade);',
+        '}'
+      ].join('\n'), {
+        vertex: tideVert,
+        blending: THREE.AdditiveBlending,
+        renderOrder: 0,
+        segX: 28,
+        segY: 20
+      });
+      terrain.rotation.x = -Math.PI / 2;
+      terrain.position.y = -0.85;
+
+      for (var j = 0; j < 5; j++) {
+        var mist = P.shaderPlane(THREE, vis.high, 'mist-sea-layer', [16 - j * 0.7, 2.6], uniforms, [
+          fragHead(),
+          'void main(){',
+          '  float n=noise21(vUv*vec2(1.4,3.0)+vec2(uTime*0.03,0.0));',
+          '  float a=(0.1+n*0.16+uEnergy*0.08)*smoothstep(0.0,0.35,vUv.y)*smoothstep(1.0,0.6,vUv.y);',
+          '  gl_FragColor=vec4(uAccent*0.7,a);',
+          '}'
+        ].join('\n'), { renderOrder: 1 });
+        mist.position.set(0, -0.2 + j * 0.08, -2.4 + j * 1.1);
+        mist.userData.detailIndex = j;
+        mist.userData.detailMin = j / 10;
+        detailNodes.push(mist);
       }
-      for (var j = 0; j < 7; j++) {
-        var mistLayer = mesh(THREE, 'PlaneGeometry', [14 - j * 0.7, 3.2], mist, high, 'mist-sea-layer');
-        mistLayer.position.set(0, -0.18 + j * 0.07, -5.4 + j * 1.55);
-        mistLayer.rotation.x = -Math.PI / 2 + (j - 3) * 0.01;
-        mistLayer.userData.detailIndex = j;
-        mistLayer.userData.detailMin = j / 7;
-        detailNodes.push(mistLayer);
-      }
-      P.light(THREE, 'AmbientLight', 0x829aa2, 0.62, 0, root);
-      var horizonLight = P.light(THREE, 'DirectionalLight', 0xc6e0dd, 1.15, 0, root);
-      horizonLight.position.set(-3, 5, -4);
-      var state = {
-        layers: { low: low, mid: mid, high: high },
+
+      var veil = P.shaderPlane(THREE, vis.mid, 'horizon-cover-veil', [5.5, 2.8], uniforms, [
+        fragHead(),
+        'void main(){',
+        '  vec3 cover=sampleCover(vUv*vec2(1.0,0.45)+vec2(0.0,0.3));',
+        '  float h=smoothstep(0.15,0.7,vUv.y)*smoothstep(0.95,0.55,vUv.y);',
+        '  vec3 col=mix(uAccent*0.45,cover,0.35+uMid*0.2);',
+        '  gl_FragColor=vec4(col,h*(0.22+uEnergy*0.18));',
+        '}'
+      ].join('\n'), { renderOrder: 2 });
+      veil.position.set(0, 0.55, -3.2);
+
+      var motes = P.particles(THREE, 80, 12, {
+        color: 0xbfe8e2, size: 0.08, transparent: true, opacity: 0.45,
+        depthWrite: false, sizeAttenuation: true,
+        blending: THREE.AdditiveBlending,
+        map: P.glowTexture(THREE) || undefined
+      }, P.random('tidal-motes'));
+      motes.name = 'tidal-motes';
+      vis.high.add(motes);
+      detailNodes.push(terrain, veil, motes);
+
+      P.light(THREE, 'AmbientLight', 0x0c2428, 0.45, 0, vis.root);
+      var horizonLight = P.light(THREE, 'PointLight', 0x70d8cc, 1.1, 16, vis.root);
+      horizonLight.position.set(0, 1.2, -4);
+      var keyLight = P.light(THREE, 'PointLight', 0x718bbd, 0.5, 12, vis.root);
+      keyLight.position.set(-2, 2.2, 2);
+
+      vis.root.userData.genreWorldState = {
+        layers: { low: vis.low, mid: vis.mid, high: vis.high },
         detailNodes: detailNodes,
-        coreMaterials: [stone, fabric, terrainWire, mist],
-        accentMaterials: [],
+        coreMaterials: [stone, fabric, mistCore],
+        accentMaterials: [terrain.material, veil.material],
+        uniforms: uniforms,
         accent: new THREE.Color(0x8ebdc2),
         variant: 'tidal',
         accentLight: horizonLight,
@@ -68,15 +121,10 @@
         tide: 0,
         disposed: false
       };
-      root.userData.genreWorldState = state;
-      if (ctx.root && root.parent !== ctx.root) ctx.root.add(root);
-      if (ctx.camera && ctx.camera.position) {
-        ctx.camera.position.set(0, 6.2, 16.5);
-        ctx.camera.fov = 52;
-        if (typeof ctx.camera.lookAt === 'function') ctx.camera.lookAt(0, 1.8, -1.5);
-        if (typeof ctx.camera.updateProjectionMatrix === 'function') ctx.camera.updateProjectionMatrix();
-      }
-      return root;
+      if (ctx.root && vis.root.parent !== ctx.root) ctx.root.add(vis.root);
+      P.frameCamera(ctx.camera, { x: 0, y: 2.35, z: 8.0, lookY: 0.22, lookZ: -2.8, fov: 50 });
+      P.bindCover(uniforms);
+      return vis.root;
     },
 
     applyTrack: function (track, ctx, root) {
@@ -86,22 +134,21 @@
       state.variant = track.visualVariant || 'tidal';
       for (var i = 0; i < state.accentMaterials.length; i++) P.setAccent(state.accentMaterials[i], state.accent);
       if (state.accentLight && state.accentLight.color) state.accentLight.color.set(state.accent);
+      P.writeAudio(state.uniforms, { bass: 0, mid: 0, high: 0, energy: 0, beat: 0 }, 0, state.accent);
+      P.bindCover(state.uniforms);
     },
 
     update: function (frame, ctx, root) {
       if (!root || !root.userData || !root.userData.genreWorldState || root.userData.genreWorldState.disposed) return;
       var state = root.userData.genreWorldState;
-      var audio = P.readFrame(frame);
+      var audio = P.tickVisualizer(state, frame, {
+        bassScale: 0.07, bassSmooth: 0.05, midSpin: 0.0016, midBase: 0.00015,
+        highLift: 0.4, highBase: 0.35, highSmooth: 0.045
+      });
       var time = Number(frame && frame.time) || 0;
       state.tide = P.smooth(state.tide, audio.energy * 0.5 + audio.low * 0.25 + audio.mid * 0.25, 0.035);
-      state.layers.low.scale.x = state.layers.low.scale.z = P.smooth(state.layers.low.scale.x, 1 + audio.bass * 0.08, 0.055);
-      state.layers.low.scale.y = 1 + state.tide * 0.018;
-      state.layers.low.position.y = Math.sin(time * 0.08) * 0.08;
-      state.layers.mid.rotation.y += 0.00015 + audio.mid * 0.0018;
-      state.layers.mid.position.y = P.smooth(state.layers.mid.position.y, state.tide * 0.28, 0.045);
-      state.layers.high.position.y = P.smooth(state.layers.high.position.y, 0.5 + audio.high * 0.45, 0.045);
-      state.layers.high.rotation.z = Math.sin(time * 0.045) * 0.018;
-      state.horizonLight.intensity = 0.9 + state.tide * 0.65 + audio.high * 0.18;
+      if (state.horizonLight) state.horizonLight.intensity = 0.9 + state.tide * 0.55 + audio.high * 0.12;
+      state.layers.high.rotation.z = Math.sin(time * 0.045) * 0.015;
     },
 
     renderLyrics: function (frame, ctx) {
@@ -111,12 +158,11 @@
 
     setQuality: function (profile, ctx, root) {
       if (!root || !root.userData || !root.userData.genreWorldState) return;
-      var state = root.userData.genreWorldState;
-      P.applyQualityBudget(state, profile, root);
+      P.applyQualityBudget(root.userData.genreWorldState, profile, root);
     },
 
     dispose: function (root) {
-      if (!root || !root.userData || !root.userData.genreWorldState || root.userData.genreWorldState.disposed) return;
+      if (!root || !root.userData || root.userData.genreWorldState.disposed) return;
       root.userData.genreWorldState.disposed = true;
       P.dispose(root);
     }

@@ -109,6 +109,183 @@ var GenreWorldPrimitives = (function () {
     ));
   }
 
+  /* ------------------------------------------------------------------ */
+  /* 程序化纹理：无外部资源，全部 Canvas 生成；非浏览器环境安全回退 null */
+  /* ------------------------------------------------------------------ */
+
+  function canvasTexture(THREE, draw, width, height) {
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    if (!THREE || typeof THREE.CanvasTexture !== 'function') return null;
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext && canvas.getContext('2d');
+      if (!ctx) return null;
+      draw(ctx, width, height);
+      var texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return ownResource(texture);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /* 灰度径向辉光：核心亮、边缘透明，靠材质 color 染色，可随专辑主色重着色 */
+  function glowTexture(THREE) {
+    return canvasTexture(THREE, function (ctx, w, h) {
+      var half = w / 2;
+      var gradient = ctx.createRadialGradient(half, half, 0, half, half, half);
+      gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.18, 'rgba(255,255,255,.92)');
+      gradient.addColorStop(0.42, 'rgba(255,255,255,.34)');
+      gradient.addColorStop(0.72, 'rgba(255,255,255,.08)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+    }, 128, 128);
+  }
+
+  /* 竖直渐变贴图：用于雾海/烟层的上下柔和过渡 */
+  function gradientTexture(THREE, stops) {
+    return canvasTexture(THREE, function (ctx, w, h) {
+      var gradient = ctx.createLinearGradient(0, 0, 0, h);
+      for (var i = 0; i < stops.length; i++) gradient.addColorStop(stops[i][0], stops[i][1]);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+    }, 8, 128);
+  }
+
+  /* 楼宇窗灯：透明底 + 稀疏暖白窗格，作 emissiveMap 使用 */
+  function windowTexture(THREE, opts) {
+    opts = opts || {};
+    var cols = finite(opts.cols, 8);
+    var rows = finite(opts.rows, 22);
+    var litRatio = finite(opts.litRatio, 0.42);
+    var tint = opts.tint || '255,214,140';
+    var seed = typeof opts.random === 'function' ? opts.random : random(opts.seed || 'windows');
+    return canvasTexture(THREE, function (ctx, w, h) {
+      ctx.clearRect(0, 0, w, h);
+      var cw = w / cols;
+      var ch = h / rows;
+      for (var c = 0; c < cols; c++) {
+        for (var r = 0; r < rows; r++) {
+          if (seed() > litRatio) continue;
+          var alpha = 0.35 + seed() * 0.6;
+          ctx.fillStyle = 'rgba(' + tint + ',' + alpha.toFixed(3) + ')';
+          ctx.fillRect(c * cw + cw * 0.22, r * ch + ch * 0.24, cw * 0.56, ch * 0.42);
+        }
+      }
+    }, 64, 176);
+  }
+
+  function glowPlane(THREE, color, size, opts) {
+    opts = opts || {};
+    var texture = glowTexture(THREE);
+    var materialValue = material(THREE, 'MeshBasicMaterial', {
+      color: color == null ? 0xffffff : color,
+      transparent: true,
+      opacity: finite(opts.opacity, 0.5),
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      map: texture || undefined
+    });
+    var plane = new THREE.Mesh(
+      geometry(THREE, 'PlaneGeometry', [size, size]),
+      materialValue
+    );
+    plane.name = opts.name || 'glow';
+    plane.renderOrder = finite(opts.renderOrder, 2);
+    if (opts.parent && typeof opts.parent.add === 'function') opts.parent.add(plane);
+    return plane;
+  }
+
+  function applySkyVertexColors(THREE, geometryValue, stops) {
+    if (!geometryValue || typeof geometryValue.setAttribute !== 'function') return false;
+    var position = geometryValue.attributes && geometryValue.attributes.position;
+    if (!position || !position.count || typeof THREE.Float32BufferAttribute !== 'function') return false;
+    var topColor = new THREE.Color(stops.top);
+    var horizonColor = new THREE.Color(stops.horizon);
+    var belowColor = new THREE.Color(stops.below != null ? stops.below : stops.horizon);
+    var bandTop = finite(stops.bandTop, 0.3);
+    var bandBottom = finite(stops.bandBottom, -0.12);
+    var colors = [];
+    var array = position.array;
+    for (var i = 0; i < position.count; i++) {
+      var t = array[i * 3 + 1];
+      var color;
+      if (t >= bandTop) color = horizonColor.clone().lerp(topColor, Math.min(1, (t - bandTop) / (1 - bandTop + 0.0001)));
+      else if (t <= bandBottom) color = horizonColor.clone().lerp(belowColor, Math.min(1, (bandBottom - t) / (bandBottom + 1 + 0.0001)));
+      else color = horizonColor.clone();
+      colors.push(color.r, color.g, color.b);
+    }
+    geometryValue.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    return true;
+  }
+
+  /* 天空穹顶：倒扣大球，顶点色三段渐变（天顶/地平线/地下），每世界的环境基调 */
+  function skyDome(THREE, opts) {
+    opts = opts || {};
+    var radius = finite(opts.radius, 46);
+    var geometryValue = geometry(THREE, 'IcosahedronGeometry', [radius, finite(opts.detail, 3)]);
+    var materialValue = material(THREE, 'MeshBasicMaterial', {
+      color: opts.below != null ? opts.below : (opts.horizon != null ? opts.horizon : 0x05070c),
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    var dome = new THREE.Mesh(geometryValue, materialValue);
+    dome.name = opts.name || 'world-sky';
+    dome.renderOrder = -10;
+    if (applySkyVertexColors(THREE, geometryValue, {
+      top: opts.top != null ? opts.top : 0x02030a,
+      horizon: opts.horizon != null ? opts.horizon : 0x0a1220,
+      below: opts.below != null ? opts.below : 0x04050a,
+      bandTop: finite(opts.bandTop, 0.3),
+      bandBottom: finite(opts.bandBottom, -0.12)
+    })) {
+      materialValue.vertexColors = true;
+    }
+    if (opts.parent && typeof opts.parent.add === 'function') opts.parent.add(dome);
+    return dome;
+  }
+
+  /* 星野：上半球壳分布的辉光点，配合 additive 贴图形成柔和星空 */
+  function stars(THREE, count, radius, color, opts) {
+    opts = opts || {};
+    count = Math.max(1, Math.floor(finite(count, 120)));
+    var seed = typeof opts.random === 'function' ? opts.random : random(opts.seed || 'stars');
+    var geometryValue = ownResource(new THREE.BufferGeometry());
+    var positions = [];
+    for (var i = 0; i < count; i++) {
+      var theta = seed() * Math.PI * 2;
+      var phi = Math.acos(finite(opts.minY, 0.05) + seed() * (1 - finite(opts.minY, 0.05)));
+      var r = radius * (0.82 + seed() * 0.18);
+      positions.push(
+        r * Math.sin(phi) * Math.cos(theta),
+        r * Math.cos(phi),
+        r * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+    geometryValue.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    var texture = glowTexture(THREE);
+    var points = ownResource(new THREE.Points(geometryValue, material(THREE, 'PointsMaterial', {
+      color: color == null ? 0xffffff : color,
+      size: finite(opts.size, 0.55),
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: finite(opts.opacity, 0.8),
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      map: texture || undefined
+    })));
+    points.name = opts.name || 'world-stars';
+    points.renderOrder = -6;
+    if (opts.parent && typeof opts.parent.add === 'function') opts.parent.add(points);
+    return points;
+  }
+
   function validColor(value) {
     if (typeof value === 'number') return isFinite(value) && value >= 0 && value <= 0xffffff;
     if (typeof value !== 'string') return false;
@@ -286,10 +463,219 @@ var GenreWorldPrimitives = (function () {
     };
   }
 
+  var GLSL_HASH = [
+    'float hash11(float n){return fract(sin(n)*43758.5453123);}',
+    'float hash21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+    'float noise21(vec2 p){',
+    '  vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);',
+    '  return mix(mix(hash21(i),hash21(i+vec2(1.0,0.0)),f.x),mix(hash21(i+vec2(0.0,1.0)),hash21(i+vec2(1.0,1.0)),f.x),f.y);',
+    '}'
+  ].join('\n');
+
+  var GLSL_COVER = [
+    'vec3 sampleCover(vec2 uv){',
+    '  vec2 s=clamp(uv,0.0,1.0);',
+    '  if(uHasCover<0.5){',
+    '    float g=0.28+0.55*s.y;',
+    '    return mix(uAccent*0.28, mix(uAccent,vec3(1.0),0.42), g);',
+    '  }',
+    '  return texture2D(uCover,s).rgb;',
+    '}'
+  ].join('\n');
+
+  var GLSL_VERT_UV = [
+    'varying vec2 vUv;',
+    'void main(){',
+    '  vUv=uv;',
+    '  gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);',
+    '}'
+  ].join('\n');
+
+  function shaderChunks() {
+    return { hash: GLSL_HASH, cover: GLSL_COVER, vertUv: GLSL_VERT_UV };
+  }
+
+  function audioUniforms(THREE, accentHex, coverTexture) {
+    return {
+      uTime: { value: 0 },
+      uBass: { value: 0 },
+      uMid: { value: 0 },
+      uHigh: { value: 0 },
+      uEnergy: { value: 0 },
+      uBeat: { value: 0 },
+      uHasCover: { value: 0 },
+      uAccent: { value: new THREE.Color(accentHex == null ? 0xffffff : accentHex) },
+      uCover: { value: coverTexture || null }
+    };
+  }
+
+  function dummyCover(THREE) {
+    return canvasTexture(THREE, function (ctx, w, h) {
+      ctx.fillStyle = '#6a6a6a';
+      ctx.fillRect(0, 0, w, h);
+    }, 4, 4);
+  }
+
+  function bindCover(uniforms) {
+    var tex = (typeof coverTex !== 'undefined' && coverTex) ? coverTex : null;
+    var has = !!(tex && tex.image);
+    var list = Array.isArray(uniforms) ? uniforms : (uniforms ? [uniforms] : []);
+    for (var i = 0; i < list.length; i++) {
+      var u = list[i];
+      if (!u) continue;
+      if (u.uCover) u.uCover.value = tex || u.uCover.value;
+      if (u.uHasCover) u.uHasCover.value = has ? 1 : 0;
+    }
+    return tex;
+  }
+
+  function writeAudio(targets, audio, time, accent) {
+    var list = Array.isArray(targets) ? targets : (targets ? [targets] : []);
+    audio = audio || {};
+    for (var i = 0; i < list.length; i++) {
+      var u = list[i];
+      if (!u) continue;
+      if (u.uTime) u.uTime.value = finite(time, 0);
+      if (u.uBass) u.uBass.value = clamp01(audio.bass);
+      if (u.uMid) u.uMid.value = clamp01(audio.mid);
+      if (u.uHigh) u.uHigh.value = clamp01(audio.high);
+      if (u.uEnergy) u.uEnergy.value = clamp01(audio.energy);
+      if (u.uBeat) u.uBeat.value = clamp01(audio.beat);
+      if (u.uAccent && accent && u.uAccent.value && typeof u.uAccent.value.set === 'function') {
+        u.uAccent.value.set(accent);
+      }
+    }
+  }
+
+  function shaderMaterial(THREE, options) {
+    options = options || {};
+    if (!THREE || typeof THREE.ShaderMaterial !== 'function') {
+      return material(THREE, 'MeshBasicMaterial', {
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false
+      });
+    }
+    return ownResource(new THREE.ShaderMaterial({
+      uniforms: options.uniforms || {},
+      vertexShader: options.vertex || options.vertexShader || GLSL_VERT_UV,
+      fragmentShader: options.fragment || options.fragmentShader || [
+        'precision highp float; varying vec2 vUv; uniform vec3 uAccent;',
+        'void main(){ gl_FragColor = vec4(uAccent, 1.0); }'
+      ].join('\n'),
+      transparent: options.transparent !== false,
+      depthWrite: options.depthWrite === true,
+      depthTest: options.depthTest !== false,
+      blending: options.blending != null ? options.blending : THREE.NormalBlending,
+      side: options.side != null ? options.side : THREE.DoubleSide
+    }));
+  }
+
+  function shaderPlane(THREE, parent, name, size, uniforms, fragment, opts) {
+    opts = opts || {};
+    var width = Array.isArray(size) ? finite(size[0], 4) : finite(size, 4);
+    var height = Array.isArray(size) ? finite(size[1], width) : width;
+    var mesh = new THREE.Mesh(
+      geometry(THREE, 'PlaneGeometry', [
+        width, height,
+        Math.max(1, Math.floor(finite(opts.segX, 1))),
+        Math.max(1, Math.floor(finite(opts.segY, 1)))
+      ]),
+      shaderMaterial(THREE, {
+        uniforms: uniforms,
+        vertex: opts.vertex || GLSL_VERT_UV,
+        fragment: fragment,
+        transparent: opts.transparent,
+        depthWrite: opts.depthWrite,
+        blending: opts.blending,
+        side: opts.side
+      })
+    );
+    mesh.name = name || 'shader-plane';
+    mesh.renderOrder = finite(opts.renderOrder, 0);
+    if (parent && typeof parent.add === 'function') parent.add(mesh);
+    return mesh;
+  }
+
+  function noiseTexture(THREE) {
+    var seed = random('genre-noise');
+    return canvasTexture(THREE, function (ctx, w, h) {
+      var image = ctx.createImageData(w, h);
+      for (var i = 0; i < w * h; i++) {
+        var n = Math.floor(seed() * 256);
+        image.data[i * 4] = n;
+        image.data[i * 4 + 1] = n;
+        image.data[i * 4 + 2] = n;
+        image.data[i * 4 + 3] = 255;
+      }
+      ctx.putImageData(image, 0, 0);
+    }, 64, 64);
+  }
+
+  function frameCamera(camera, opts) {
+    opts = opts || {};
+    if (!camera || !camera.position || typeof camera.position.set !== 'function') return false;
+    camera.position.set(finite(opts.x, 0), finite(opts.y, 1.6), finite(opts.z, 6.2));
+    if (opts.fov != null) camera.fov = finite(opts.fov, 42);
+    if (typeof camera.lookAt === 'function') {
+      camera.lookAt(finite(opts.lookX, 0), finite(opts.lookY, 0.2), finite(opts.lookZ, 0));
+    }
+    if (typeof camera.updateProjectionMatrix === 'function') camera.updateProjectionMatrix();
+    return true;
+  }
+
+  function visualizerRoot(THREE, ctx, name) {
+    var root = group(THREE, name, ctx && ctx.root);
+    return {
+      root: root,
+      low: group(THREE, name + '-atmosphere', root),
+      mid: group(THREE, name + '-hero', root),
+      high: group(THREE, name + '-spark', root)
+    };
+  }
+
+  function driveLayers(state, audio, opts) {
+    if (!state || !state.layers) return;
+    opts = opts || {};
+    audio = audio || {};
+    var layers = state.layers;
+    var bassAmt = opts.bassScale != null ? opts.bassScale : 0.16;
+    var bassSmooth = opts.bassSmooth != null ? opts.bassSmooth : 0.28;
+    layers.low.scale.x = layers.low.scale.z = smooth(
+      layers.low.scale.x, 1 + clamp01(audio.bass) * bassAmt, bassSmooth
+    );
+    if (opts.keepScaleY !== false) layers.low.scale.y = 1;
+    layers.mid.rotation.y += (opts.midBase != null ? opts.midBase : 0.0018) + clamp01(audio.mid) * (opts.midSpin != null ? opts.midSpin : 0.01);
+    layers.high.position.y = smooth(
+      layers.high.position.y,
+      (opts.highBase != null ? opts.highBase : 0) + clamp01(audio.high) * (opts.highLift != null ? opts.highLift : 0.85),
+      opts.highSmooth != null ? opts.highSmooth : 0.22
+    );
+  }
+
+  function tickVisualizer(state, frame, opts) {
+    if (!state || state.disposed) return null;
+    var audio = readFrame(frame);
+    writeAudio(state.uniforms, audio, frame && frame.time, state.accent);
+    bindCover(state.uniforms);
+    driveLayers(state, audio, opts);
+    return audio;
+  }
+
   function setAccent(materialValue, color) {
     if (!materialValue || !color) return;
     if (materialValue.color && typeof materialValue.color.set === 'function') materialValue.color.set(color);
     if (materialValue.emissive && typeof materialValue.emissive.set === 'function') materialValue.emissive.set(color);
+  }
+
+  /* 面向相机的辉光板：无后处理时模拟 bloom 的核心手段 */
+  function billboardToCamera(plane, camera) {
+    if (!plane || !camera) return false;
+    if (!plane.quaternion || !camera.quaternion ||
+      typeof plane.quaternion.copy !== 'function') return false;
+    plane.quaternion.copy(camera.quaternion);
+    return true;
   }
 
   function dispose(root) {
@@ -347,6 +733,14 @@ var GenreWorldPrimitives = (function () {
     geometry: geometry,
     light: light,
     particles: particles,
+    canvasTexture: canvasTexture,
+    glowTexture: glowTexture,
+    gradientTexture: gradientTexture,
+    windowTexture: windowTexture,
+    glowPlane: glowPlane,
+    skyDome: skyDome,
+    stars: stars,
+    billboardToCamera: billboardToCamera,
     accentColor: accentColor,
     readFrame: readFrame,
     smooth: smooth,
@@ -360,6 +754,18 @@ var GenreWorldPrimitives = (function () {
     pool: pool,
     setAccent: setAccent,
     dispose: dispose,
-    clamp01: clamp01
+    clamp01: clamp01,
+    shaderChunks: shaderChunks,
+    audioUniforms: audioUniforms,
+    dummyCover: dummyCover,
+    bindCover: bindCover,
+    writeAudio: writeAudio,
+    shaderMaterial: shaderMaterial,
+    shaderPlane: shaderPlane,
+    noiseTexture: noiseTexture,
+    frameCamera: frameCamera,
+    visualizerRoot: visualizerRoot,
+    driveLayers: driveLayers,
+    tickVisualizer: tickVisualizer
   };
 })();
