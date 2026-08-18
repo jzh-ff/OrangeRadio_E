@@ -158,7 +158,7 @@ function readUpdateConfig(pkg) {
   };
 }
 const APP_PACKAGE = readPackageInfo();
-const APP_VERSION = process.env.MINERADIO_VERSION || APP_PACKAGE.version || '1.0.0';
+const APP_VERSION = process.env.MINERADIO_VERSION || APP_PACKAGE.version || '1.0.1';
 const UPDATE_CONFIG = readUpdateConfig(APP_PACKAGE);
 
 /* ---------- 汽水解密缓存 ---------- */
