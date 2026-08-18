@@ -1,3 +1,31 @@
+# 卸载反馈页（2026-08-18）
+
+## 功能与开关
+
+- 卸载向导第一页为「卸载反馈页」：品牌暗色风格（与安装器欢迎页同款 14100A/F5F0E6/FF7A3D 配色），含多行「建议 / 卸载原因」框、单行「联系方式」框（灰字提示），可全部留空直接下一步。
+- 开关：`build/installer.nsh` 顶部的 `MINERADIO_FEEDBACK_ENDPOINT`。
+  - **保持注释（默认）= 功能整体关闭**，卸载器恢复 electron-builder 默认欢迎页，行为与旧版完全一致（含默认外观与 DPI 行为）。
+  - 取消注释并填入自建接收器的对外地址（形如 `https://你的域名/feedback`）即启用。
+  - 接收器在 `tools/uninstall-feedback-server/`（零依赖 Node 单文件 + 部署文档），POST 收 JSON 转发 QQ 邮箱，GET 返回网页表单兜底页。
+  - 内测版 `installer-internal-beta.nsh` 复用同一脚本，同一定义同时生效。
+- 为什么自建：Formspree 注册依赖 Firebase（国内浏览器易卡）、formsubmit 与 web3forms 实测均拒绝服务端调用；自建无第三方限额、数据在自己手里。
+- 安全边界不变：`customRemoveFiles`、`un.MineradioValidateUninstallDir`、`un.MineradioRemoveInstalledFiles` 与禁止递归删除等红线一律保留，反馈功能不触碰任何文件删除逻辑。
+
+## 发送链路与约束
+
+- 用户文本只经 `%TEMP%` 临时文件传递（绝不拼进 PowerShell 命令行，防注入）；发送完即删除。
+- 发送脚本为纯 ASCII 无 BOM 的 `.ps1`（ASCII 在任何代码页下字节一致）；数据文件按 BOM 自动判别编码读回（本版 NSIS FileWrite 实际按 GBK 写出）。
+- HTTP 用 `HttpWebRequest` 且 `Proxy=$null` 强制直连（系统代理/VPN 会劫持 127.0.0.1 与外网请求造成假成功）；超时 15s；2xx/3xx 视为成功。
+- 发送失败 → 询问是否打开端点网页表单（自建接收器 GET 即表单页）→ 继续卸载；绝不因反馈失败阻塞或回滚卸载。
+- `/S` 静默卸载与升级覆盖安装不显示反馈页、不发送任何内容。
+- SMTP 授权码只放服务器环境变量（接收器侧），绝不嵌进安装包（可被解包提取）。
+
+## 已知行为（测试实测结论）
+
+- 本版 NSIS 的 `FileWrite` 按本地代码页（GBK）写出而非 UTF-16；`FileWriteWord` 写 BOM 后同句柄仍为 GBK——这就是发送脚本必须纯 ASCII、数据文件必须 BOM 判别的原因。
+- PowerShell 对 `.ps1` 解析失败仍可能返回 exit 0（假成功），因此退出码判定只在其真正执行到状态码检查时可靠；脚本内函数名不可用单字母（`R` 会撞上内置别名 `r` = Invoke-History，别名优先级高于函数）。
+- 卸载器 `$INSTDIR` 依赖注册表 `HKCU\Software\<appId>\InstallLocation`（MultiUser 初始化），该值缺失时会回退默认路径 `C:\...\Programs\OrangeSea` 并被安全校验拦截（报「无法确认当前目录属于 OrangeSea」）——属既有设计，非反馈功能引入。
+
 # 2026-06-25 P0 Installer Safety Notes
 
 - Full setup adoption rule: the installer may adopt an existing registered install only when the registered path itself is a dedicated `...\Mineradio` directory and contains Mineradio files or `.mineradio-install-root`; mixed parent folders and drive roots must stay blocked/quarantined.

@@ -59,6 +59,27 @@
   !define MINERADIO_INSTALL_NOTICE ""
 !endif
 
+; ── 卸载反馈页 ─────────────────────────────────────────────────────────────
+; 卸载向导第一页是"反馈页"（建议/卸载原因 + 联系方式），填写后 POST JSON 到下方端点，
+; 由自建接收器转发到开发者邮箱 1226163446@qq.com；发送失败会询问是否打开网页表单兜底，
+; 绝不阻塞卸载。
+; 关闭状态（默认）：保持下面这行注释，卸载器使用 electron-builder 默认欢迎页，行为与旧版一致。
+; 开启方法：部署 tools/uninstall-feedback-server/ 到云服务器（见其 README，含 QQ 邮箱 SMTP
+;           配置），把对外地址（形如 https://你的域名/feedback）取消注释填入，重新打包。
+;           端点要求：POST JSON 返回 2xx；GET 返回网页表单（接收器两者都内置）。
+; 安全边界：SMTP 授权码只放服务器环境变量，绝不进安装包（安装包可被解包提取授权码）；
+;           也不可用 Formspree/formsubmit/web3forms 等表单服务——实测均拒绝服务端调用。
+!define MINERADIO_FEEDBACK_ENDPOINT "http://82.156.224.145:8787/feedback"
+
+; 卸载器暗色外观钩子：必须放在端点 define 之后、MUI 页面插入之前
+!ifdef BUILD_UNINSTALLER
+  !ifdef MINERADIO_FEEDBACK_ENDPOINT
+    !ifndef MUI_CUSTOMFUNCTION_UNGUIINIT
+      !define MUI_CUSTOMFUNCTION_UNGUIINIT un.MineradioUnGuiInit
+    !endif
+  !endif
+!endif
+
 !ifndef BUILD_UNINSTALLER
   Var MineradioWelcomePage
   Var MineradioHeroFont
@@ -963,6 +984,11 @@ FunctionEnd
 
 !ifdef BUILD_UNINSTALLER
 !macro customUnInit
+  !ifdef MINERADIO_FEEDBACK_ENDPOINT
+    ; 反馈页启用时必须在卸载器窗口创建前声明 DPI 感知（与安装器 customInit 同款时序），
+    ; 放在 un.onGUIInit 会因窗口已按非感知上下文创建而整体缩小成 96DPI 物理像素
+    Call un.MineradioEnableDpiAwareness
+  !endif
   Call un.MineradioValidateUninstallDir
 !macroend
 
@@ -1080,4 +1106,346 @@ Function un.MineradioRemoveInstalledFiles
 
   RMDir "$INSTDIR"
 FunctionEnd
+!endif
+
+; ═══════════════════════════ 卸载反馈页 ═══════════════════════════
+; 仅在定义了 MINERADIO_FEEDBACK_ENDPOINT 时编入卸载器：
+; 作为卸载向导第一页（替换默认英文欢迎页），收集建议/联系方式，
+; 通过系统自带 PowerShell POST JSON 到端点（Formspree 转发到开发者邮箱）。
+; 用户文本只经临时 UTF-16 文件传递，绝不拼进命令行（防注入/防编码错乱）。
+!ifdef BUILD_UNINSTALLER
+!ifdef MINERADIO_FEEDBACK_ENDPOINT
+
+!macro customUnWelcomePage
+  UninstPage custom un.MineradioFeedbackShow un.MineradioFeedbackLeave
+!macroend
+
+Var MineradioUnFeedbackDialog
+Var MineradioUnFeedbackText
+Var MineradioUnFeedbackContact
+Var MineradioUnTitleFont
+Var MineradioUnBodyFont
+Var MineradioUnSmallFont
+
+!ifndef EM_SETCUEBANNER
+  !define EM_SETCUEBANNER 0x1501
+!endif
+
+; 逐行写入反馈发送脚本（纯 ASCII，用户文本不进入脚本）
+!macro MineradioUnFeedbackWriteLine HANDLE TEXT
+  FileWrite ${HANDLE} "${TEXT}$\r$\n"
+!macroend
+
+Function un.MineradioEnableDpiAwareness
+  System::Call 'user32::SetProcessDpiAwarenessContext(p -4) i .r0'
+  ${If} $0 == 0
+    System::Call 'shcore::SetProcessDpiAwareness(i 2) i .r0'
+  ${EndIf}
+  ${If} $0 == 0
+    System::Call 'user32::SetProcessDPIAware() i .r0'
+  ${EndIf}
+FunctionEnd
+
+Function un.MineradioTintCommonControls
+  SetCtlColors $HWNDPARENT "F5F0E6" "14100A"
+
+  GetDlgItem $0 $HWNDPARENT 1
+  ${If} $0 <> 0
+    SetCtlColors $0 "F5F0E6" "14100A"
+  ${EndIf}
+  GetDlgItem $0 $HWNDPARENT 2
+  ${If} $0 <> 0
+    SetCtlColors $0 "F5F0E6" "14100A"
+  ${EndIf}
+  GetDlgItem $0 $HWNDPARENT 3
+  ${If} $0 <> 0
+    SetCtlColors $0 "F5F0E6" "14100A"
+  ${EndIf}
+
+  GetDlgItem $0 $HWNDPARENT 1037
+  ${If} $0 <> 0
+    SetCtlColors $0 "F5F0E6" "14100A"
+  ${EndIf}
+  GetDlgItem $0 $HWNDPARENT 1038
+  ${If} $0 <> 0
+    SetCtlColors $0 "C9A87A" "14100A"
+  ${EndIf}
+
+  FindWindow $0 "#32770" "" $HWNDPARENT
+  ${If} $0 <> 0
+    SetCtlColors $0 "F5F0E6" "14100A"
+
+    GetDlgItem $1 $0 1000
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1001
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1004
+    ${If} $1 <> 0
+      SetCtlColors $1 "FF7A3D" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1006
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1016
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1019
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1020
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1023
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1024
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1027
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1201
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1202
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1203
+    ${If} $1 <> 0
+      SetCtlColors $1 "F5F0E6" "14100A"
+    ${EndIf}
+    GetDlgItem $1 $0 1204
+    ${If} $1 <> 0
+      SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function un.MineradioUnGuiInit
+  ; 暗色标题栏 (DWMWA_USE_IMMERSIVE_DARKMODE=20, DWMWA_CAPTION_COLOR=19)
+  System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 20, *i 1, i 4) i .r0'
+  System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 19, *i 1, i 4) i .r0'
+  Call un.MineradioTintCommonControls
+FunctionEnd
+
+; 去掉 $9 首尾空白/换行，并截断到 NSIS 字符串安全长度
+Function un.MineradioFeedbackTrim
+  Exch $9
+
+  trim_head:
+    StrLen $8 "$9"
+    StrCmp $8 0 trim_done
+    StrCpy $7 "$9" 1 0
+    StrCmp $7 " " cut_head
+    StrCmp $7 "$\t" cut_head
+    StrCmp $7 "$\r" cut_head
+    StrCmp $7 "$\n" cut_head
+    Goto trim_tail
+
+  cut_head:
+    StrCpy $9 "$9" "" 1
+    Goto trim_head
+
+  trim_tail:
+    StrLen $8 "$9"
+    StrCmp $8 0 trim_done
+    StrCpy $7 "$9" 1 -1
+    StrCmp $7 " " cut_tail
+    StrCmp $7 "$\t" cut_tail
+    StrCmp $7 "$\r" cut_tail
+    StrCmp $7 "$\n" cut_tail
+    Goto trim_done
+
+  cut_tail:
+    StrCpy $9 "$9" -1
+    Goto trim_tail
+
+  trim_done:
+    StrCpy $9 "$9" 1024
+
+  Exch $9
+FunctionEnd
+
+Function un.MineradioFeedbackShow
+  ; 静默卸载（含升级覆盖安装）不显示反馈页
+  ${If} ${Silent}
+    Abort
+  ${EndIf}
+
+  nsDialogs::Create 1018
+  Pop $MineradioUnFeedbackDialog
+  ${If} $MineradioUnFeedbackDialog == error
+    Abort
+  ${EndIf}
+
+  SetCtlColors $MineradioUnFeedbackDialog "F5F0E6" "14100A"
+  CreateFont $MineradioUnTitleFont "Microsoft YaHei UI" 14 700
+  CreateFont $MineradioUnBodyFont "Microsoft YaHei UI" 9 400
+  CreateFont $MineradioUnSmallFont "Microsoft YaHei UI" 8 400
+
+  ; 品牌标记（顶部小字，橙色）
+  ${NSD_CreateLabel} 20u 5u 200u 9u "${MINERADIO_INSTALL_BRAND}"
+  Pop $0
+  SendMessage $0 ${WM_SETFONT} $MineradioUnSmallFont 1
+  SetCtlColors $0 "FF7A3D" "14100A"
+
+  ; 页面标题
+  ${NSD_CreateLabel} 20u 17u 268u 16u "要和 OrangeSea 说再见了吗？"
+  Pop $0
+  SendMessage $0 ${WM_SETFONT} $MineradioUnTitleFont 1
+  SetCtlColors $0 "F5F0E6" "14100A"
+
+  ; 橙色分隔线
+  ${NSD_CreateLabel} 20u 36u 44u 2u ""
+  Pop $0
+  SetCtlColors $0 "" "FF7A3D"
+
+  ; 说明文案（含隐私说明，可全部留空跳过）
+  ${NSD_CreateLabel} 20u 44u 268u 30u "如果哪里做得不好，或想留下建议，欢迎告诉开发者；也可以留个 QQ / 邮箱方便回复。内容会发送到开发者邮箱，仅用于改进 OrangeSea；全部留空则直接继续卸载。"
+  Pop $0
+  SendMessage $0 ${WM_SETFONT} $MineradioUnBodyFont 1
+  SetCtlColors $0 "C9A87A" "14100A"
+
+  ; 建议 / 卸载原因
+  ${NSD_CreateLabel} 20u 78u 200u 10u "建议 / 卸载原因（可选）"
+  Pop $0
+  SendMessage $0 ${WM_SETFONT} $MineradioUnSmallFont 1
+  SetCtlColors $0 "FF7A3D" "14100A"
+
+  ; 注意：CreateControl 的样式参数只接受数值串（nsDialogs.nsh 已将 WS_*/ES_* 定义为数值），
+  ; 直接写标志名会导致插件解析失败、控件不创建
+  nsDialogs::CreateControl "EDIT" "${WS_CHILD}|${WS_VISIBLE}|${WS_CLIPSIBLINGS}|${WS_TABSTOP}|${ES_MULTILINE}|${ES_WANTRETURN}|${WS_VSCROLL}|${ES_AUTOVSCROLL}" "${WS_EX_WINDOWEDGE}|${WS_EX_CLIENTEDGE}" 20u 90u 268u 32u ""
+  Pop $MineradioUnFeedbackText
+  SendMessage $MineradioUnFeedbackText ${WM_SETFONT} $MineradioUnBodyFont 1
+  SetCtlColors $MineradioUnFeedbackText "14100A" "F5F0E6"
+
+  ; 联系方式（单行，灰字提示）
+  ${NSD_CreateText} 20u 126u 268u 13u ""
+  Pop $MineradioUnFeedbackContact
+  SendMessage $MineradioUnFeedbackContact ${WM_SETFONT} $MineradioUnBodyFont 1
+  SetCtlColors $MineradioUnFeedbackContact "14100A" "F5F0E6"
+  SendMessage $MineradioUnFeedbackContact ${EM_SETCUEBANNER} 1 "STR:联系方式（可选）：QQ / 邮箱"
+
+  nsDialogs::Show
+FunctionEnd
+
+Function un.MineradioFeedbackLeave
+  ${NSD_GetText} $MineradioUnFeedbackText $0
+  Push $0
+  Call un.MineradioFeedbackTrim
+  Pop $0
+
+  ${NSD_GetText} $MineradioUnFeedbackContact $1
+  Push $1
+  Call un.MineradioFeedbackTrim
+  Pop $1
+
+  ; 全部留空 = 直接继续卸载
+  ${If} $0 == ""
+  ${AndIf} $1 == ""
+    Return
+  ${EndIf}
+
+  ; 附加应用版本（卸载注册表，per-user 安装）
+  ReadRegStr $2 SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}" DisplayVersion
+  ${If} $2 == ""
+    ReadRegStr $2 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${UNINSTALL_APP_KEY}" DisplayVersion
+  ${EndIf}
+  ${If} $2 == ""
+    StrCpy $2 "unknown"
+  ${EndIf}
+
+  StrCpy $3 "$TEMP\orangesea-uninstall-feedback.txt"
+  StrCpy $4 "$TEMP\orangesea-uninstall-contact.txt"
+  StrCpy $5 "$TEMP\orangesea-uninstall-send.ps1"
+
+  ; 用户文本经临时文件传递（不进命令行，规避注入）；本版 NSIS 的 FileWrite 按本地
+  ; 代码页（GBK）写出，PowerShell 侧按 BOM 自动判别编码读回（见发送脚本 ReadTextFile）
+  ClearErrors
+  FileOpen $6 "$3" w
+  ${IfNot} ${Errors}
+    FileWrite $6 "$0"
+    FileClose $6
+  ${EndIf}
+
+  FileOpen $6 "$4" w
+  ${IfNot} ${Errors}
+    FileWrite $6 "$1"
+    FileClose $6
+  ${EndIf}
+
+  ; 发送脚本：纯 ASCII、无 BOM（FileWrite 按本地代码页写，ASCII 在任何代码页下字节一致，
+  ; PowerShell 无论按什么编码读都得到相同内容；PS 的 $ 一律写成 $$）
+  FileOpen $6 "$5" w
+  ${If} ${Errors}
+    Goto un_feedback_fallback
+  ${EndIf}
+  !insertmacro MineradioUnFeedbackWriteLine $6 "param([string]$$FeedbackFile,[string]$$ContactFile,[string]$$Version,[string]$$Endpoint)"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "function ReadTextFile([string]$$p){"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$b=[IO.File]::ReadAllBytes($$p)"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  if($$b.Length -ge 2 -and $$b[0] -eq 255 -and $$b[1] -eq 254){ [Text.Encoding]::Unicode.GetString($$b) } else { [Text.Encoding]::Default.GetString($$b) }"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "}"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "try {"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$feedback = ReadTextFile $$FeedbackFile"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$contact = ReadTextFile $$ContactFile"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$payload = @{ feedback = $$feedback; contact = $$contact; version = $$Version; app = '${MINERADIO_MARKER_APP_ID}'; os = [Environment]::OSVersion.VersionString; time = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz') } | ConvertTo-Json -Compress"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req = [Net.HttpWebRequest]::Create($$Endpoint)"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.Method = 'POST'"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.ContentType = 'application/json; charset=utf-8'"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.Accept = 'application/json'"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.Timeout = 15000"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.ReadWriteTimeout = 15000"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.Proxy = $$null"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.AllowAutoRedirect = $$false"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$data = [Text.Encoding]::UTF8.GetBytes($$payload)"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$req.ContentLength = $$data.Length"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$ws = $$req.GetRequestStream()"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$ws.Write($$data, 0, $$data.Length)"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$ws.Close()"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  $$code = 0"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  try { $$rr = $$req.GetResponse(); $$code = [int]$$rr.StatusCode; $$rr.Close() } catch [Net.WebException] { if ($$_.Exception.Response) { $$code = [int]$$_.Exception.Response.StatusCode } }"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  if ($$code -ge 200 -and $$code -lt 400) { exit 0 }"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  exit 1"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "} catch {"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "  exit 1"
+  !insertmacro MineradioUnFeedbackWriteLine $6 "}"
+  FileClose $6
+
+  nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$5" "$3" "$4" "$2" "${MINERADIO_FEEDBACK_ENDPOINT}"'
+  Pop $7
+  ${If} $7 == 0
+    DetailPrint "Mineradio: uninstall feedback sent."
+  ${Else}
+    DetailPrint "Mineradio: uninstall feedback failed (exit $7)."
+    Goto un_feedback_fallback
+  ${EndIf}
+  Goto un_feedback_done
+
+  un_feedback_fallback:
+    MessageBox MB_ICONINFORMATION|MB_YESNO "反馈没有发送成功（网络或服务不可用）。$\r$\n$\r$\n要打开网页反馈表单重新提交吗？选择「否」将直接继续卸载。" IDYES un_feedback_open_web
+    Goto un_feedback_done
+
+  un_feedback_open_web:
+    ExecShell "open" "${MINERADIO_FEEDBACK_ENDPOINT}"
+
+  un_feedback_done:
+  Delete "$3"
+  Delete "$4"
+  Delete "$5"
+FunctionEnd
+
+!endif
 !endif
