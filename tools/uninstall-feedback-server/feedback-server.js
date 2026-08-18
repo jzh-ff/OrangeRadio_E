@@ -229,9 +229,10 @@ const server = http.createServer((req, res) => {
 
     let mailed = false;
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-      const subject = `[OrangeSea 卸载反馈] v${record.version || '?'} ${record.contact ? '· ' + record.contact : ''}`;
+      const isInapp = String(record.app || '').indexOf('inapp') >= 0;
+      const subject = `[OrangeSea ${isInapp ? '客户端反馈' : '卸载反馈'}] v${record.version || '?'} ${record.contact ? '· ' + record.contact : ''}`;
       const text =
-        `建议 / 卸载原因：\n${record.feedback || '（未填写）'}\n\n` +
+        `${isInapp ? '反馈内容：' : '建议 / 卸载原因：'}\n${record.feedback || '（未填写）'}\n\n` +
         `联系方式：${record.contact || '（未填写）'}\n` +
         `版本：${record.version || '?'}   渠道：${record.app || '?'}\n` +
         `系统：${record.os || '?'}\n` +

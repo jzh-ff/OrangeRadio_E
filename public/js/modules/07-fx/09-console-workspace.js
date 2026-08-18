@@ -274,6 +274,9 @@ var FX_CONSOLE_LAYOUT = [
       { key: 'cache', title: '缓存与存储', hint: '统一缓存目录、占用和各类路径', items: [
         fxConsoleItem('cache-storage-panel', '本地缓存', '缓存路径 缓存目录 占用 歌词 封面 音频 更新', false)
       ] },
+      { key: 'feedback', title: '问题反馈', hint: '问题与建议直达作者邮箱', items: [
+        fxConsoleItem('feedback-panel', '问题反馈', '反馈 问题 建议 bug 报告 意见', false)
+      ] },
       { key: 'support', title: '赞赏支持', hint: '请作者喝杯咖啡', items: [
         fxConsoleItem('support-panel', '赞赏支持', '打赏 捐赠 微信 赞赏码 咖啡 支持', false)
       ] },

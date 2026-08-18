@@ -598,7 +598,8 @@ body.desktop-shell #desktop-titlebar::after {
 
 body.desktop-shell #desktop-titlebar #visual-guide-btn,
 body.desktop-shell #desktop-titlebar #update-entry,
-body.desktop-shell #desktop-titlebar #support-entry {
+body.desktop-shell #desktop-titlebar #support-entry,
+body.desktop-shell #desktop-titlebar #feedback-entry {
   width: 30px;
   height: 30px;
   border-radius: 10px;
@@ -619,7 +620,8 @@ body.desktop-shell #desktop-titlebar #update-entry.available {
 }
 
 body.desktop-shell #desktop-titlebar #update-entry svg,
-body.desktop-shell #desktop-titlebar #support-entry svg {
+body.desktop-shell #desktop-titlebar #support-entry svg,
+body.desktop-shell #desktop-titlebar #feedback-entry svg {
   width: 18px;
   height: 18px
 }
@@ -631,7 +633,8 @@ body.desktop-shell #desktop-titlebar #update-entry::after {
 
 body.desktop-shell #desktop-titlebar #visual-guide-btn:hover,
 body.desktop-shell #desktop-titlebar #update-entry:hover,
-body.desktop-shell #desktop-titlebar #support-entry:hover {
+body.desktop-shell #desktop-titlebar #support-entry:hover,
+body.desktop-shell #desktop-titlebar #feedback-entry:hover {
   background: rgba(255, 83, 103, .10);
   border-color: rgba(255, 83, 103, .32);
   color: #fff;
@@ -17640,7 +17643,8 @@ body.desktop-shell #desktop-titlebar #support-entry:hover .support-heart {
   text-align: center;
 }
 
-.support-modal .modal-close {
+.support-modal .modal-close,
+.feedback-modal .modal-close {
   position: absolute;
   top: 10px;
   right: 12px;
@@ -17656,12 +17660,14 @@ body.desktop-shell #desktop-titlebar #support-entry:hover .support-heart {
   transition: background .2s ease, color .2s ease;
 }
 
-.support-modal .modal-close:hover {
+.support-modal .modal-close:hover,
+.feedback-modal .modal-close:hover {
   background: rgba(255, 255, 255, .08);
   color: #fff;
 }
 
-.support-kicker {
+.support-kicker,
+.feedback-kicker {
   margin-bottom: 6px;
   font-size: 10px;
   font-weight: 700;
@@ -17670,7 +17676,8 @@ body.desktop-shell #desktop-titlebar #support-entry:hover .support-heart {
   color: rgba(255, 148, 120, .85);
 }
 
-.support-title {
+.support-title,
+.feedback-title {
   margin: 0 0 8px;
   font-size: 20px;
   font-weight: 700;
@@ -17707,7 +17714,8 @@ body.desktop-shell #desktop-titlebar #support-entry:hover .support-heart {
   color: rgba(224, 250, 255, .45);
 }
 
-#support-panel {
+#support-panel,
+#feedback-panel {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -17717,13 +17725,283 @@ body.desktop-shell #desktop-titlebar #support-entry:hover .support-heart {
   border: 1px solid rgba(255, 255, 255, .07);
 }
 
-.support-panel-text {
+.support-panel-text,
+.feedback-panel-text {
   font-size: 12px;
   line-height: 1.7;
   color: rgba(224, 250, 255, .72);
 }
 
-.support-panel-actions {
+.support-panel-actions,
+.feedback-panel-actions {
   display: flex;
   gap: 8px;
+}
+
+/* ===== 问题反馈 ===== */
+#feedback-entry .feedback-bubble {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: fill .25s ease;
+}
+
+#feedback-entry .feedback-bubble-dots {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+body.desktop-shell #desktop-titlebar #feedback-entry:hover .feedback-bubble {
+  fill: rgba(255, 148, 120, .14);
+}
+
+.feedback-modal {
+  position: relative;
+  max-width: 360px;
+  padding: 24px 26px 20px;
+  text-align: left;
+}
+
+.feedback-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.feedback-plane {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+}
+
+.feedback-plane-body,
+.feedback-plane-fold {
+  fill: none;
+  stroke: rgba(255, 148, 120, .9);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.feedback-plane-fold {
+  stroke: rgba(244, 210, 138, .85);
+}
+
+.feedback-plane-trail {
+  fill: none;
+  stroke: rgba(224, 250, 255, .30);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1 5;
+}
+
+.feedback-head-text {
+  min-width: 0;
+}
+
+.feedback-sub {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: rgba(224, 250, 255, .62);
+}
+
+.feedback-type-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.feedback-type-pill {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(255, 255, 255, .03);
+  color: rgba(224, 250, 255, .62);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .22s ease, background .22s ease, color .22s ease, box-shadow .22s ease;
+}
+
+.feedback-type-pill:hover {
+  border-color: rgba(255, 148, 120, .35);
+  color: rgba(244, 251, 255, .85);
+}
+
+.feedback-type-pill.active {
+  border-color: rgba(255, 148, 120, .55);
+  background: rgba(255, 148, 120, .12);
+  color: #ffd9c8;
+  box-shadow: inset 0 0 14px rgba(255, 148, 120, .14);
+}
+
+.feedback-textarea,
+.feedback-contact {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(4, 8, 10, .45);
+  color: #eef8ff;
+  font-size: 13px;
+  line-height: 1.65;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .22s ease, box-shadow .22s ease;
+}
+
+.feedback-textarea {
+  min-height: 108px;
+  max-height: 220px;
+  resize: vertical;
+}
+
+.feedback-textarea::placeholder,
+.feedback-contact::placeholder {
+  color: rgba(224, 250, 255, .34);
+}
+
+.feedback-textarea:focus,
+.feedback-contact:focus {
+  border-color: rgba(244, 210, 138, .42);
+  box-shadow: 0 0 0 3px rgba(244, 210, 138, .08);
+}
+
+.feedback-contact {
+  height: 40px;
+  margin-top: 10px;
+}
+
+.feedback-diag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.feedback-diag input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.feedback-diag-box {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  position: relative;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(4, 8, 10, .45);
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.feedback-diag:hover .feedback-diag-box {
+  border-color: rgba(255, 148, 120, .45);
+}
+
+.feedback-diag input:checked + .feedback-diag-box {
+  border-color: rgba(255, 148, 120, .75);
+  background: rgba(255, 148, 120, .18);
+}
+
+.feedback-diag input:checked + .feedback-diag-box::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 5px;
+  height: 9px;
+  border: solid #ffc9b0;
+  border-width: 0 2px 2px 0;
+  transform: rotate(42deg);
+}
+
+.feedback-diag input:focus-visible + .feedback-diag-box {
+  box-shadow: 0 0 0 3px rgba(244, 210, 138, .25);
+}
+
+.feedback-diag-label {
+  font-size: 11.5px;
+  color: rgba(224, 250, 255, .55);
+}
+
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feedback-submit {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: .06em;
+  color: #2b120a;
+  background: linear-gradient(135deg, #ffb28c 0%, #ff9478 55%, #f4a664 100%);
+  box-shadow: 0 6px 22px rgba(255, 148, 120, .24);
+  transition: filter .2s ease, transform .15s ease, opacity .2s ease;
+}
+
+.feedback-submit:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.feedback-submit:active {
+  transform: translateY(0);
+}
+
+.feedback-submit:disabled {
+  opacity: .65;
+  cursor: default;
+  transform: none;
+}
+
+.feedback-web-fallback {
+  font-size: 11.5px;
+  color: rgba(224, 250, 255, .55);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.feedback-web-fallback:hover {
+  color: rgba(244, 210, 138, .9);
+}
+
+.feedback-status {
+  min-height: 16px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  color: rgba(224, 250, 255, .45);
+}
+
+.feedback-status.busy {
+  color: rgba(244, 210, 138, .85);
+}
+
+.feedback-status.good {
+  color: #9fe6b8;
+}
+
+.feedback-status.fail {
+  color: #ff8f9c;
 }

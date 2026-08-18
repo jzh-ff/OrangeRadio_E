@@ -24,6 +24,7 @@ const routeModules = [
   require('./server/routes/local'),
   require('./server/routes/listen'),
   require('./server/routes/update'),
+  require('./server/routes/feedback'),
   require('./server/routes/beatmap'),
   require('./server/routes/discover'),
   require('./server/routes/search'),

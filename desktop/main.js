@@ -5515,6 +5515,7 @@ function configureLocalServerEnvironment(port) {
     process.env.SPOTIFY_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.spotify-credentials.json');
   }
   process.env.MINERADIO_UPDATE_DIR = getUpdateDownloadDir();
+  process.env.ORANGESEA_STARTUP_ERROR_LOG = path.join(STABLE_USER_DATA_PATH, 'startup-error.log');
 }
 
 const APP_OWNED_MIGRATION_FILES = [
