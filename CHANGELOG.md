@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.0.0 - 2026-08-18
+
+OrangeSea 第一个正式版。项目自此脱离上游版本序列，以自有版本号发布。
+
+- 新增**赞赏支持**：窗口标题栏新增心形入口（位于更新按钮与 DIY 按钮之间），DIY 控制台「系统」页新增「赞赏支持」分组（搜索"打赏 / 捐赠 / 微信 / 咖啡"等关键词可命中），点开即弹赞赏弹窗——微信收款码白底卡片展示，配文「如果 OrangeSea 陪你多听了一首歌，可以请作者喝杯咖啡」；弹窗复用通用 `openGsapModal` 动效，支持点击背景关闭。README 同步新增「赞赏支持」区块（收款码位于 `docs/assets/support/wechat-qr.png`）。
+- 版本号统一为 `1.0.0`：`package.json` 由 `0.1.0` 升至 `1.0.0`（安装器 DisplayVersion 自动跟随）；清除继承自上游的 `v2.0.2` 硬编码残留——更新弹窗静态占位符（`index.html`）、前端更新状态默认值（`01-perf-render-state.js`）、服务端版本兜底值（`server/context.js`）。应用内更新检测保持默认关闭（`mineradio.update.provider: "none"`），README「更新机制」描述与实际行为对齐。
 
 - 启动页新增**内置视频轮换**：内置背景视频从 1 个扩充为 4 个（`splash.mp4` + 新增 `splash-2/3/4.mp4`，均 720p，新视频已去除音轨并 faststart 优化加载，海报自动截帧生成）；DIY 控制台「启动与退出」组新增「内置启动视频」分段切换（随机 / 视频一~四），默认随机——每次启动轮换一个；选择即时生效并持久化（localStorage `orangesea-splash-preset-v1`），自定义 MP4 仍优先于内置选择；任一视频加载失败自动回退到视频一。顺手修复本地静态服务器缺少 `.mp4` MIME（此前以 `text/plain` 返回靠浏览器嗅探播放）。
 

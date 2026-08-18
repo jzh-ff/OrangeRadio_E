@@ -8,18 +8,19 @@ OrangeSea 是一款 Windows 桌面沉浸式音乐播放器，把搜索播放、�
 
 ## 当前版本
 
-当前版本：`0.1.0`
+当前版本：`1.0.0`
 
-状态：OrangeSea 0.1.0 开发版（尚在打磨中）。
+状态：OrangeSea 1.0.0 第一个正式版。
 
 > 安全提示：请从可信来源获取安装包，不要运行来源不明的可执行文件。`v1.0.10` 及更早的旧 Mineradio 安装包不再建议继续安装或传播。
 
 ## 发布状态
 
-OrangeSea 目前处于开发阶段，暂未提供正式安装包。如需体验上游成熟版本，可前往上游项目获取：
+OrangeSea 自 `v1.0.0` 起提供 Windows 正式安装包（`OrangeSea-1.0.0-Setup.exe`，NSIS 安装向导）。可从仓库 Release 页或可信分发渠道获取，也可参照下方「开发运行」自行构建。
 
 | 入口 | 说明 | 链接 |
 | --- | --- | --- |
+| OrangeSea GitHub Release | 正式版安装包 | [OrangeRadio_E Releases](https://github.com/jzh-ff/OrangeRadio_E/releases) |
 | 上游 Mineradio GitHub Release | 上游成熟版本 | [Mineradio Releases](https://github.com/XxHuberrr/Mineradio/releases) |
 
 ## 下载或安装被拦截怎么办
@@ -29,6 +30,12 @@ OrangeSea 目前处于开发阶段，暂未提供正式安装包。如需体验�
 1. 浏览器下载栏提示风险时，打开下载列表，点这条下载右侧的 `...` 三个点，选择 `保留` / `仍要保留` / `显示更多` 后继续保留。
 2. Windows SmartScreen 弹出蓝色拦截窗口时，点 `更多信息`，再点 `仍要运行`。
 3. 如果杀毒软件明确显示木马、高危或已经隔离，不要强行运行；删除该文件后重新下载，仍然异常请带截图反馈给作者。
+
+## 赞赏支持
+
+如果 OrangeSea 陪你多听了一首歌，可以请作者喝杯咖啡。
+
+![微信赞赏码](./docs/assets/support/wechat-qr.png)
 
 ## 核心特性
 
@@ -43,7 +50,6 @@ OrangeSea 目前处于开发阶段，暂未提供正式安装包。如需体验�
 - 右键唤起 3D 歌单架，支持歌单队列浏览
 - 网易云音乐、QQ 音乐、酷狗音乐、汽水音乐、Spotify 账号与音源接入
 - 本地音乐库扫描与播放
-- GitHub Releases 更新检测与下载入口
 - 首次启动内置「默认测试」视觉用户存档，软件内默认视觉参数与该存档一致
 
 ## 使用说明
@@ -67,9 +73,9 @@ npm run build:win
 
 ## 更新机制
 
-OrangeSea 会请求 GitHub Releases latest 检测新版本。远端版本高于本地版本时，应用内更新入口会展示 Release 内容、下载安装包到本机用户数据目录，并通过系统打开安装包。
+应用内更新检测当前默认关闭（`package.json` 的 `mineradio.update.provider` 为 `none`）。手动更新方式：下载新版本安装包直接覆盖安装，用户数据与设置不受影响。
 
-本地验证更新链路时，可以通过 `MINERADIO_UPDATE_MANIFEST` 指向一个本地 manifest JSON 或 HTTP 地址来模拟线上 Release。
+如需启用在线更新检测，可将 `provider` 配置为 `github` 并填写仓库信息；本地验证更新链路时，也可以通过 `MINERADIO_UPDATE_MANIFEST` 指向一个本地 manifest JSON 或 HTTP 地址来模拟线上 Release。
 
 ## 第三方音乐平台说明
 
