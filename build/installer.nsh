@@ -127,6 +127,17 @@ FunctionEnd
   Call un.MineradioRemoveInstalledFiles
 !macroend
 
+!macro customUnInstall
+  ; 卸载 Section 开头：给刚显示的卸载进度页染色（1018 面板/进度条/详情框）
+  Call un.MineradioTintInstFiles
+!macroend
+
+; 卸载模板此检查点位于 MUI_UNPAGE_INSTFILES 之后、MUI_UNPAGE_FINISH 之前，
+; define 会被卸载完成页消费作 show 回调（完成页 label 每次显示时才创建，GuiInit 染不到）
+!macro customUninstallPage
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW un.MineradioTintCommonControls
+!macroend
+
 !macro customWelcomePage
   Page custom MineradioWelcomeShow
 !macroend
@@ -137,6 +148,10 @@ FunctionEnd
 
 !macro customPageAfterChangeDir
   Page custom MineradioDirectoryShow MineradioDirectoryLeave
+  ; assistedInstaller.nsh 模板中下一个 MUI 页面 = MUI_PAGE_INSTFILES，
+  ; 它会消费此 define 作 show 回调——该页控件创建晚于 GuiInit，
+  ; GuiInit 的一次性染色够不到（1018 白面板/进度条/Show details 按钮都在此时才染）
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW MineradioTintInstFiles
 !macroend
 
 !macro customFinishPage
@@ -157,6 +172,13 @@ FunctionEnd
   !insertmacro MUI_PAGE_FINISH
 !macroend
 
+; 给 Win32 原生控件套 Windows 深色主题（DarkMode_Explorer，Win10 1809+）。
+; SetCtlColors 对 push button 背景无效、对 EDIT 只能改客户区；
+; 按钮底色、EDIT 边框、复选框方框必须靠主题类变暗。旧系统上调用无害，保持浅色回退。
+!macro MineradioApplyDarkTheme HWND
+  System::Call 'uxtheme::SetWindowTheme(p ${HWND}, w "DarkMode_Explorer", p 0)'
+!macroend
+
 !ifndef BUILD_UNINSTALLER
 Function MineradioGuiInit
   Call MineradioEnableDpiAwareness
@@ -172,14 +194,17 @@ Function MineradioTintCommonControls
   GetDlgItem $0 $HWNDPARENT 1
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
   GetDlgItem $0 $HWNDPARENT 2
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
   GetDlgItem $0 $HWNDPARENT 3
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
 
   GetDlgItem $0 $HWNDPARENT 1028
@@ -230,10 +255,17 @@ Function MineradioTintCommonControls
     GetDlgItem $1 $0 1006
     ${If} $1 <> 0
       SetCtlColors $1 "C9A87A" "14100A"
+      !insertmacro MineradioApplyDarkTheme $1
     ${EndIf}
     GetDlgItem $1 $0 1016
     ${If} $1 <> 0
       SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    ; 1018 rect 面板：MUI_BGCOLOR 只作用于欢迎/完成页的 1200 面板，
+    ; instfiles 页这块原生白 rect 是白色大区域的来源
+    GetDlgItem $1 $0 1018
+    ${If} $1 <> 0
+      SetCtlColors $1 "" "14100A"
     ${EndIf}
     GetDlgItem $1 $0 1019
     ${If} $1 <> 0
@@ -254,6 +286,7 @@ Function MineradioTintCommonControls
     GetDlgItem $1 $0 1027
     ${If} $1 <> 0
       SetCtlColors $1 "F5F0E6" "14100A"
+      !insertmacro MineradioApplyDarkTheme $1
     ${EndIf}
     GetDlgItem $1 $0 1201
     ${If} $1 <> 0
@@ -266,10 +299,29 @@ Function MineradioTintCommonControls
     GetDlgItem $1 $0 1203
     ${If} $1 <> 0
       SetCtlColors $1 "F5F0E6" "14100A"
+      ; BUTTON 类控件（完成页"运行"复选框）在视觉样式下由主题绘制文字，
+      ; SetCtlColors 的文字色被忽略（黑字深底不可见），必须去主题后 CTLCOLOR 才生效
+      System::Call 'uxtheme::SetWindowTheme(p $1, w "", p 0)'
     ${EndIf}
     GetDlgItem $1 $0 1204
     ${If} $1 <> 0
       SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function MineradioTintInstFiles
+  Call MineradioTintCommonControls
+
+  ; 进度条 (1016)：主题绘制为浅底且忽略 PBM 颜色消息，先移除视觉样式再上品牌色。
+  ; PBM_SETBKCOLOR=0x2001, PBM_SETBARCOLOR=0x409；颜色参数是 0xBBGGRR
+  FindWindow $0 "#32770" "" $HWNDPARENT
+  ${If} $0 <> 0
+    GetDlgItem $1 $0 1016
+    ${If} $1 <> 0
+      System::Call 'uxtheme::SetWindowTheme(p $1, w "", p 0)'
+      SendMessage $1 0x2001 0 0x0A1014
+      SendMessage $1 0x409 0 0x3D7AFF
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -950,12 +1002,14 @@ Function MineradioDirectoryShow
   ${NSD_CreateText} 20u 76u 190u 14u "$INSTDIR"
   Pop $MineradioDirectoryInput
   SendMessage $MineradioDirectoryInput ${WM_SETFONT} $MineradioBodyFont 1
-  SetCtlColors $MineradioDirectoryInput "14100A" "F5F0E6"
+  SetCtlColors $MineradioDirectoryInput "F5F0E6" "14100A"
+  !insertmacro MineradioApplyDarkTheme $MineradioDirectoryInput
 
   ; 浏览按钮
   ${NSD_CreateBrowseButton} 220u 75u 54u 16u "浏览..."
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioSmallFont 1
+  !insertmacro MineradioApplyDarkTheme $0
   ${NSD_OnClick} $0 MineradioDirectoryBrowse
 
   ; 底部提示
@@ -1152,14 +1206,17 @@ Function un.MineradioTintCommonControls
   GetDlgItem $0 $HWNDPARENT 1
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
   GetDlgItem $0 $HWNDPARENT 2
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
   GetDlgItem $0 $HWNDPARENT 3
   ${If} $0 <> 0
     SetCtlColors $0 "F5F0E6" "14100A"
+    !insertmacro MineradioApplyDarkTheme $0
   ${EndIf}
 
   GetDlgItem $0 $HWNDPARENT 1037
@@ -1190,10 +1247,17 @@ Function un.MineradioTintCommonControls
     GetDlgItem $1 $0 1006
     ${If} $1 <> 0
       SetCtlColors $1 "C9A87A" "14100A"
+      !insertmacro MineradioApplyDarkTheme $1
     ${EndIf}
     GetDlgItem $1 $0 1016
     ${If} $1 <> 0
       SetCtlColors $1 "C9A87A" "14100A"
+    ${EndIf}
+    ; 1018 rect 面板：MUI_BGCOLOR 只作用于欢迎/完成页的 1200 面板，
+    ; instfiles 页这块原生白 rect 是白色大区域的来源
+    GetDlgItem $1 $0 1018
+    ${If} $1 <> 0
+      SetCtlColors $1 "" "14100A"
     ${EndIf}
     GetDlgItem $1 $0 1019
     ${If} $1 <> 0
@@ -1214,6 +1278,7 @@ Function un.MineradioTintCommonControls
     GetDlgItem $1 $0 1027
     ${If} $1 <> 0
       SetCtlColors $1 "F5F0E6" "14100A"
+      !insertmacro MineradioApplyDarkTheme $1
     ${EndIf}
     GetDlgItem $1 $0 1201
     ${If} $1 <> 0
@@ -1226,6 +1291,9 @@ Function un.MineradioTintCommonControls
     GetDlgItem $1 $0 1203
     ${If} $1 <> 0
       SetCtlColors $1 "F5F0E6" "14100A"
+      ; BUTTON 类控件（完成页"运行"复选框）在视觉样式下由主题绘制文字，
+      ; SetCtlColors 的文字色被忽略（黑字深底不可见），必须去主题后 CTLCOLOR 才生效
+      System::Call 'uxtheme::SetWindowTheme(p $1, w "", p 0)'
     ${EndIf}
     GetDlgItem $1 $0 1204
     ${If} $1 <> 0
@@ -1239,6 +1307,24 @@ Function un.MineradioUnGuiInit
   System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 20, *i 1, i 4) i .r0'
   System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 19, *i 1, i 4) i .r0'
   Call un.MineradioTintCommonControls
+FunctionEnd
+
+; 卸载进度页的染色入口。MUI_UNPAGE_INSTFILES 前没有模板检查点可挂 show 回调，
+; 由 customUnInstall 在卸载 Section 开头调用（页面刚显示即生效）。
+; 注意：不能在文件顶部 !define MUI_PAGE_CUSTOMFUNCTION_SHOW——会被更早的
+; PAGE_INSTALL_MODE 消费，且卸载节 Call 非 un. 前缀函数直接编译失败。
+Function un.MineradioTintInstFiles
+  Call un.MineradioTintCommonControls
+
+  FindWindow $0 "#32770" "" $HWNDPARENT
+  ${If} $0 <> 0
+    GetDlgItem $1 $0 1016
+    ${If} $1 <> 0
+      System::Call 'uxtheme::SetWindowTheme(p $1, w "", p 0)'
+      SendMessage $1 0x2001 0 0x0A1014
+      SendMessage $1 0x409 0 0x3D7AFF
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 ; 去掉 $9 首尾空白/换行，并截断到 NSIS 字符串安全长度
@@ -1314,30 +1400,37 @@ Function un.MineradioFeedbackShow
   SetCtlColors $0 "" "FF7A3D"
 
   ; 说明文案（含隐私说明，可全部留空跳过）
-  ${NSD_CreateLabel} 20u 44u 268u 30u "如果哪里做得不好，或想留下建议，欢迎告诉开发者；也可以留个 QQ / 邮箱方便回复。内容会发送到开发者邮箱，仅用于改进 OrangeSea；全部留空则直接继续卸载。"
+  ${NSD_CreateLabel} 20u 42u 268u 30u "如果哪里做得不好，或想留下建议，欢迎告诉开发者；也可以留个 QQ / 邮箱方便回复。内容会发送到开发者邮箱，仅用于改进 OrangeSea；全部留空则直接继续卸载。"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioUnBodyFont 1
   SetCtlColors $0 "C9A87A" "14100A"
 
   ; 建议 / 卸载原因
-  ${NSD_CreateLabel} 20u 78u 200u 10u "建议 / 卸载原因（可选）"
+  ${NSD_CreateLabel} 20u 74u 200u 10u "建议 / 卸载原因（可选）"
   Pop $0
   SendMessage $0 ${WM_SETFONT} $MineradioUnSmallFont 1
   SetCtlColors $0 "FF7A3D" "14100A"
 
   ; 注意：CreateControl 的样式参数只接受数值串（nsDialogs.nsh 已将 WS_*/ES_* 定义为数值），
   ; 直接写标志名会导致插件解析失败、控件不创建
-  nsDialogs::CreateControl "EDIT" "${WS_CHILD}|${WS_VISIBLE}|${WS_CLIPSIBLINGS}|${WS_TABSTOP}|${ES_MULTILINE}|${ES_WANTRETURN}|${WS_VSCROLL}|${ES_AUTOVSCROLL}" "${WS_EX_WINDOWEDGE}|${WS_EX_CLIENTEDGE}" 20u 90u 268u 32u ""
+  nsDialogs::CreateControl "EDIT" "${WS_CHILD}|${WS_VISIBLE}|${WS_CLIPSIBLINGS}|${WS_TABSTOP}|${ES_MULTILINE}|${ES_WANTRETURN}|${WS_VSCROLL}|${ES_AUTOVSCROLL}" "${WS_EX_WINDOWEDGE}|${WS_EX_CLIENTEDGE}" 20u 86u 268u 24u ""
   Pop $MineradioUnFeedbackText
   SendMessage $MineradioUnFeedbackText ${WM_SETFONT} $MineradioUnBodyFont 1
-  SetCtlColors $MineradioUnFeedbackText "14100A" "F5F0E6"
+  ; 深底浅字，边框/滚动条由 DarkMode_Explorer 主题变暗
+  SetCtlColors $MineradioUnFeedbackText "F5F0E6" "14100A"
+  !insertmacro MineradioApplyDarkTheme $MineradioUnFeedbackText
 
-  ; 联系方式（单行，灰字提示）
+  ; 联系方式提示用常显标签：cue banner 灰字不受 SetCtlColors 控制，深底上几乎看不清
+  ${NSD_CreateLabel} 20u 113u 200u 9u "联系方式（可选）：QQ / 邮箱"
+  Pop $0
+  SendMessage $0 ${WM_SETFONT} $MineradioUnSmallFont 1
+  SetCtlColors $0 "FF7A3D" "14100A"
+
   ${NSD_CreateText} 20u 126u 268u 13u ""
   Pop $MineradioUnFeedbackContact
   SendMessage $MineradioUnFeedbackContact ${WM_SETFONT} $MineradioUnBodyFont 1
-  SetCtlColors $MineradioUnFeedbackContact "14100A" "F5F0E6"
-  SendMessage $MineradioUnFeedbackContact ${EM_SETCUEBANNER} 1 "STR:联系方式（可选）：QQ / 邮箱"
+  SetCtlColors $MineradioUnFeedbackContact "F5F0E6" "14100A"
+  !insertmacro MineradioApplyDarkTheme $MineradioUnFeedbackContact
 
   nsDialogs::Show
 FunctionEnd
