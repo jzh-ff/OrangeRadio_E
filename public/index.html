@@ -48,6 +48,12 @@
             <path class="update-arrow" d="M8.7 10.7 12 7.4l3.3 3.3"></path>
           </svg>
         </button>
+        <button id="support-entry" class="icon-btn" type="button" onclick="openSupportModal()" title="赞赏支持"
+          aria-label="赞赏支持">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path class="support-heart" d="M12 20.2s-7.4-4.7-9.5-9.2A5.4 5.4 0 0 1 12 6.5a5.4 5.4 0 0 1 9.5 4.5c-2.1 4.5-9.5 9.2-9.5 9.2z"></path>
+          </svg>
+        </button>
         <button id="diy-mode-btn" class="desktop-mode-btn" type="button" onclick="toggleDiyMode()" title="开启 DIY 玩家模式"
           aria-label="开启 DIY 玩家模式" aria-pressed="false">DIY</button>
         <button class="desktop-window-btn" data-window-action="minimize" title="最小化" aria-label="最小化">
@@ -1049,6 +1055,13 @@
             <code class="cache-storage-path small" id="cache-storage-userdata-path">—</code>
             <div class="fx-sub cache-storage-note" id="cache-storage-note">歌词缓存立即切换；网络、节奏分析、WE 静音场景与更新缓存目录在下次重启后切换。</div>
           </div>
+          <div class="fx-section-label">赞赏支持</div>
+          <div class="support-panel" id="support-panel">
+            <div class="support-panel-text">如果 OrangeSea 陪你多听了一首歌，可以请作者喝杯咖啡。</div>
+            <div class="support-panel-actions">
+              <button class="fx-mini-btn ghost" type="button" onclick="openSupportModal()">查看赞赏码</button>
+            </div>
+          </div>
           <div class="fx-slider"><label>粒子尺寸</label><input id="fx-point" type="range" min="0.5" max="2.2"
               step="0.01"><output></output></div>
           <div class="fx-slider"><label>流速</label><input id="fx-speed" type="range" min="0.2" max="2.5"
@@ -1947,6 +1960,19 @@
           </div>
           <div id="update-footnote" class="update-footnote">预览版只演示更新手感，不会真的下载安装。</div>
         </div>
+      </div>
+    </div>
+
+    <div id="support-modal" class="modal-mask">
+      <div class="modal support-modal">
+        <button class="modal-close" type="button" onclick="closeSupportModal()" title="关闭" aria-label="关闭">×</button>
+        <div class="support-kicker">ORANGESEA</div>
+        <h2 class="support-title">赞赏支持</h2>
+        <p class="support-text">如果 OrangeSea 陪你多听了一首歌，可以请作者喝杯咖啡。</p>
+        <div class="support-qr">
+          <img id="support-qr-img" src="assets/support/wechat-qr.png" alt="微信赞赏码">
+        </div>
+        <div class="support-hint">微信扫码 · 金额随意 · 谢谢你</div>
       </div>
     </div>
 

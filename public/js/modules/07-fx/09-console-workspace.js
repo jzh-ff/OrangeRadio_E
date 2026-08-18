@@ -274,6 +274,9 @@ var FX_CONSOLE_LAYOUT = [
       { key: 'cache', title: '缓存与存储', hint: '统一缓存目录、占用和各类路径', items: [
         fxConsoleItem('cache-storage-panel', '本地缓存', '缓存路径 缓存目录 占用 歌词 封面 音频 更新', false)
       ] },
+      { key: 'support', title: '赞赏支持', hint: '请作者喝杯咖啡', items: [
+        fxConsoleItem('support-panel', '赞赏支持', '打赏 捐赠 微信 赞赏码 咖啡 支持', false)
+      ] },
       { key: 'experimental', title: '实验功能', hint: '尚未开放或需要谨慎使用的能力', items: [
         fxConsoleItem('t-wallpaperMode', '完整桌面模式', '完整 Mineradio 进入桌面层 Ctrl Shift M 切换操作层 本次启动有效', false)
       ] }

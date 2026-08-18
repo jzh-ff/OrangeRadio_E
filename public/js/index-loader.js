@@ -126,6 +126,7 @@
     'js/modules/10-shell/07-mini-player.js',
     'js/modules/10-shell/08-graffiti-lyrics.js',
     'js/modules/10-shell/09-genre-mode.js',
+    'js/modules/10-shell/10-support.js',
     'js/modules/11-main-loop.js',
   ];
 
