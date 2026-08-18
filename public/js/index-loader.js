@@ -128,6 +128,7 @@
     'js/modules/10-shell/09-genre-mode.js',
     'js/modules/10-shell/10-support.js',
     'js/modules/10-shell/11-feedback.js',
+    'js/modules/10-shell/12-taskbar-controls.js',
     'js/modules/11-main-loop.js',
   ];
 

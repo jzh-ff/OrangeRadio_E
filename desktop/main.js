@@ -16,6 +16,9 @@ const miniPlayer = require('./mini-player-runtime');
 // mini-player-runtime 是独立模块，读不到本文件的模块级 mainWindow；
 // 注入 getter 闭包，使其转发动作 / 广播状态时能拿到当前主窗口
 miniPlayer.setMainWindowGetter(() => mainWindow);
+const thumbar = require('./thumbar-runtime');
+// 任务栏缩略图按钮同样通过 getter 拿主窗口
+thumbar.setMainWindowGetter(() => mainWindow);
 const {
   discoverQishuiClientDataRoots,
   discoverQishuiCookieStores,
@@ -4529,6 +4532,8 @@ public static class MineradioShellMessage {
     try {
       win.hookWindowMessage(messageId, () => {
         setTimeout(() => {
+          // explorer 重启后缩略图工具栏会被清空，重设任务栏按钮
+          thumbar.reapplyThumbar();
           reconcileFullDesktopMode('explorer-restarted').catch((reconcileError) => {
             console.warn('[FullDesktopMode] Explorer restart reconcile failed:', reconcileError && reconcileError.message || reconcileError);
           });
@@ -5863,6 +5868,8 @@ async function createWindowOnce() {
 
   win.webContents.on('did-finish-load', () => {
     showMainWindowSafely(win, 'did-finish-load');
+    // 页面（重）加载后设置任务栏缩略图按钮
+    thumbar.reapplyThumbar();
   });
   win.webContents.on('dom-ready', () => {
     showMainWindowSafely(win, 'dom-ready');
@@ -6106,6 +6113,8 @@ if (!gotSingleInstanceLock) {
     }
     // 迷你播放器 IPC 注册
     try { miniPlayer.registerMiniPlayerIpc(); } catch (e) { console.warn('Mini player IPC register failed:', e.message); }
+    // 任务栏缩略图按钮 IPC 注册
+    try { thumbar.registerThumbarIpc(); } catch (e) { console.warn('Thumbar IPC register failed:', e.message); }
     const handleDisplayLayoutChanged = (_event, _display, changedMetrics) => {
       positionDesktopLyricsWindow();
       positionWallpaperWindow(Array.isArray(changedMetrics) ? 'display-metrics-changed' : 'display-layout-changed');

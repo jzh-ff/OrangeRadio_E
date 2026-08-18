@@ -79,6 +79,7 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   setMiniPlayerEnabled: (enabled) => ipcRenderer.invoke('mineradio-mini-player-set-enabled', !!enabled),
   getMiniPlayerEnabled: () => ipcRenderer.invoke('mineradio-mini-player-get-enabled'),
   sendMiniPlayerUpdate: (payload) => ipcRenderer.send('mineradio-mini-player-update', payload || {}),
+  sendPlaybackState: (payload) => ipcRenderer.send('mineradio-playback-state', payload || {}),
   onMiniPlayerEnabledState: (callback) => {
     if (typeof callback !== 'function') return () => {};
     const listener = (_event, payload) => callback(payload || {});
