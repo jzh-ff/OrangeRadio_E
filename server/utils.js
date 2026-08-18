@@ -33,6 +33,7 @@ const MIME = {
   '.jpg':  'image/jpeg',
   '.ico':  'image/x-icon',
   '.svg':  'image/svg+xml',
+  '.mp4':  'video/mp4',
 };
 
 /* ---------- HTTP 响应 ---------- */

@@ -2430,20 +2430,47 @@ function readSavedQishuiCookieHeader() {
 }
 
 function qishuiOfficialClientDataDirCandidates() {
-  let appDataPath = process.env.APPDATA || '';
   let homePath = process.env.USERPROFILE || process.env.HOME || '';
-  try { appDataPath = app.getPath('appData') || appDataPath; } catch (_) {}
   try { homePath = app.getPath('home') || homePath; } catch (_) {}
-  let localAppDataPath = process.env.LOCALAPPDATA || '';
-  if (!localAppDataPath && appDataPath) {
-    localAppDataPath = path.resolve(appDataPath, '..', 'Local');
+  // `sessionData` may be relocated to a custom cache drive (CacheSettings), which
+  // also re-derives `app.getPath('appData')` to that cache root. The official
+  // Qishui/SodaMusic client always lives under the real Windows Roaming dir, so
+  // scan every distinct base instead of trusting a single one.
+  const roamingBases = [];
+  const addRoamingBase = (value) => {
+    const resolved = value ? path.resolve(String(value)) : '';
+    if (resolved && !roamingBases.includes(resolved)) roamingBases.push(resolved);
+  };
+  addRoamingBase(process.env.APPDATA);
+  try { addRoamingBase(app.getPath('appData')); } catch (_) {}
+  const localBases = [];
+  const addLocalBase = (value) => {
+    const resolved = value ? path.resolve(String(value)) : '';
+    if (resolved && !localBases.includes(resolved)) localBases.push(resolved);
+  };
+  addLocalBase(process.env.LOCALAPPDATA);
+  roamingBases.forEach((base) => addLocalBase(path.resolve(base, '..', 'Local')));
+
+  const roots = [];
+  const seenRoots = new Set();
+  const addRoots = (roamingBase, localBase) => {
+    for (const candidate of discoverQishuiClientDataRoots({
+      explicitDirs: QISHUI_OFFICIAL_CLIENT_DATA_DIRS,
+      appDataPath: roamingBase,
+      localAppDataPath: localBase,
+      homePath,
+    })) {
+      const key = path.resolve(candidate.path).toLowerCase();
+      if (seenRoots.has(key)) continue;
+      seenRoots.add(key);
+      roots.push(candidate);
+    }
+  };
+  for (const roamingBase of roamingBases) {
+    addRoots(roamingBase, localBases[0] || '');
   }
-  return discoverQishuiClientDataRoots({
-    explicitDirs: QISHUI_OFFICIAL_CLIENT_DATA_DIRS,
-    appDataPath,
-    localAppDataPath,
-    homePath,
-  });
+  localBases.slice(1).forEach((localBase) => addRoots(roamingBases[0] || '', localBase));
+  return roots;
 }
 
 function readSqliteVarint(buffer, offset, end) {

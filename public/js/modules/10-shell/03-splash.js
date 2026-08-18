@@ -16,6 +16,13 @@ var SPLASH_VIDEO_META_KEY = 'orangesea-splash-video-meta-v1';
 var SPLASH_VIDEO_MAX_BYTES = 300 * 1024 * 1024;
 var SPLASH_VIDEO_DEFAULT_SRC = 'assets/splash/splash.mp4';
 var SPLASH_VIDEO_DEFAULT_POSTER = 'assets/splash/splash-poster.jpg';
+var SPLASH_PRESET_KEY = 'orangesea-splash-preset-v1';
+var SPLASH_VIDEO_PRESETS = [
+  { id: 'splash', label: '视频一', src: SPLASH_VIDEO_DEFAULT_SRC, poster: SPLASH_VIDEO_DEFAULT_POSTER },
+  { id: 'splash-2', label: '视频二', src: 'assets/splash/splash-2.mp4', poster: 'assets/splash/splash-2-poster.jpg' },
+  { id: 'splash-3', label: '视频三', src: 'assets/splash/splash-3.mp4', poster: 'assets/splash/splash-3-poster.jpg' },
+  { id: 'splash-4', label: '视频四', src: 'assets/splash/splash-4.mp4', poster: 'assets/splash/splash-4-poster.jpg' },
+];
 var splashVideoDbPromise = null;
 
 function splashNotify(message) {
@@ -37,6 +44,57 @@ function splashReadVideoMeta() {
     return meta;
   } catch (_error) {
     return null;
+  }
+}
+
+function splashPresetById(id) {
+  for (var i = 0; i < SPLASH_VIDEO_PRESETS.length; i++) {
+    if (SPLASH_VIDEO_PRESETS[i].id === id) return SPLASH_VIDEO_PRESETS[i];
+  }
+  return null;
+}
+
+function splashReadPresetPreference() {
+  try {
+    return String(localStorage.getItem(SPLASH_PRESET_KEY) || '');
+  } catch (_error) {
+    return '';
+  }
+}
+
+function splashResolvePreset() {
+  var preset = splashPresetById(splashReadPresetPreference());
+  if (preset) return preset;
+  return SPLASH_VIDEO_PRESETS[Math.floor(Math.random() * SPLASH_VIDEO_PRESETS.length)] || SPLASH_VIDEO_PRESETS[0];
+}
+
+function renderSplashPresetSeg() {
+  var seg = document.getElementById('splash-preset-seg');
+  if (!seg) return;
+  var value = splashReadPresetPreference();
+  if (value !== 'random') value = splashPresetById(value) ? value : 'random';
+  var buttons = seg.querySelectorAll('button[data-splash-preset]');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].classList.toggle('active', buttons[i].getAttribute('data-splash-preset') === value);
+  }
+}
+
+function setSplashPreset(id) {
+  var value = String(id || 'random');
+  if (value !== 'random' && !splashPresetById(value)) value = 'random';
+  try {
+    localStorage.setItem(SPLASH_PRESET_KEY, value);
+  } catch (_error) { }
+  renderSplashPresetSeg();
+  if (splashReadVideoMeta()) {
+    splashNotify('已记录选择：当前仍使用自定义视频，恢复默认后生效');
+    return;
+  }
+  if (document.body.classList.contains('splash-active')) {
+    applySplashVideoSource();
+    splashNotify('已切换内置启动视频');
+  } else {
+    splashNotify('内置启动视频已选择，下次启动生效');
   }
 }
 
@@ -106,6 +164,7 @@ function splashRenderVideoActions() {
   var clearBtn = document.getElementById('splash-video-clear-btn');
   if (label) label.textContent = meta && meta.name ? meta.name : '默认内置视频';
   if (clearBtn) clearBtn.disabled = !meta;
+  renderSplashPresetSeg();
 }
 
 function extractSplashPosterBlob(file) {
@@ -198,6 +257,13 @@ function bindSplashVideoControls() {
       var file = input.files && input.files[0];
       input.value = '';
       if (file) handleSplashVideoFile(file);
+    });
+  }
+  var seg = document.getElementById('splash-preset-seg');
+  if (seg) {
+    seg.addEventListener('click', function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest('button[data-splash-preset]') : null;
+      if (btn) setSplashPreset(btn.getAttribute('data-splash-preset'));
     });
   }
   splashRenderVideoActions();
@@ -294,9 +360,10 @@ async function applySplashVideoSource() {
     }
   } else {
     if (meta) localStorage.removeItem(SPLASH_VIDEO_META_KEY);
-    video.src = SPLASH_VIDEO_DEFAULT_SRC;
-    video.poster = SPLASH_VIDEO_DEFAULT_POSTER;
-    if (img) img.src = SPLASH_VIDEO_DEFAULT_POSTER;
+    var preset = splashResolvePreset();
+    video.src = preset.src;
+    video.poster = preset.poster;
+    if (img) img.src = preset.poster;
   }
   playSplashVideo();
 }
@@ -310,14 +377,18 @@ function initSplashVideo() {
   });
   video.addEventListener('seeked', captureSplashAlbumFrame);
   video.addEventListener('error', function () {
-    if (!video.getAttribute('src') || video.getAttribute('src') === SPLASH_VIDEO_DEFAULT_SRC) return;
-    localStorage.removeItem(SPLASH_VIDEO_META_KEY);
-    splashRenderVideoActions();
+    var current = video.getAttribute('src') || '';
+    if (!current || current === SPLASH_VIDEO_PRESETS[0].src) return;
+    if (current.indexOf('blob:') === 0) {
+      localStorage.removeItem(SPLASH_VIDEO_META_KEY);
+      splashRenderVideoActions();
+    }
     releaseSplashObjectUrls();
-    video.src = SPLASH_VIDEO_DEFAULT_SRC;
-    video.poster = SPLASH_VIDEO_DEFAULT_POSTER;
+    var preset = SPLASH_VIDEO_PRESETS[0];
+    video.src = preset.src;
+    video.poster = preset.poster;
     var img = document.getElementById('splash-album-art');
-    if (img) img.src = SPLASH_VIDEO_DEFAULT_POSTER;
+    if (img) img.src = preset.poster;
     playSplashVideo();
   });
   applySplashVideoSource();

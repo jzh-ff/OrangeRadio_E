@@ -5254,6 +5254,10 @@ function checkFirstLaunchDefaultsAndSplashGuard() {
     || !/id="splash-video-panel"/.test(html)
     || !/function openSplashVideoPicker/.test(splashText)
     || !/orangesea-splash-video-v1/.test(splashText)
+    || !/SPLASH_VIDEO_PRESETS/.test(splashText)
+    || !/function setSplashPreset/.test(splashText)
+    || !/id="splash-preset-seg"/.test(html)
+    || !/splash-preset-seg/.test(workspace)
     || !/splash-video-panel/.test(workspace)) {
     fail('video splash must keep the enter lifecycle while replacing the sunset shader overlay');
   }

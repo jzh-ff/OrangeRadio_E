@@ -247,6 +247,7 @@ var FX_CONSOLE_LAYOUT = [
         fxConsoleItem('t-startupAutoplay', '启动自动播放', '打开软件继续播放'),
         fxConsoleItem('t-startupFastSkip', '秒启动跳过启动页', '快速启动'),
         fxConsoleItem('splash-video-panel', '启动页视频', '启动页 MP4 自定义 开场视频', false),
+        fxConsoleItem('splash-preset-seg', '内置启动视频', '启动页 内置 视频 随机 切换 轮换', false),
         fxConsoleItem('startup-resume-mode-seg', '恢复播放位置', '按上次进度 重播整首')
       ] },
       { key: 'output', title: '播放输出', hint: '音频输出设备和路由面板', items: [
